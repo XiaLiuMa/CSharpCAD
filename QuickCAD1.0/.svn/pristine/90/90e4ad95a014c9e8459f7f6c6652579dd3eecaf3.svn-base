@@ -1,0 +1,160 @@
+﻿using Max.BaseKit.Exts;
+using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using GaCharSet.Config.Entities;
+using System.Threading.Tasks;
+using GaCharSet.Config;
+using Max.DbToolkit.SqlExtend.Mod;
+
+namespace GaCharSet.WebApi
+{
+    /// <summary>
+    /// 网路摄像机管理
+    /// </summary>
+    [Route("app/res_wlsxj/[action]")]
+    public class Res_wlsxjController : Controller
+    {
+        private CamInfoDal dal = new CamInfoDal();
+
+        /// <summary>
+        /// 加载摄像机坐标列表
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult loadzbs()
+        {
+            CamPointDal dbdal = new CamPointDal();
+            var lst = dbdal.SelectAll();
+            return Json(lst);
+        }
+
+        /// <summary>
+        /// 查询Wlsxj列表
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult query(string condition)
+        {
+            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and SBMC like '%{condition}%'";
+            string where = $"1=1 {qwhere}";
+            var list = dal.Select(where);
+            return Json(list);
+        }
+
+        /// <summary>
+        /// 分页查询Wlsxj
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="page"></param>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult limit(string condition, string page, string rows)
+        {
+            int count = 0;
+            List<CamInfo> list = new List<CamInfo>();
+            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and SBMC like '%{condition}%'";
+            string where = $"1=1 {qwhere}";
+            var flag = dal.SqliteSelectPage(where, int.Parse(page), int.Parse(rows), out list, out count);
+            OutPage<CamInfo> outpage = new OutPage<CamInfo>()
+            {
+                Count = count,
+                Datas = list
+            };
+            return Json(outpage);
+        }
+
+        /// <summary>
+        /// 删除Wlsxj
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult delete(string ids)
+        {
+            string[] idArray = ids.Split(',');
+            var _flag = dal.Delete(idArray);
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 新增Wlsxj
+        /// </summary>
+        /// <param name="sbxh"></param>
+        /// <param name="sbmc"></param>
+        /// <param name="sbip"></param>
+        /// <param name="port"></param>
+        /// <param name="channel"></param>
+        /// <param name="uesrname"></param>
+        /// <param name="userpwd"></param>
+        /// <param name="zbid"></param>
+        /// <param name="mstdh"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult add(string sbxh, string sbmc, string sbip, string port, string channel, string uesrname, string userpwd, string zbid, string mstdh)
+        {
+            CamInfo qbc = new CamInfo()
+            {
+                SBXH = sbxh,
+                SBMC = sbmc,
+                IP = sbip,
+                PORT = port,
+                CHANNEL = channel,
+                USER_NAME = uesrname,
+                USER_PWD = userpwd,
+                ZBID = zbid,
+                MSTDH = mstdh
+            };
+            var _flag = dal.Add(qbc);
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 修改Wlsxj
+        /// </summary>
+        /// <param name="sid"></param>
+        /// <param name="sbxh"></param>
+        /// <param name="sbmc"></param>
+        /// <param name="port"></param>
+        /// <param name="channel"></param>
+        /// <param name="uesrname"></param>
+        /// <param name="userpwd"></param>
+        /// <param name="zbid"></param>
+        /// <param name="mstdh"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult alert(string sid, string sbxh, string sbmc, string sbip, string port, string channel, string uesrname, string userpwd, string zbid, string mstdh)
+        {
+            CamInfo qbc = new CamInfo()
+            {
+                Id = int.Parse(sid),
+                SBXH = sbxh,
+                SBMC = sbmc,
+                IP = sbip,
+                PORT = port,
+                CHANNEL = channel,
+                USER_NAME = uesrname,
+                USER_PWD = userpwd,
+                ZBID = zbid,
+                MSTDH = mstdh
+            };
+            var _flag = dal.Update(qbc);
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 变更后相关事件处理
+        /// </summary>
+        private async Task ChangeAfter()
+        {
+            await Task.Run(() =>
+            {
+
+            });
+        }
+    }
+}

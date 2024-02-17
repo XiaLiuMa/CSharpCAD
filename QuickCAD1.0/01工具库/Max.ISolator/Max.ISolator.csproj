@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>netstandard2.1</TargetFramework>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Minio" Version="3.1.13" />
+		<PackageReference Include="Confluent.Kafka" Version="1.6.3" />
+		<PackageReference Include="RabbitMQ.Client" Version="5.1.0" />
+		<PackageReference Include="SerialPortStream" Version="2.2.2" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Max.BaseKit\Max.BaseKit.csproj" />
+	</ItemGroup>
+
+</Project>

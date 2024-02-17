@@ -1,0 +1,162 @@
+﻿using System;
+using System.Dynamic;
+using System.Reflection;
+using Dapper.Contrib.Extensions;
+using System.Collections.Generic;
+using Max.DbTool.Mod;
+
+namespace Max.DbTool.Imp
+{
+    /// <summary>
+    /// 抽象数据库操作对象【实体T必须基于Dapper配置】
+    /// </summary>
+    public abstract class AbsDbOperate : IDbOperate
+    {
+        /// <summary>
+        /// 获取T表名
+        /// </summary>
+        /// <returns></returns>
+        protected string GetTableName<T>()
+        {
+            string tableName = string.Empty;
+            Attribute oAttribute = typeof(T).GetCustomAttribute(typeof(TableAttribute), true);//获取表特性
+            if (oAttribute != null)//说明有表属性
+            {
+                TableAttribute tableAttribute = oAttribute as TableAttribute;
+                tableName = tableAttribute.Name;
+            }
+            return tableName;
+        }
+
+        /// <summary>
+        /// 获取T主键名称
+        /// </summary>
+        /// <returns></returns>
+        protected List<string> GetPrimaryKeyNames<T>()
+        {
+            /*
+             Dapper将自动使用名为“ id”（不区分大小写）的属性作为Key 属性(所以数据表中最好以ID名称为主键), 
+             如果实体不遵循此约定，请使用[Key]或[ExplicitKey],[Key]应该用于数据库生成的键（例如自动增量列），
+             而[ExplicitKey]应用于非自增生成的键，如GUID
+             */
+            List<string> keyNames = new List<string>();
+            Type type = typeof(T);
+            foreach (PropertyInfo memberInfo in type.GetProperties())
+            {
+                Attribute oAttributeKey = memberInfo.GetCustomAttribute(typeof(KeyAttribute), true);
+                Attribute oAttributeExplicitKey = memberInfo.GetCustomAttribute(typeof(ExplicitKeyAttribute), true);
+                Attribute columnAttribute = memberInfo.GetCustomAttribute(typeof(ColumnAttribute), true);
+                if (oAttributeKey != null || oAttributeExplicitKey != null)
+                {
+                    var primaryKey = memberInfo.Name;
+                    if (columnAttribute != null)
+                    {
+                        ColumnAttribute colAttribute = columnAttribute as ColumnAttribute;
+                        primaryKey = colAttribute.ColumnName;
+                    }
+                    keyNames.Add(primaryKey);
+                }
+            }
+            return keyNames;
+        }
+
+        /// <summary>
+        /// 获取T字段列表
+        /// </summary>
+        /// <returns></returns>
+        protected List<string> GetFields<T>()
+        {
+            //Type type = typeof(T);
+            //foreach (PropertyInfo memberInfo in type.GetProperties())
+            //{
+            //    //获取主键名
+            //    bool isAutoIncrement = false;
+            //    string columnName = GetColumnNameByPropertyInfo(memberInfo, out isAutoIncrement);  //获取列名
+
+            //    if (isVirtualParams)
+            //    {
+            //        if (DbType == DbType.ORACLE)
+            //        {
+            //            sbFields.Append(":" + columnName + ",");
+            //        }
+            //        else
+            //        {
+            //            sbFields.Append("@" + columnName + ",");
+            //        }
+
+            //    }
+            //    else
+            //    {
+            //        sbFields.Append(columnName + ",");
+            //    }
+
+            //}
+            //return sbFields.ToString().Substring(0, sbFields.Length - 1);
+            return default;
+        }
+
+        /// <summary>
+        /// 将字典集合转换为动态对象集合
+        /// </summary>
+        /// <param name="propertyDics">属性/属性值字典集合</param>
+        /// <returns></returns>
+        protected List<ExpandoObject> DictionaryToExpandoObject(List<IDictionary<string, object>> inLst)
+        {
+            if (inLst == null || inLst.Count <= 0) return null;
+            List<ExpandoObject> outLst = new List<ExpandoObject>();
+            foreach (var item in inLst)
+            {
+                outLst.Add(DictionaryToExpandoObject(item));
+            }
+            return outLst;
+        }
+
+        /// <summary>
+        /// 将字典转换为动态对象
+        /// </summary>
+        /// <param name="propertyDics">属性/属性值字典集合</param>
+        /// <returns></returns>
+        protected ExpandoObject DictionaryToExpandoObject(IDictionary<string, object> inDic)
+        {
+            if (inDic == null) return null;
+            IDictionary<string, object> expandoObject = new ExpandoObject();
+            foreach (var d in inDic)
+            {
+                expandoObject.Add(d);
+            }
+            return expandoObject as ExpandoObject;
+        }
+        public abstract DbConfig Config { get; set; }
+        public abstract bool TryConnect();
+        public abstract List<string> QueryTableNames();
+        public abstract bool ExecuteSql(string sqlstr);
+        public abstract List<Dictionary<string, object>> QuerySql(string sqlstr);
+        public abstract bool Insert<T>(T model);
+        public abstract bool Insert(string tname, IDictionary<string, object> data);
+        public abstract bool BatchInsert<T>(List<T> models);
+        public abstract bool BatchInsert(string tname, List<IDictionary<string, object>> datas);
+        public abstract bool Delete<T>(T model);
+        public abstract bool Delete(string tname, List<string> keys, IDictionary<string, object> data);
+        public abstract bool BatchDelete<T>(List<T> models);
+        public abstract bool BatchDelete(string tname, List<string> keys, List<IDictionary<string, object>> datas);
+        public abstract bool DeleteByCondition<T>(params ConditionModel[] conditions);
+        public abstract bool DeleteByCondition(string table, params ConditionModel[] conditions);
+        public abstract bool Clear<T>();
+        public abstract bool Clear(string tname);
+        public abstract bool Update<T>(T model);
+        public abstract bool Update(string tname, List<string> keys, IDictionary<string, object> data);
+        public abstract bool BatchUpdate<T>(List<T> models);
+        public abstract bool BatchUpdate(string tname, List<string> keys, List<IDictionary<string, object>> datas);
+        public abstract bool Cover<T>(T model);
+        public abstract bool Cover(string tname, List<string> keys, IDictionary<string, object> data);
+        public abstract bool BatchCover<T>(List<T> models);
+        public abstract bool BatchCover(string tname, List<string> keys, List<IDictionary<string, object>> datas);
+        public abstract T QueryFirst<T>(params object[] values);
+        public abstract List<T> QueryByCondition<T>(params ConditionModel[] conditions);
+        public abstract List<Dictionary<string, object>> QueryByCondition(string table, params ConditionModel[] conditions);
+        /// <summary>
+        /// 对象回收销毁，这里可用于将数据操作对象归还到对象池
+        /// </summary>
+        public abstract void Dispose();
+    }
+}

@@ -1,0 +1,87 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System;
+using System.IO;
+using System.Text;
+using System.Linq;
+using Max.ISolator.Core.Handlers;
+using Max.ISolator.NetBrakePkg;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 网闸同步助手
+    /// </summary>
+    public class GatekeeperSyncer : CommSyncer, AbsSyncer
+    {
+        /// <summary>
+        /// 网闸配置
+        /// </summary>
+        public NetBrakeCfg Config { get; private set; }
+
+        public GatekeeperSyncer(string iparam)
+        {
+            try
+            {
+                NLogger.Info($"初始化网闸助手。。。");
+                var mParam = JsonUtil.StrToObject<NetBrakeCfg>(iparam);
+                if (mParam != null)
+                {
+                    Config = mParam;
+                    Config.SyncPath = string.IsNullOrEmpty(Config.SyncPath) ? $"{AppContext.BaseDirectory}/Temp/BackupPath" : Config.SyncPath;
+                    if (!Directory.Exists(Config.SyncPath)) Directory.CreateDirectory(Config.SyncPath);
+                    Config.ScanPath = string.IsNullOrEmpty(Config.ScanPath) ? $"{AppContext.BaseDirectory}/Temp/ScanPath" : Config.ScanPath;
+                    if (!Directory.Exists(Config.ScanPath)) Directory.CreateDirectory(Config.ScanPath);
+                    Config.BackupPath = string.IsNullOrEmpty(Config.BackupPath) ? $"{AppContext.BaseDirectory}/Temp/BackupPath" : Config.BackupPath;
+                    if (!Directory.Exists(Config.BackupPath)) Directory.CreateDirectory(Config.BackupPath);
+                    Config.LocalImgPath = string.IsNullOrEmpty(Config.LocalImgPath) ? $"{AppContext.BaseDirectory}/Temp/LocalImgPath" : Config.LocalImgPath;
+                    if (!Directory.Exists(Config.LocalImgPath)) Directory.CreateDirectory(Config.LocalImgPath);
+                }
+                else
+                {
+                    NLogger.Warn($"网闸助手参数不合理，将使用默认路径。");
+                }
+                GatekeeperHandler.Instance.SubscribeNetBrake(Config);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化网闸助手异常：{ex.Message}");
+            }
+        }
+
+        public void SyncData(IsolatorData idata)
+        {
+            string stime = idata?.Stime;
+            string etime = idata?.Etime;
+            if (idata == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            int i = 1;
+            foreach (var item in tlst)
+            {
+                string fid = default;
+                string bfile = default;
+                try
+                {
+                    if (item.Lst == null || item.Lst.Count <= 0) continue;
+                    //fid = $"{DateTime.Now.ToString("yyyyMMddHHmmssfffffff")}_{stime}_{etime}_{item.Lst.Count}";
+                    fid = $"{item.Id}_{tlst.Count}_{idata.Lst.Count}_{i}_{item.Lst.Count}";//
+                    bfile = $@"{Config?.SyncPath}/{idata.Cmd}@{idata.Rwmc}@{idata.Cfbs}@{fid}.txt";
+                    //item.Id = $"{idata.Cmd}@{idata.Rwmc}@{idata.Cfbs}_{fid}.txt";
+                    using (FileStream fs = new FileStream(bfile, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                    {
+                        byte[] datas = Encoding.Default.GetBytes(JsonUtil.ObjectToStr(item));
+                        fs.Write(datas, 0, datas.Length);
+                        fs.Close();
+                        fs.Dispose();
+                    }
+                    i++;
+                    NLogger.Info($"生成文件{bfile}结束时间：{DateTime.Now.ToString("yyyyMMddHHmmssfffffff")}");
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"网闸同步数据异常:{ex.Message}====fid{fid}====bfile{bfile}===idata.Rwmc:{idata.Rwmc}===idata.Cflx:{idata.Cfbs}");
+                }
+            }
+        }
+    }
+}

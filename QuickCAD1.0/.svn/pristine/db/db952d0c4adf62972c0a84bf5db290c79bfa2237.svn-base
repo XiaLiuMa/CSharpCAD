@@ -1,0 +1,177 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading;
+
+namespace Max.ISolator.MinioKit
+{
+    /// <summary>
+    /// Minio客户端管理
+    /// </summary>
+    public class MinioManger
+    {
+        #region 单例
+        private static MinioManger i;
+        private readonly static object objLock = new object();
+        public static MinioManger I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new MinioManger();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public string Endpoint { get; private set; }
+        public string AccessKey { get; private set; }
+        public string SecretKey { get; private set; }
+        /// <summary>
+        /// 桶名称
+        /// </summary>
+        public string BucketName { get; private set; }
+        public string Region { get; private set; }
+
+        /// <summary>
+        /// 池容量
+        /// </summary>
+        private static readonly int Capacity = 30;
+        /// <summary>
+        /// 连接池线程安全对象字典<连接配置字符串,<连接对象,状态>>
+        /// </summary>
+        private static readonly ConcurrentDictionary<MaxMinioClient, bool> _dic = new ConcurrentDictionary<MaxMinioClient, bool>();
+
+        /// <summary>
+        /// 初始化Minio配置
+        /// </summary>
+        /// <param name="endpoint">endPoint是一个URL，支持[s3.amazonaws.com,s3.amazonaws.com,localhost]</param>
+        /// <param name="accessKey">accessKey类似于用户ID，用于唯一标识你的账户。可选，为空代表匿名访问</param>
+        /// <param name="secretKey">secretKey是你账户的密码。可选，为空代表匿名访问</param>
+        /// <param name="bucketName">桶名称</param>
+        /// <param name="region">对象存储的region。可选</param>
+        public void InitMinioConfig(string endpoint, string accessKey, string secretKey, string bucketName, string region = null)
+        {
+            this.Endpoint = endpoint;
+            this.AccessKey = accessKey;
+            this.SecretKey = secretKey;
+            this.BucketName = bucketName;
+            this.Region = region;
+        }
+
+        /// <summary>
+        /// 从池里借一个空闲对象
+        /// </summary>
+        /// <returns></returns>
+        public MaxMinioClient Borrow()
+        {
+            int i = 0;
+            MaxMinioClient t = GetFreeT(ref i);
+            if (t == null)
+            {
+                if (_dic.Count < Capacity)//未超过池容量
+                {
+                    t = Creat();
+                    if (t != null)
+                    {
+                        _dic?.TryAdd(t, true);//往池里新增一个可使用的对象
+                    }
+                    t = GetFreeT(ref i);
+                }
+                else //已达到池容量，等待空闲对象
+                {
+                    do
+                    {
+                        t = GetFreeT(ref i);
+                        if (t != null) break;
+                        if (i > 4000)//10分钟超时
+                        {
+                            NLogger.Warn($"从池中获取空闲SimpleMinioClient对象超时");
+                            break;
+                        }
+                        Thread.Sleep(150);
+                    }
+                    while (t == null);
+                }
+            }
+            if (t != null && _dic.Keys.Contains(t))
+            {
+                _dic[t] = false;//置为忙碌状态
+            }
+            NLogger.Debug($"从SimpleMinioClient池借一个对象后，池情况:{JsonUtil.ObjectToStr(_dic)}");
+            return t;
+        }
+
+        /// <summary>
+        /// 创建一个数据库操作对象
+        /// </summary>
+        /// <param name="_id">连接池id(数据库配置字符串)</param>
+        /// <returns></returns>
+        private MaxMinioClient Creat()
+        {
+            MaxMinioClient operate = default;
+            try
+            {
+                operate = new MaxMinioClient(Endpoint, AccessKey, SecretKey, BucketName, Region);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"创建一个SimpleMinioClient异常:{ex.Message}");
+            }
+            return operate;
+        }
+
+        /// <summary>
+        /// 获取空闲对象
+        /// </summary>
+        /// <param name="i">记录获取次数</param>
+        private MaxMinioClient GetFreeT(ref int i)
+        {
+            i++;
+            MaxMinioClient sql = default;
+            try
+            {
+                if (_dic?.Count > 0)
+                {
+                    sql = _dic?.ToList()?.Find(p => p.Value == true).Key;
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"从池中获取空闲对象异常:{ex.Message}");
+            }
+            return sql;
+        }
+
+        /// <summary>
+        /// 归还一个给池对象
+        /// </summary>
+        /// <param name="minio">minio操作对象</param>
+        public void Still(MaxMinioClient minio)
+        {
+            if (minio == null) return;
+            try
+            {
+                if (_dic.Keys.Contains(minio))
+                {
+                    _dic[minio] = true;//置为空闲状态
+                }
+                NLogger.Debug($"归还一个对象给SimpleMinioClient池后，池情况:{JsonUtil.ObjectToStr(_dic)}");
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"归还一个对象给SimpleMinioClient池异常:{ex.Message}");
+            }
+        }
+    }
+}

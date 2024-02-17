@@ -1,0 +1,74 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.Core.Handlers;
+using Max.TcpKit;
+using Max.TcpKit.Core;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口服务器同步助手
+    /// </summary>
+    public class SerialServerSyncer : CommSyncer, AbsSyncer
+    {
+        private ConcurrentQueue<MaxTcpClient> tcpClients;
+        public SerialServerSyncer(string iparam)
+        {
+            tcpClients = new ConcurrentQueue<MaxTcpClient>();
+            try
+            {
+                NLogger.Info($"初始化串口服务器助手。。。");
+                var mParam = JsonUtil.StrToObject<List<SerialServerParam>>(iparam);
+                if (mParam == null || mParam.Count <= 0)
+                {
+                    NLogger.Error($"串口服务器参数不合理，初始化失败。");
+                    return;
+                }
+                foreach (var item in mParam)
+                {
+                    MaxTcpClient tcpClient = new MaxTcpClient(item.ServerIP, item.ServerPort);
+                    SerialServerHandler.Instance.SubscribeComServer(tcpClient);//注册串口服务器接收事件
+                    tcpClient.ConnectAsync();
+                    tcpClients.Enqueue(tcpClient);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化串口服务器助手异常：{ex.Message}");
+            }
+        }
+
+        public void SyncData(IsolatorData idata)
+        {
+            if (idata == null) return;
+            if (idata.Lst == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            foreach (var item in tlst)
+            {
+                try
+                {
+                    string datastr = JsonConvert.SerializeObject(item);
+                    byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+                    MaxTcpClient client;
+                    tcpClients.TryDequeue(out client);
+                    if (client != null)
+                    {
+                        client.SendAsync(ys_bytes);
+                        tcpClients.Enqueue(client);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口服务器同步数据异常：{ex.Message}");
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,137 @@
+﻿using IsolatorTarget.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using IsolatorTarget.Storage.Entities;
+using IsolatorTarget.Business;
+
+namespace IsolatorTarget.Controllers
+{
+    /// <summary>
+    /// FTP服务控制器
+    /// </summary>
+    [Authorize]
+    public class ImgFtpController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Detail()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 搜索所有
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<List<ImgFtpEntity>>> SearchAll()
+        {
+            return Ok(new ResultMsg<List<ImgFtpEntity>>() { Code = StatusType.Success, Msg = "查询成功", Data = ConfigCacher.I.ImgFtp_Lst });
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<ImgFtpEntity> PagingSearch(int page = 1, int limit = 10, string condition = "")
+        {
+            var rd = new ResultPaging<ImgFtpEntity>();
+
+            var tlst = ConfigCacher.I.ImgFtp_Lst;
+            #region 搜索
+            if (!string.IsNullOrEmpty(condition))
+            {
+                tlst = tlst.FindAll(p => condition.Equals(p.ServerUrl)).ToList();
+            }
+            #endregion
+
+            var lst = tlst.Skip((page - 1) * limit).Take(limit).ToList();
+            rd.Count = tlst.Count;
+            rd.Data = lst;
+            return rd;
+        }
+
+        /// <summary>
+        /// 新增
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Add(ImgFtpEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增失败，参数为空" });
+            try
+            {
+                obj.Id = Guid.NewGuid().ToString("N");
+                ConfigCacher.I.ImgFtp_Lst.Add(obj);
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增成功" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"新增失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 修改
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Update(ImgFtpEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改失败，参数为空" });
+            try
+            {
+                var tobj = ConfigCacher.I.ImgFtp_Lst.Find(p => p.Id.Equals(obj.Id));
+                if (tobj != null)
+                {
+                    ConfigCacher.I.ImgFtp_Lst.Remove(tobj);
+                    ConfigCacher.I.ImgFtp_Lst.Add(obj);
+                }
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改成功" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"修改失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Delete(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            var idArr = ids.Split(',').ToList();
+            int count = 0;
+            idArr?.ForEach(i =>
+            {
+                var obj = ConfigCacher.I.ImgFtp_Lst.Find(p => i.Equals(p.Id));
+                if (obj != null)
+                {
+                    ConfigCacher.I.ImgFtp_Lst.Remove(obj);
+                    count++;
+                }
+            });
+            if (count > 0)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除成功", Data = null });
+            }
+            else
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除失败", Data = null });
+            }
+        }
+    }
+}

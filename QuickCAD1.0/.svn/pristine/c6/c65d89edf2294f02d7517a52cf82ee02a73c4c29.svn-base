@@ -1,0 +1,223 @@
+﻿using Max.BaseKit.Utils;
+using Max.BaseKit;
+using Max.BaseKit.Exts;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+
+namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// MaxISolator回调
+    /// </summary>
+    /// <param name="p">(1:表示可能处于堵塞状态)</param>
+    public delegate void MaxISolatorCallback(int p);
+    public class MaxISolator
+    {
+        #region 单例
+        private static MaxISolator i;
+        private readonly static object objLock = new object();
+        public static MaxISolator I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new MaxISolator();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 是否初始化
+        /// </summary>
+        public bool IsInit { get; private set; } = false;
+        /// <summary>
+        /// 文件缓存路径
+        /// </summary>
+        public string CachePath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 是否压缩数据
+        /// </summary>
+        public bool IsZip { get; private set; } = false;
+        /// <summary>
+        /// 是否备份文件
+        /// </summary>
+        public bool IsBackup { get; private set; } = false;
+        /// <summary>
+        /// 文件备份路径
+        /// </summary>
+        public string BackupPath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 数量大小(单个文件可容纳多少条数据，单位M)
+        /// </summary>
+        public int ItemSize { get; private set; }
+        /// <summary>
+        /// 容积大小(单个文件可容纳多大的数据，单位M)
+        /// </summary>
+        public int BulkSize { get; private set; }
+        /// <summary>
+        /// 管道大小，用于控制单隔离器排队待处理的文件数量
+        /// </summary>
+        public int ChannelSize { get; private set; }
+
+
+        /// <summary>
+        /// 同步助手字典
+        /// </summary>
+        public ConcurrentDictionary<string, IIsolator> ISyncer_Lst { get; private set; } = new ConcurrentDictionary<string, IIsolator>();
+
+        public ConcurrentBag<MaxIService> mServiceLst;
+
+        public MaxISolator()
+        {
+            #region 反射获取所有服务实现类
+            mServiceLst = new ConcurrentBag<MaxIService>();
+            IList<Type> lst = ReflectionUtil.FindSubClasses(typeof(MaxIService));
+            foreach (Type t in lst)
+            {
+                var handler = (MaxIService)Activator.CreateInstance(t);
+                mServiceLst.Add(handler);
+            }
+            #endregion
+            ScanCacheFiles(); //扫描缓存文件
+        }
+
+
+        /// <summary>
+        /// 隔离器回调
+        /// </summary>
+        public MaxISolatorCallback Callback { get; set; }
+
+
+        /// <summary>
+        /// ZD任务待处理文件(队列：先入先出)
+        /// </summary>
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> ZDFiles;
+        /// <summary>
+        /// SD任务待处理文件(队列：先入先出)
+        /// </summary>
+        private readonly ConcurrentDictionary<string, ConcurrentQueue<string>> SDFiles;
+
+        /// <summary>
+        /// 待同步的文件(队列：先入先出)
+        /// </summary>
+        private readonly ConcurrentQueue<string> WaitFiles;
+
+        /// <summary>
+        /// 扫描缓存文件(100毫秒扫描一次)
+        /// </summary>
+        public void ScanCacheFiles()
+        {
+            //var queue = new ConcurrentQueue<int>();
+            //// 监听插入事件并进行排序
+            //queue.OnItemAdded += (sender, e) =>
+            //{
+            //    Console.WriteLine("Item added: " + e.Item);
+            //    SortQueue(queue);
+            //};
+
+
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var zd_files = FileUtil.FindFiles(new DirectoryInfo(CachePath), "ZD_", "*.txt");
+                        zd_files?.ForEach(p =>
+                        {
+                            string[] strs = p.Name.Split('@');
+                            if (strs == null || strs.Length < 5) return;
+                            string level = strs[3];//任务优先级
+                            ZDFiles.TryGetValue(level, out var d);
+                            if (d != null)
+                            {
+                                d = new ConcurrentQueue<string>();
+                                d.Enqueue(p.FullName);
+                                ZDFiles.TryAdd(level, new ConcurrentQueue<string>());
+                            }
+                            else
+                            {
+                                if (!d.Contains(p.FullName))
+                                {
+                                    d.Enqueue(p.FullName);
+                                }
+                            }
+                            if (WaitFiles.Count < ChannelSize)
+                            { 
+                            
+                            }
+                        });
+
+                        
+
+
+                        var sd_files = FileUtil.FindFiles(new DirectoryInfo(CachePath), "SD_", "*.txt");
+                        zd_files?.ForEach(p =>
+                        {
+                            string[] strs = p.Name.Split('@');
+                            if (strs == null || strs.Length < 5) return;
+                            string level = strs[3];//任务优先级
+                            SDFiles.TryGetValue(level, out var d);
+                            if (d != null)
+                            {
+                                d = new ConcurrentQueue<string>();
+                                d.Enqueue(p.FullName);
+                                SDFiles.TryAdd(level, new ConcurrentQueue<string>());
+                            }
+                            else
+                            {
+                                if (!d.Contains(p.FullName))
+                                {
+                                    d.Enqueue(p.FullName);
+                                }
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(2 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        /// <param name="itype">隔离器类型(1:网闸,2:串口,3:串口服务器)</param>
+        /// <param name="isize">块大小(单个文件或单条消息的大小，单位M)</param>
+        /// <param name="iparam">隔离器初始化参数(注意：类型不同参数不同)</param>
+        /// <param name="callback">隔离器回调函数</param>
+        public void InitISolator(int itype, int isize, string iparam, MaxISolatorCallback callback)
+        {
+            Callback = callback;
+
+        }
+
+        /// <summary>
+        /// 销毁隔离器
+        /// </summary>
+        public void DisposeISolator()
+        {
+
+        }
+    }
+}

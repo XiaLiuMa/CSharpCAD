@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>D:\03公司相关\03边检项目\01隔离器产品\source\source1.2.1\03目标端\IsolatorTarget\../../publish/win64/IsolatorTarget/</_PublishTargetUrl>
+    <History>True|2024-01-15T02:17:03.7036945Z;True|2024-01-15T10:02:57.9784528+08:00;True|2024-01-14T16:22:46.6172572+08:00;True|2024-01-14T16:20:56.9389331+08:00;True|2024-01-11T22:56:49.2699698+08:00;True|2023-11-25T11:42:44.2991153+08:00;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

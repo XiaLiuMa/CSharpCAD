@@ -1,0 +1,230 @@
+﻿//using System;
+//using System.Data;
+//using System.Text;
+//using Max.BaseKit;
+//using System.Linq;
+//using System.Collections.Generic;
+
+//namespace Max.DbTool
+//{
+//    public abstract class AbsSqlOperate : ISqlOperate
+//    {
+//        public abstract DbConfig Config { get; set; }
+//        public abstract bool Execute(string sqlstr);
+//        public abstract DataTable Query(string sqlstr);
+//        public abstract bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null);
+//        public abstract bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst);
+//        public abstract void Dispose();
+
+//        /// <summary>
+//        /// 自定义SQL查询
+//        /// </summary>
+//        /// <param name="str"></param>
+//        /// <returns></returns>
+//        public List<Dictionary<string, object>> CustomizedSqlSelect(string str)
+//        {
+//            var lst = new List<Dictionary<string, object>>();
+//            try
+//            {
+//                DataTable dt = Query(str);
+//                if (dt.Rows.Count <= 0) return lst;
+//                foreach (DataRow dr in dt.Rows)
+//                {
+//                    var data = new Dictionary<string, object>();
+//                    foreach (DataColumn dc in dt.Columns)
+//                    {
+//                        if (dr[dc].GetType().Equals(typeof(byte[])))//字节数组类型
+//                        {
+//                            if (dc.ColumnName.StartsWith("TP_") || dc.ColumnName.StartsWith("IMG_"))//图片不能转
+//                            {
+//                                data.Add(dc.ColumnName, Convert.ToBase64String(dr[dc] as byte[]));
+//                            }
+//                            else
+//                            {
+//                                Encoding gbk = Encoding.GetEncoding("GB2312");
+//                                string temstr = gbk.GetString(dr[dc] as byte[]);
+//                                data.Add(dc.ColumnName, temstr);
+//                            }
+//                        }
+//                        else if (dr[dc].GetType().Equals(typeof(string)))   //字符串需要去除空格
+//                        {
+//                            data.Add(dc.ColumnName, ((string)dr[dc]).Trim());
+//                        }
+//                        else if (dr[dc].GetType().Equals(typeof(DateTime)))   //字符串需要去除空格
+//                        {
+//                            data.Add(dc.ColumnName, dr[dc]);
+//                        }
+//                        else if (!dr[dc].GetType().Equals(typeof(DBNull)))   //非空类型,到了该逻辑多半是dynamic类型
+//                        {
+//                            #region 处理dynamic时将int类型也转成double的问题
+//                            if (!$"{dr[dc]}".Contains('.'))
+//                            {
+//                                data.Add(dc.ColumnName, Convert.ToInt32(dr[dc]));//转成int类型，避免被转成double
+//                            }
+//                            else
+//                            {
+//                                data.Add(dc.ColumnName, dr[dc]);//原始方案
+//                            }
+//                            #endregion
+//                        }
+//                        else
+//                        {
+//                            data.Add(dc.ColumnName, dr[dc]);//原始方案
+//                        }
+//                    }
+//                    lst.Add(data);
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"查询{str}异常:{ex.Message}");
+//            }
+//            return lst;
+//        }
+
+//        /// <summary>
+//        /// 根据主键批量删除
+//        /// 方案:【delete from t where (col1='1' and col2='2') or (col1='2' and col2='1');】
+//        /// </summary>
+//        /// <param name="table"></param>
+//        /// <param name="keys"></param>
+//        /// <param name="datas"></param>
+//        /// <param name="sql"></param>
+//        /// <returns></returns>
+//        public bool BatchDelete(string table, string[] keys, List<Dictionary<string, object>> datas, ISqlOperate sql)
+//        {
+//            string sqlstr = string.Empty;
+//            try
+//            {
+//                string sqlwhere = "";
+//                datas.ForEach(p =>
+//                {
+//                    string where = $"(";
+//                    foreach (var key in keys)
+//                    {
+//                        if (p[key].GetType().Equals(typeof(string)))
+//                        {
+//                            p[key].ToString().Replace("'", "''").Replace(",", @"\,"); //处理特殊字符,这种方式可以转义单引号
+//                        }
+//                        where += p[key].GetType().Equals(typeof(string)) ? $"{key}='{p[key]}' and " : $"{key}={p[key]} and ";
+//                    }
+//                    where = where.TrimEnd().TrimEnd('d').TrimEnd('n').TrimEnd('a') + ") or ";   //去除and
+//                    sqlwhere += where;
+//                });
+//                sqlwhere = sqlwhere.TrimEnd().TrimEnd('r').TrimEnd('o');  //去除or
+//                sqlstr += $"delete from {table} where {sqlwhere};";
+//                return sql.Execute(sqlstr);
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"批量删除{sqlstr}异常:{ex.Message}");
+//                return false;
+//            }
+//        }
+
+//        /// <summary>
+//        /// 根据时间删除
+//        /// </summary>
+//        /// <param name="table">表名</param>
+//        /// <param name="bgyj">变更依据(用于根据时间删除的字段名称)</param>
+//        /// <param name="datas">数据集</param>
+//        /// <param name="db">数据库</param>
+//        /// <returns></returns>
+//        public bool DeleteByTime(string table, string bgyj, List<Dictionary<string, object>> datas, ISqlOperate db)
+//        {
+//            string sqlstr = string.Empty;
+//            try
+//            {
+//                string sqlwhere = "";
+//                List<string> tjsjs = new List<string>();
+//                datas.ForEach(p =>
+//                {
+//                    string tjsj = p[bgyj].ToString();
+//                    if (!tjsjs.Contains(tjsj))
+//                    {
+//                        tjsjs.Add(tjsj);
+//                    }
+//                });
+//                tjsjs.ForEach(p =>
+//                {
+//                    sqlwhere += $"'{p}',";
+//                });
+
+//                sqlstr += $"delete from {table} where {bgyj} in ({sqlwhere.TrimEnd(',')});";
+//                return db.Execute(sqlstr);
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"根据时间删除{sqlstr}异常:{ex.Message}");
+//                return false;
+//            }
+//        }
+
+//        /// <summary>
+//        /// 批量更新(有就修改，没有就插入)
+//        /// 方案:【replace into t (col1,col2,col3) values ('1','2','3'),('4','5','6');】
+//        /// </summary>
+//        /// <param name="table"></param>
+//        /// <param name="keys"></param>
+//        /// <param name="datas"></param>
+//        /// <param name="sql"></param>
+//        /// <returns></returns>
+//        public bool BatchUpdate(string table, string[] keys, List<Dictionary<string, object>> datas, ISqlOperate sql)
+//        {
+//            string sqlstr = string.Empty;
+//            try
+//            {
+//                var fields = datas.FirstOrDefault().Keys.ToList();//字段s
+//                string field = "";  //要修改的字段
+//                fields.ForEach(p => { field += p + ","; });
+//                string vale = "";   //要修改的值
+//                datas.ForEach(p =>
+//                {
+//                    string tempstr = "";
+//                    var values = p.Values?.ToList();
+//                    if (values != null && values.Count > 0)
+//                    {
+//                        values.ForEach(p =>
+//                        {
+//                            if (p == null)
+//                            {
+//                                tempstr += "null,";
+//                            }
+//                            else
+//                            {
+//                                if (p.GetType().Equals(typeof(string)))
+//                                {
+//                                    string tStr = p.ToString();
+//                                    #region 处理特殊字符
+//                                    if (tStr.Contains(","))
+//                                    {
+//                                        tStr = tStr.ToString().Replace(",", @"\,"); //处理字符串中的逗号
+//                                    }
+//                                    if (tStr.Contains("'"))
+//                                    {
+//                                        tStr = tStr.ToString().Replace("'", "''"); //处理字符串中的单引号
+//                                    }
+//                                    #endregion
+//                                    tempstr += $"'{tStr}',";
+//                                }
+//                                else
+//                                {
+//                                    tempstr += $"{p},";
+//                                }
+//                            }
+//                        });
+//                        vale += $"({tempstr.TrimEnd(',')}),";
+//                    }
+//                });
+
+//                sqlstr += $"replace into {table} ({field.TrimEnd(',')}) values {vale.TrimEnd(',')};";
+//                return sql.Execute(sqlstr);
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"批量更新{sqlstr}异常:{ex.Message}");
+//                return false;
+//            }
+//        }
+//    }
+//}

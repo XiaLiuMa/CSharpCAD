@@ -1,0 +1,17 @@
+﻿namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 模拟字符叠加对应关系
+    /// </summary>
+    public class MNZFDJDYGX
+    {
+        /// <summary>
+        /// 坐标信息
+        /// </summary>
+        public ZBXX ZBXX { get; set; }
+        /// <summary>
+        /// 模拟设备信息
+        /// </summary>
+        public MNSB MNSB { get; set; }
+    }
+}

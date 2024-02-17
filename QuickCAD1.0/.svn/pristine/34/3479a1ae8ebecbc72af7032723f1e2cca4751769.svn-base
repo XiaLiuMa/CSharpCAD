@@ -1,0 +1,198 @@
+﻿using Isolator.SetCharacter.DaHua;
+using Max.BaseKit;
+using SetCharLib.Mod;
+using SetCharLib.SetCharacter;
+using System;
+using System.Runtime.InteropServices;
+
+namespace Isolator.SetCharacter.SetCharacter
+{
+    public class DaHuaSetCharacter : WLSetCharacter
+    {
+        private NET_DEVICEINFO_Ex m_DevInfo = new NET_DEVICEINFO_Ex();
+        private static fDisConnectCallBack m_DisConnectCallBack;
+        private static fHaveReConnectCallBack m_ReConnectCallBack;
+        private IntPtr m_LoginID = IntPtr.Zero;
+        private WLZFDJDYGX device;
+        private const int m_WaitTime = 3000;
+        private DateTime chartTime = DateTime.Now;
+        public bool IsLogin => IntPtr.Zero != m_LoginID;
+
+
+        public DaHuaSetCharacter(WLZFDJDYGX dygx) : base(dygx)
+        {
+            device = dygx;
+            this.Initialize();
+        }
+
+        private void Initialize()
+        {
+            m_DisConnectCallBack = new fDisConnectCallBack(DisConnectCallBack);
+            m_ReConnectCallBack = new fHaveReConnectCallBack(ReConnectCallBack);
+            try
+            {
+                NETClient.Init(m_DisConnectCallBack, IntPtr.Zero, null);
+                NETClient.SetAutoReconnect(m_ReConnectCallBack, IntPtr.Zero);
+                m_LoginID = IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"大华sdk初始化失败{ex.ToString()}");
+            }
+            NLogger.Info("大华sdk初始化成功。");
+            this.Login();
+        }
+        private void Login()
+        {
+            if (IntPtr.Zero == m_LoginID)
+            {
+                m_LoginID = NETClient.LoginWithHighLevelSecurity(device.WLSB.IPADDRESS, (ushort)device.WLSB.PORT, device.WLSB.USER_NAME, device.WLSB.USER_PWD, EM_LOGIN_SPAC_CAP_TYPE.TCP, IntPtr.Zero, ref m_DevInfo);
+                if (IntPtr.Zero == m_LoginID)
+                {
+                    NLogger.Error($"大华sdk登录失败失败：{NETClient.GetLastError()}");
+                    return;
+                }
+            }
+        }
+
+        private void ReConnectCallBack(IntPtr lLoginID, IntPtr pchDVRIP, int nDVRPort, IntPtr dwUser)
+        {
+        }
+
+        private void DisConnectCallBack(IntPtr lLoginID, IntPtr pchDVRIP, int nDVRPort, IntPtr dwUser)
+        {
+        }
+
+        public override bool SetCharacter(DjMessage djmsg)
+        {
+            //NLogger.Info("叠加字符信息");
+
+            if (!IsLogin) return false;
+            chartTime = DateTime.Now;
+            NET_OSD_CUSTOM_TITLE customInfo = new NET_OSD_CUSTOM_TITLE();
+            customInfo.dwSize = (uint)Marshal.SizeOf(typeof(NET_OSD_CUSTOM_TITLE));
+            customInfo.emOsdBlendType = EM_OSD_BLEND_TYPE.MAIN;
+            customInfo.nCustomTitleNum = 4;
+            customInfo.stuCustomTitle = new NET_CUSTOM_TITLE_INFO[8];
+
+            #region 叠加第1行(Czybm+Czydm+Czyxm)
+            string strCmd = string.Empty;
+            strCmd += string.IsNullOrEmpty(djmsg.Czybm) ? "" : $"{djmsg.Czybm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czydm) ? "" : $" {djmsg.Czydm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czyxm) ? "" : $" {djmsg.Czyxm}";
+
+            customInfo.stuCustomTitle[0].bEncodeBlend = true;
+            customInfo.stuCustomTitle[0].stuRect = new NET_RECT { nTop = device.ZBXX.Line1Y, nLeft = device.ZBXX.Line1X };
+            customInfo.stuCustomTitle[0].szText = strCmd;
+            #endregion
+
+            #region 叠加第2行(Lkxm+Lkzjhm)
+            string strCmd1 = string.Empty;
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkxm) ? "" : $"{djmsg.Lkxm}";
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkzjhm) ? "" : $" {djmsg.Lkzjhm}";
+
+            customInfo.stuCustomTitle[1].bEncodeBlend = true;
+            customInfo.stuCustomTitle[1].stuRect = new NET_RECT { nTop = device.ZBXX.Line2Y, nLeft = device.ZBXX.Line2X };
+            customInfo.stuCustomTitle[1].szText = strCmd1;
+            #endregion
+
+            #region 叠加第3行(Jtgj+CSRQ)
+            string strCmd2 = string.Empty;
+            strCmd2 += string.IsNullOrEmpty(djmsg.Lkgj) ? "" : $"{djmsg.Lkgj}";
+            strCmd2 += string.IsNullOrEmpty(djmsg.CSRQ) ? "" : $" {djmsg.CSRQ}";
+
+            customInfo.stuCustomTitle[2].bEncodeBlend = true;
+            customInfo.stuCustomTitle[2].stuRect = new NET_RECT { nTop = device.ZBXX.Line3Y, nLeft = device.ZBXX.Line3X };
+            customInfo.stuCustomTitle[2].szText = strCmd2;
+            #endregion
+
+            #region 叠加第4行(Jtgj+Lkpjxx)
+            string strCmd3 = string.Empty;
+            strCmd3 += string.IsNullOrEmpty(djmsg.Jtgj) ? "" : $"{djmsg.Jtgj}";
+            strCmd3 += string.IsNullOrEmpty(djmsg.Lkpjxx) ? "" : $" {djmsg.Lkpjxx}";
+
+            customInfo.stuCustomTitle[3].bEncodeBlend = true;
+            customInfo.stuCustomTitle[3].stuRect = new NET_RECT { nTop = device.ZBXX.Line4Y, nLeft = device.ZBXX.Line4X };
+            customInfo.stuCustomTitle[3].szText = strCmd3;
+            #endregion
+
+            object obj = customInfo;
+            bool ret = NETClient.SetOSDConfig(m_LoginID, EM_CFG_OSD_TYPE.CUSTOMTITLE, 0, obj, m_WaitTime);
+            if (!ret)
+            {
+                NLogger.Error($"大华sdk设置客户叠加信息失败：{NETClient.GetLastError()}");
+                return false;
+            }
+            return true;
+        }
+
+        public override bool ClearLKXX(string zjhm)
+        {
+            //NLogger.Info("清除旅客信息");
+
+            if (IsLogin)
+            {
+                NET_OSD_CUSTOM_TITLE customInfo = new NET_OSD_CUSTOM_TITLE();
+                customInfo.dwSize = (uint)Marshal.SizeOf(typeof(NET_OSD_CUSTOM_TITLE));
+                customInfo.emOsdBlendType = EM_OSD_BLEND_TYPE.MAIN;
+                object obj = customInfo;
+                bool ret = NETClient.GetOSDConfig(m_LoginID, EM_CFG_OSD_TYPE.CUSTOMTITLE, 0, ref obj, m_WaitTime);
+                if (!ret)
+                {
+                    NLogger.Error($"大华sdk获取客户叠加信息失败：{NETClient.GetLastError()}");
+                    return false;
+                }
+                customInfo = (NET_OSD_CUSTOM_TITLE)obj;
+                customInfo.stuCustomTitle[1].bEncodeBlend = false;
+                customInfo.stuCustomTitle[2].bEncodeBlend = false;
+                customInfo.stuCustomTitle[3].bEncodeBlend = false;
+                obj = customInfo;
+                ret = NETClient.SetOSDConfig(m_LoginID, EM_CFG_OSD_TYPE.CUSTOMTITLE, 0, obj, m_WaitTime);
+                if (!ret)
+                    return false;
+                else
+                    return true;
+            }
+            return false;
+        }
+
+
+        public override bool ClearAll()
+        {
+            //NLogger.Info("清除所有信息");
+            if (IsLogin)
+            {
+                NET_OSD_CUSTOM_TITLE customInfo = new NET_OSD_CUSTOM_TITLE();
+                customInfo.dwSize = (uint)Marshal.SizeOf(typeof(NET_OSD_CUSTOM_TITLE));
+                customInfo.emOsdBlendType = EM_OSD_BLEND_TYPE.MAIN;
+                object obj = customInfo;
+                bool ret = NETClient.GetOSDConfig(m_LoginID, EM_CFG_OSD_TYPE.CUSTOMTITLE, 0, ref obj, m_WaitTime);
+                if (!ret)
+                {
+                    NLogger.Error($"大华sdk获取客户叠加信息失败：{NETClient.GetLastError()}");
+                    return false;
+                }
+                customInfo = (NET_OSD_CUSTOM_TITLE)obj;
+                customInfo.stuCustomTitle[0].bEncodeBlend = false;
+                customInfo.stuCustomTitle[1].bEncodeBlend = false;
+                customInfo.stuCustomTitle[2].bEncodeBlend = false;
+                customInfo.stuCustomTitle[3].bEncodeBlend = false;
+                obj = customInfo;
+                ret = NETClient.SetOSDConfig(m_LoginID, EM_CFG_OSD_TYPE.CUSTOMTITLE, 0, obj, m_WaitTime);
+                if (!ret)
+                    return false;
+                else
+                    return true;
+            }
+            return false;
+        }
+
+        public override bool Dispose()
+        {
+            ClearAll();
+            NETClient.Logout(m_LoginID);
+            NETClient.Cleanup();
+            return true;
+        }
+    }
+}

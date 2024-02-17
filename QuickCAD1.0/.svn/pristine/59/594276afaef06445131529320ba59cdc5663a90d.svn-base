@@ -1,0 +1,21 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorOrigin.Storage.Entities
+{
+    [Table("LisUpdateCache")]
+    /// <summary>
+    /// LIS修改数据缓存实体
+    /// </summary>
+    public class LisUpdateCacheEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id("命令码_数据库标识")
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 主键集(多个用","分隔)
+        /// </summary>
+        public string Keys { get; set; }
+    }
+}

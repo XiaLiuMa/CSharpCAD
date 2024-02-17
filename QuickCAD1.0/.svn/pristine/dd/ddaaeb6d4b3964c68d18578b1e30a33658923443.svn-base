@@ -1,0 +1,99 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Customs;
+using Max.BaseKit.Utils;
+using Max.TcpKit;
+using Max.TcpKit.Core;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口服务器同步助手
+    /// </summary>
+    public class SerialServerIsolator : AbsIsolator
+    {
+        private MaxTcpClient tcpClient;
+        public SerialServerIsolator(string iparam)
+        {
+            try
+            {
+                NLogger.Info($"初始化串口服务器助手。。。");
+                var mParam = JsonUtil.StrToObject<SerialServerParam>(iparam);
+                if (mParam == null)
+                {
+                    NLogger.Error($"串口服务器参数不合理，初始化失败。");
+                    return;
+                }
+                tcpClient = new MaxTcpClient(mParam.ServerIP, mParam.ServerPort);
+                tcpClient.OnReceived += OnDataReceived;
+                tcpClient.ConnectAsync();
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化串口服务器助手异常：{ex.Message}");
+            }
+        }
+
+        public override CustomConcurrentList<FileCodeMod> WaitProduceFiles { get; set; }
+        public override BlockingCollection<string> ProducingFiles { get; set; }
+
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public override void ProduceData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1);//缓存文件
+                    WaitProduceFiles.Add(new FileCodeMod()
+                    {
+                        FileName = fName,
+                        CreatTime = idata.Rtime,
+                        Level = idata.Level,
+                    });//加入待消费队列
+
+                    //string datastr = JsonConvert.SerializeObject(tlst[i]);
+                    //byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+                    //tcpClient?.SendAsync(ys_bytes);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口服务器同步数据异常：{ex.Message}");
+                }
+            }
+        }
+
+        private void OnDataReceived(byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null || bytes.Length <= 0) return;
+                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+                string msg = Encoding.UTF8.GetString(jy_bytes);
+                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(msg);
+                NLogger.Debug($"串口服务器接收到{idata.Cmd}数据...");
+                if (idata == null) return;
+
+                var fName = CacheData(idata, idata.CutNum);//缓存到文件
+                MaxISolator.I.WaitConsumeFiles?.Add(new FileCodeMod()
+                {
+                    FileName = fName,
+                    CreatTime = idata.Rtime,
+                    Level = idata.Level,
+                });//加入待消费队列
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"串口服务器接收数据异常：{ex.Message}");
+            }
+        }
+    }
+}

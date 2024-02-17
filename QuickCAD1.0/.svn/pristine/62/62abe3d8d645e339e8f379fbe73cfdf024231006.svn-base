@@ -1,0 +1,148 @@
+﻿using MongoDB.Driver;
+using MsDataSimulator.Comm;
+using MsDataSimulator.Config;
+using MsDataSimulator.Config.Mods;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+
+namespace MsDataSimulator.Views
+{
+    public partial class PzGaDbForm : Form
+    {
+        public PzGaDbForm()
+        {
+            InitializeComponent();
+        }
+
+        private DbModel gamysql = new DbModel();
+        private List<string> mysqltabs = new List<string>();
+        private DbModel gamongo = new DbModel();
+        private List<string> mongotabs = new List<string>();
+        private void PzGaDbForm_Load(object sender, EventArgs e)
+        {
+            gamysql = CfgHandler.Instance.GaMysql;
+            this.mysqlip.Text = gamysql.ip;
+            this.mysqlport.Text = gamysql.port;
+            this.mysqlname.Text = gamysql.name;
+            this.mysqluser.Text = gamysql.user;
+            this.mysqlpwd.Text = gamysql.pwd;
+
+            string mysqltables = "";//表名
+            var mysqlstrs = gamysql.tabs.Split(',').ToList(); ;
+            mysqlstrs.ForEach(p =>
+            {
+                mysqltabs.Add(p.Trim());
+                mysqltables += p.Trim() + "\r\n";
+            });
+            this.txtMysqlTabs.Text = mysqltables;
+
+
+            gamongo = CfgHandler.Instance.GaMongo;
+            this.mongoip.Text = gamongo.ip;
+            this.mongoport.Text = gamongo.port;
+            this.mongoname.Text = gamongo.name;
+            this.mongouser.Text = gamongo.user;
+            this.mongopwd.Text = gamongo.pwd;
+
+            string mongotables = "";//表名
+            var mongostrs = gamongo.tabs.Split(',').ToList(); ;
+            mongostrs.ForEach(p =>
+            {
+                mongotabs.Add(p.Trim());
+                mongotables += p.Trim() + "\r\n";
+            });
+            this.txtMongoTabs.Text = mongotables;
+        }
+
+        /// <summary>
+        /// 保存Mysql配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void butMysqlConfig_Click(object sender, EventArgs e)
+        {
+            gamysql.ip = this.mysqlip.Text.Trim();
+            gamysql.port = this.mysqlport.Text.Trim();
+            gamysql.name = this.mysqlname.Text.Trim();
+            gamysql.user = this.mysqluser.Text.Trim();
+            gamysql.pwd = this.mysqlpwd.Text.Trim();
+            CfgHandler.Instance.SaveGaMysql(gamysql);
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+
+        /// <summary>
+        /// 清空Mysql指定的table的数据
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnClearMysqlTabs_Click(object sender, EventArgs e)
+        {
+            this.txtMysqlLogs.Text = "";    //先清空日志
+            this.txtMysqlLogs.Text += "清空中。。。\r\n";
+            MysqlOperate mysql = new MysqlOperate();
+            mysql.DbCon = $"Server={gamysql.ip};Port={gamysql.port};Database={gamysql.name};Charset=utf8;Uid={gamysql.user};Pwd={gamysql.pwd}";
+            mysqltabs.ForEach(p =>
+            {
+                try
+                {
+                    mysql.RunSQL($"truncate table {p}");
+                    this.txtMysqlLogs.Text += $"{p.Trim()}清空完成...\r\n";
+                }
+                catch (Exception ex)
+                {
+                    this.txtMysqlLogs.Text += $"{p.Trim()}清空失败【{ex.ToString()}】\r\n";
+                }
+            });
+            this.txtMysqlLogs.Text += "全部清空完成！\r\n";
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+
+        /// <summary>
+        /// 保存Mongo配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void butMongoConfig_Click(object sender, EventArgs e)
+        {
+            gamongo.ip = this.mongoip.Text.Trim();
+            gamongo.port = this.mongoport.Text.Trim();
+            gamongo.name = this.mongoname.Text.Trim();
+            gamongo.user = this.mongouser.Text.Trim();
+            gamongo.pwd = this.mongopwd.Text.Trim();
+            CfgHandler.Instance.SaveGaMongo(gamongo);
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+
+        /// <summary>
+        /// 清空Mongo指定的table的数据
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnClearMongoTabs_Click(object sender, EventArgs e)
+        {
+            this.txtMongoLogs.Text = "";    //先清空日志
+            this.txtMongoLogs.Text += "清空中。。。\r\n";
+            MongoOperate mongo = new MongoOperate(gamongo.ip, gamongo.port, gamongo.user, gamongo.pwd, gamongo.name);
+            mongotabs.ForEach(p =>
+            {
+                try
+                {
+                    mongo.DeleteTable(p);
+                    this.txtMongoLogs.Text += $"{p.Trim()}清空完成...\r\n";
+                }
+                catch (Exception ex)
+                {
+                    this.txtMongoLogs.Text += $"{p.Trim()}清空失败【{ex.ToString()}】\r\n";
+                }
+            });
+            this.txtMongoLogs.Text += "全部清空完成！\r\n";
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+    }
+}

@@ -1,0 +1,290 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Text;
+using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using System.Threading;
+using Max.BaseKit.Customs;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 抽象同步助手
+    /// </summary>
+    public abstract class AbsIsolator : IIsolator
+    {
+        public abstract string Id { get; set; }
+        public abstract string ProduceCachePath { get; set; }
+        public abstract bool IsBackupProduce { get; set; }
+        public abstract string ProduceBackupPath { get; set; }
+        public abstract int ProduceChannelSize { get; set; }
+        public abstract int ItemSize { get; set; }
+        public abstract int BulkSize { get; set; }
+        public abstract bool IsZip { get; set; }
+        public abstract CustomConcurrentList<string> WaitProduceFiles { get; set; }
+        public abstract BlockingCollection<string> ProducingFiles { get; set; }
+        public abstract void BootUp();
+        public abstract void ProduceData(IsolatorData data);
+        public abstract void ShutDown();
+
+        /// <summary>
+        /// 扫描生产缓存区文件(100毫秒扫描一次)
+        /// 扫描生产缓存区文件，并将全文件名加入到待生产区
+        /// </summary>
+        protected void ScanProduceCacheFiles()
+        {
+            try
+            {
+                //0@1@20240106095407083350@001@BJ_T_YW_CRJRY@M1001_20230620000000_20230620235959_1_1.txt
+                var files = FileUtil.FindFiles(new DirectoryInfo(ProduceCachePath), Id, "*.txt");//M1001就是要找的文件
+                files?.ForEach(f =>
+                {
+                    this.WaitProduceFiles.Add(f.FullName);
+                });
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+            }
+        }
+
+        ///// <summary>
+        ///// 扫描生产缓存区文件(100毫秒扫描一次)
+        ///// 扫描生产缓存区文件，并将全文件名加入到待生产区
+        ///// </summary>
+        //private void ScanProduceCacheFiles()
+        //{
+        //    try
+        //    {
+        //        var files = FileUtil.FindFiles(new DirectoryInfo(ProduceCachePath), null, "*.txt");
+        //        files?.ForEach(f =>
+        //        {
+        //            //0@1@20240106095407083350@001@BJ_T_YW_CRJRY@M1001_20230620000000_20230620235959_1_1.txt
+        //            string[] strs = f.Name.Split('@');
+        //            if (strs == null || strs.Length < 6) return;
+        //            string[] strs1 = strs[5].Split('_');
+        //            string glqId = strs1[0];//隔离器Id -- "M1001"
+        //            IIsolator_Dic.TryGetValue(glqId, out var isolator);
+        //            if (isolator == null) File.Delete(f.FullName);//如果没有指定的隔离器，该文件无效，便删除掉
+        //            isolator.WaitProduceFiles.Add(f.FullName);
+        //        });
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+        //    }
+        //}
+
+
+        /// <summary>
+        /// 扫描缓存文件(100毫秒扫描一次)
+        /// </summary>
+        protected void ScanCacheFiles()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        #region 文件名排序，然后依次加入正在生产的队列中
+                        var files = WaitProduceFiles.OrderBy(p => p).ToList();
+                        foreach (var f in files)
+                        {
+                            if (ProducingFiles.Count >= ProduceChannelSize) break;//管道满了就直接跳出
+                            if (ProducingFiles.Contains(f)) continue;
+                            bool flag = ProducingFiles.TryAdd(f);//将文件加入正在生产区
+                            if (flag) WaitProduceFiles.Remove(f);
+                        }
+                        #endregion
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 缓存数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="number">切片序号</param>
+        /// <param name="cachePath">缓存路径</param>
+        /// <returns></returns>
+        protected string CacheData(IsolatorData idata, int number, string cachePath)
+        {
+            string rfName = string.Empty;
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return rfName;
+            try
+            {
+                var fId = $"{Id}_{idata.Stime}_{idata.Etime}_{number}_{idata.Lst.Count}";
+                rfName = $@"{cachePath}/{idata.Cfbs}@{idata.Level}@{idata.Rtime}@{idata.Cmd}@{idata.Rwmc}@{fId}.txt";
+                if (IsZip) //压缩IsolatorData里面的Lst
+                {
+                    //TODO...
+                }
+                using (FileStream fs = new FileStream(rfName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                {
+                    byte[] datas = Encoding.Default.GetBytes(JsonUtil.ObjectToStr(idata));
+                    fs.Write(datas, 0, datas.Length);
+                    fs.Close();
+                    fs.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"缓存数据到{rfName}异常:{ex.Message}");
+            }
+            return rfName;
+        }
+
+        /// <summary>
+        /// 根据条数分页成隔离器数据，确保单个文件不超过N条数据，且单个文件不超过指定大小
+        /// ①优先考虑按条数分页(最大N条数据一个文件)，确保单个文件不超过N条数据
+        /// ②如果条数据大小超过了指定大小，继续将数据根据大小分页，确保单个文件不超过指定大小
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <returns></returns>
+        protected List<IsolatorData> LimitIsolatorData(IsolatorData idata)
+        {
+            if (!(idata?.Lst?.Count > 0)) return new List<IsolatorData>();
+            #region ①按条数分页
+            var byCountLst = LimitIsolatorDataByCount(idata, ItemSize);//条数分页
+            string idataStr1 = JsonUtil.ObjectToStr(byCountLst);
+            byte[] idataBytes1 = Encoding.UTF8.GetBytes(idataStr1);
+            var const_size = BulkSize * 1024 * 1024;//最大容量为多少M
+            if (idataBytes1.Length <= const_size)
+            {
+                List<IsolatorData> by_count_lst = new List<IsolatorData>();
+                by_count_lst.AddRange(byCountLst);
+                return by_count_lst;
+            }
+            #endregion
+            #region ②按大小分页
+            List<IsolatorData> by_size_lst = new List<IsolatorData>();
+            foreach (var item in byCountLst)
+            {
+                var bySizeLst = LimitIsolatorDataBySize(item, BulkSize);
+                by_size_lst.AddRange(bySizeLst);
+            }
+            return by_size_lst;
+            #endregion
+        }
+
+        /// <summary>
+        /// 根据条数分页成隔离器数据(最大多少条数据一个文件)
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="itemSize">数据最大条数</param>
+        /// <returns></returns>
+        private List<IsolatorData> LimitIsolatorDataByCount(IsolatorData idata, int itemSize)
+        {
+            List<IsolatorData> datalst = new List<IsolatorData>();
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return datalst;
+
+            int icount = idata.Lst.Count;
+            int num = icount % itemSize == 0 ? icount / itemSize : icount / itemSize + 1;//页数
+            for (int i = 0; i < num; i++)   //按最大N条数据来划分文件
+            {
+                try
+                {
+                    int tnum = icount - (i + 1) * itemSize >= 0 ? itemSize : icount - i * itemSize;//数据量
+                    var tlst = idata.Lst.Skip(i * itemSize).Take(tnum).ToList();
+                    IsolatorData tempdata = new IsolatorData()
+                    {
+                        Id = Guid.NewGuid().ToString("N"),
+                        Cmd = idata.Cmd,
+                        Rwmc = idata.Rwmc,
+                        Cddm = idata.Cddm,
+                        Cfbs = idata.Cfbs,
+                        Czlx = idata.Czlx,
+                        Stime = idata.Stime,
+                        Etime = idata.Etime,
+                        Lst = tlst,
+                        IsolatorId = idata.IsolatorId,
+                        Level = idata.Level,
+                        Rtime = idata.Rtime
+                    };
+                    datalst.Add(tempdata);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"数据根据条数分页成IsolatorData异常:{ex.Message}");
+                }
+            }
+            return datalst;
+        }
+
+        /// <summary>
+        /// 根据大小分页成隔离器数据(最大多少M一个文件)
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="bulkSize">数据最大容量多少M</param>
+        /// <returns></returns>
+        private List<IsolatorData> LimitIsolatorDataBySize(IsolatorData idata, int bulkSize)
+        {
+            List<IsolatorData> Resultlist = new List<IsolatorData>();
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return Resultlist;
+            OperationChildData(idata, Resultlist, bulkSize);
+            return Resultlist;
+        }
+
+        /// <summary>
+        /// 递归子级数据
+        /// </summary>
+        /// <param name="idata">源数据</param>
+        /// <param name="Resultlist">目标数据列表</param>
+        /// <param name="bulkSize">数据最大容量多少M</param>
+        private void OperationChildData(IsolatorData idata, List<IsolatorData> Resultlist, int bulkSize)
+        {
+            if (idata != null && idata.Lst != null && idata.Lst.Count > 0)
+            {
+                int const_size = bulkSize * 1024 * 1024;//最大容量为多少M
+                string idataStr = JsonUtil.ObjectToStr(idata);
+                byte[] idataBytes = Encoding.UTF8.GetBytes(idataStr);
+                if (idataBytes.Length <= const_size)
+                {
+                    Resultlist.Add(idata);
+                }
+                else
+                {
+                    int idataLength = idataBytes.Length;//数据长度
+                    int cs_count = idataLength % const_size == 0 ? idataLength / const_size : idataLength / const_size + 1;//生成次数
+                    int ts_count = idata.Lst.Count % cs_count == 0 ? idata.Lst.Count / cs_count : idata.Lst.Count / cs_count + 1;//每次生成的条数
+
+                    for (int i = 0; i < cs_count; i++)//分多次生成
+                    {
+                        try
+                        {
+                            var lst = idata.Lst.Skip(i * ts_count).Take(ts_count).ToList();
+                            if (lst == null || lst.Count <= 0) continue;
+                            IsolatorData tempdata = new IsolatorData()
+                            {
+                                Id = Guid.NewGuid().ToString("N"),
+                                Cmd = idata.Cmd,
+                                Rwmc = idata.Rwmc,
+                                Cfbs = idata.Cfbs,
+                                Czlx = idata.Czlx,
+                                Stime = idata.Stime,
+                                Etime = idata.Etime,
+                                Lst = lst
+                            };
+                            OperationChildData(tempdata, Resultlist, bulkSize);
+                        }
+                        catch (Exception ex)
+                        {
+                            NLogger.Error($"数据根据大小分页成IsolatorData异常:{ex.Message}");
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,29 @@
+﻿using System;
+using Max.BaseKit;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 字符叠加服务
+    /// </summary>
+    public class SetCharService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="serviceId">服务标识</param>
+        public void ConsumeData(IsolatorData idata, string serviceId)
+        {
+            try
+            {
+                
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"SetCharService消费{idata.Cmd}异常{ex.Message}。");
+            }
+        }
+    }
+}

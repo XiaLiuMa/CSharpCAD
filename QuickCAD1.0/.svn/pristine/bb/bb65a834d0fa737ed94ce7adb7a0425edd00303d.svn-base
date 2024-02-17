@@ -1,0 +1,99 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Security.Claims;
+using WebApplication1.Models;
+using System.ComponentModel.DataAnnotations;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// 定时任务控制器
+    /// </summary>
+    [Authorize]
+    public class CroJobController : Controller
+    {
+        private readonly ILogger<CroJobController> _logger;
+
+        public CroJobController(ILogger<CroJobController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Add()
+        {
+            return View();
+        }
+
+        public IActionResult Edit()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public PagingResult<CronJob> PagingSearch(int page = 1, int limit = 10, string state = "")
+        {
+            var rd = new PagingResult<CronJob>();
+            rd.Count = 35;
+            rd.Data = new List<CronJob>();
+            for (int i = 0; i < 10; i++)
+            {
+                rd.Data.Add(new CronJob()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    JobDes = "测试用",
+                    SubCmds = "D&206,D&207",
+                    CronExpr = "0 1/1 * * * ?",
+                    CronDes = "每1分钟执行1次",
+                    RunTime = "20231117000000"
+                });
+            }
+            return rd;
+        }
+    }
+
+    /// <summary>
+    /// 定时任务
+    /// </summary>
+    public class CronJob
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 定时任务任务描述
+        /// </summary>
+        public string JobDes { get; set; }
+        /// <summary>
+        /// 子任务命令码(多个用,隔开)
+        /// </summary>
+        public string SubCmds { get; set; }
+        /// <summary>
+        /// Cron表达式
+        /// </summary>
+        public string CronExpr { get; set; }
+        /// <summary>
+        /// 运行计划。主要是显示对Quartz表达式的文字说明
+        /// </summary>
+        public string CronDes { get; set; }
+        /// <summary>
+        /// 用于记录运行时间
+        /// </summary>
+        public string RunTime { get; set; }
+    }
+}

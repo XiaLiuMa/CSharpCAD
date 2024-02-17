@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>手动任务</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.css">
+    <link rel="stylesheet" href="../comm/css/layui.css" />
+    <link rel="stylesheet" href="../comm/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+    <style>
+        .flexbox {
+            display: flex;
+            align-items: center;
+        }
+        
+        .m-r-20 {
+            margin-right: 20px;
+        }
+        
+        .flexbox span {
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .m-b-10 {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container-fluid">
+        <div class="flexbox" style="margin: 20px">
+            <div class="selectbox flexbox m-r-20">
+                <span>选择调度器：</span>
+                <select id="jobid" style="width:200px;"></select>
+            </div>
+            <div class="selectbox flexbox m-r-20">
+                <span>选择子任务：</span>
+                <select id="cmds" multiple="multiple" style="height:280px"></select>
+            </div>
+            <div class="timebox flexbox m-r-20">
+                <span>选择时间段：</span>
+                <input type="datetime" value="" name="start_time" id="start_time_picker" class="datetimepicker" />
+                <span>至</span>
+                <input type="datetime" value="" name="end_time" id="end_time_picker" class="datetimepicker" />
+            </div>
+            <button type="button" class="btn btn-primary m-b-10" id="confirm">确认</button>
+        </div>
+    </div>
+
+    <script src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script src="../comm/js/bootstrap.min.js"></script>
+    <script src="../comm/js/mygloble.js"></script>
+    <script src="../comm/js/bootstrap-datepicker.js"></script>
+    <script src="../comm/js/bootstrap-datetimepicker.min.js"></script>
+    <script src="../comm/js/locales/bootstrap-datetimepicker.zh-CN.js"></script>
+    <script>
+        $(function() {
+            loadjobs(); //加载调度器列表
+            $("#jobid").on('change', function() {
+                $("#cmds").html(""); //清空子任务选择栏
+                var jname = $("#jobid option:selected").val();
+                if (jname == "ALL") loadzrws(jname, false); //加载子任务列表
+                else loadzrws(jname, true); //加载子任务列表
+            });
+
+            $(".datetimepicker").datetimepicker({
+                format: "yyyy-mm-dd hh:ii:ss",
+                autoclose: true,
+                minView: 0,
+                minuteStep: 1,
+                language: "zh-CN",
+                initialDate: new Date(), //初始化当前日期
+                todayBtn: true
+            });
+            $("#start_time_picker").datetimepicker("setDate", new Date(fun_date(-7)));
+            $("#end_time_picker").datetimepicker("setDate", new Date());
+            // 提交按钮点击
+            $("#confirm").on("click", function() {
+                var select = document.getElementById("cmds");
+                var cmdsstr = ""; //cmds字符串，用逗号隔开
+                for (i = 0; i < select.length; i++) {
+                    if (select.options[i].selected) {
+                        cmdsstr += select[i].value + ",";
+                    }
+                }
+                var reg = /,$/gi;
+                cmdsstr = cmdsstr.replace(reg, ""); //去除最后一个逗号
+
+                var start_time = $("input[name='start_time']").val();
+                var end_time = $("input[name='end_time']").val();
+                if (start_time == "" || end_time == "") {
+                    alert("请输入完整时间段!");
+                } else {
+                    var startTime = palindrome(start_time);
+                    var endTime = palindrome(end_time);
+                    $.ajax({
+                        url: "http://" + params + "/app/sub_sdrw/start",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            cmds: cmdsstr,
+                            time1: startTime,
+                            time2: endTime
+                        },
+                        success: function(res) {
+                            if (res == true) {
+                                alert("启动手动任务成功！");
+                            } else if (res == false) {
+                                alert("启动手动任务失败！");
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        //加载调度器列表
+        function loadjobs() {
+            $.ajax({
+                url: "http://" + params + "/app/sub_sdrw/loadjobs",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                async: "false",
+                data: {},
+                success: function(res) {
+                    let html = "<option value='ALL' selected='true'>全部</option>";
+                    for (var i = 0; i < res.length; i++) {
+                        html += "<option value='" + res[i].jobName + "'>" + res[i].classNote + "</option>";
+                    }
+                    $("#jobid").html(html);
+                    loadzrws("ALL", false); //加载子任务列表
+                }
+            });
+        }
+
+        //加载子任务列表
+        function loadzrws(jname, flag) {
+            $.ajax({
+                url: "http://" + params + "/app/sub_sdrw/loadzrws",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                data: {
+                    jname: jname
+                },
+                success: function(res) {
+                    let html = "";
+                    for (var i = 0; i < res.length; i++) {
+                        html += "<option value='" + res[i].cmd + "' selected='true'>" + res[i].description + "</option>";
+                    }
+                    $("#cmds").html(html);
+                    if (flag == false) {
+                        $("#cmds").attr({
+                            "disabled": "disabled"
+                        });
+                    } else {
+                        $("#cmds").removeAttr("disabled");
+                    }
+
+                }
+            });
+        }
+
+        //时间转字符串
+        function palindrome(str) {
+            // 先后去除空格和非数字字母的字符
+            var newStr = str
+                .replace(/\s/g, "")
+                .replace(/[^a-zA-Z0-9]/g, "")
+                .toLowerCase();
+            return newStr;
+        }
+
+        function fun_date(num) {
+            var date1 = new Date();
+            //今天时间
+            var time1 = date1.getFullYear() + "-" + (date1.getMonth() + 1) + "-" + date1.getDate()
+            var date2 = new Date(date1);
+            date2.setDate(date1.getDate() + num);
+            //num是正数表示之后的时间，num负数表示之前的时间，0表示今天
+            var time2 = date2.getFullYear() + "-" + (date2.getMonth() + 1) + "-" + date2.getDate() + " " + date2.getHours() + ":" + date2.getMinutes() + ":" + date2.getSeconds();
+            return time2;
+        }
+    </script>
+</body>
+
+</html>

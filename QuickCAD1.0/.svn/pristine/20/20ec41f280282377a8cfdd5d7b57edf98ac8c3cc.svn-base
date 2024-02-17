@@ -1,0 +1,101 @@
+﻿using GaCharSet.Config;
+using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace GaCharSet.Comm
+{
+    /// <summary>
+    /// 日志管理器
+    /// </summary>
+    public class LogManager
+    {
+        #region 单例
+        private static LogManager instance;
+        private readonly static object objLock = new object();
+        public static LogManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new LogManager();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 线程管理
+        /// </summary>
+        private CancellationTokenSource cts = new CancellationTokenSource();
+
+        /// <summary>
+        /// 启动日志清理
+        /// </summary>
+        public void StartLogCleaning()
+        {
+            LogRunDal rundal = new LogRunDal();
+            LogWebDal webdal = new LogWebDal();
+            Task.Factory.StartNew(() =>
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    DateTime dtime = DateTime.Now.AddDays(Convert.ToInt32($"-{AsGlobal.Config.LogDays}"));//xx天前
+                    string tstr = dtime.ToString("yyyyMMddHHmmss");
+                    NLogger.Info($"删除{tstr}前的日志(数据库和文件)");
+                    #region 删除过期RunLog
+                    bool runflag = rundal.Delete(new List<string>() { $"Timestamp<='{tstr}'" });
+                    if (!runflag) NLogger.Warn($"删除{tstr}前过期RunLog失败");
+                    #endregion
+
+                    #region 删除过期WebLog
+                    bool webflag = webdal.Delete(new List<string>() { $"czsj<='{tstr}'" });
+                    if (!webflag) NLogger.Warn($"删除{tstr}前过期WebLog失败");
+                    #endregion
+
+                    #region 删除过期日志文件
+                    try
+                    {
+                        var dir = $"{AppContext.BaseDirectory}/logs/";
+                        if (Directory.Exists(dir))
+                        {
+                            var files = DirectoryUtil.GetFileNames(dir); //获取所有日志文件名
+                            files?.ForEach(p =>
+                            {
+                                FileInfo f = new FileInfo(p);
+                                if (f.LastWriteTime < dtime) f.Delete();
+                            });
+                        } 
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"删除过期日志文件错误=={ex.Message}");
+                    }
+                    #endregion
+
+                    Thread.Sleep(10 * 60 * 1000);//10分钟清理1次
+                }
+            }, cts.Token);
+        }
+
+        /// <summary>
+        /// 停止日志清理
+        /// </summary>
+        public void StopLogCleaning()
+        {
+            cts?.Cancel();
+        }
+    }
+}

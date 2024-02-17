@@ -1,0 +1,205 @@
+﻿//using Max.DbTool.SqlExtend.Mod;
+//using Microsoft.AspNetCore.Mvc;
+//using System.Collections.Generic;
+//using System.Reflection;
+//using DataSyncSource.Mods;
+//using DataSyncSource.Config;
+//using DataSyncSource.Config.Entities;
+
+//namespace DataSyncSource.WebApi
+//{
+//    /// <summary>
+//    /// 任务配置管理
+//    /// </summary>
+//    [Route("app/res_rwpz/[action]")]
+//    public class Res_rwpzController : Controller
+//    {
+//        private SchedulerDal dal = new SchedulerDal();
+
+//        /// <summary>
+//        /// 加载Job列表
+//        /// </summary>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult loadjobs()
+//        {
+//            List<ScheduJob> jobs = new List<ScheduJob>();
+//            var types = Assembly.GetExecutingAssembly().GetTypes();
+//            foreach (var typename in types)
+//            {
+//                //if (typename.BaseType == typeof(AbstractScheduleService))   //基类是否该类型
+//                //{
+//                //    try
+//                //    {
+//                //        var service = typename.Assembly.CreateInstance(typename.FullName) as IScheduleService;
+//                //        if (service == null) continue;
+//                //        jobs.Add(new ScheduJob()
+//                //        {
+//                //            JobName = service.ServiceName,
+//                //            JobDesc = service.ClassNote(),
+//                //            JobType = typename.ToString()
+//                //        });
+//                //    }
+//                //    catch (Exception ex)
+//                //    {
+//                //        NLogger.Error($"反射{typename}异常：{ex.Message}");
+//                //    }
+//                //}
+//            }
+//            return Json(jobs);
+//        }
+
+//        /// <summary>
+//        /// 查询Rwpz列表
+//        /// </summary>
+//        /// <param name="condition"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult query(string condition)
+//        {
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and JobName like '%{condition}%'";
+//            string where = $"1=1 {qwhere} ORDER BY JobName";
+//            var list = dal.Select(where);
+//            return Json(list);
+//        }
+
+//        /// <summary>
+//        /// 分页查询Rwpz
+//        /// </summary>
+//        /// <param name="condition"></param>
+//        /// <param name="page"></param>
+//        /// <param name="rows"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult limit(string condition, string page, string rows)
+//        {
+//            int count = 0;
+//            List<CronJob> list = new List<CronJob>();
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and JobName like '%{condition}%'";
+//            string where = $"1=1 {qwhere} ORDER BY JobName";
+//            var flag = dal.SqliteSelectPage(where, int.Parse(page), int.Parse(rows), out list, out count);
+//            OutPage<CronJob> outpage = new OutPage<CronJob>()
+//            {
+//                Count = count,
+//                Datas = list
+//            };
+//            return Json(outpage);
+//        }
+
+//        /// <summary>
+//        /// 新增Rwpz
+//        /// </summary>
+//        /// <param name="sname">服务名称</param>
+//        /// <param name="jobtype">Job完整类名</param>
+//        /// <param name="classnote">类说明</param>
+//        /// <param name="state">状态</param>
+//        /// <param name="cron">表达式</param>
+//        /// <param name="desc">计划描述</param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult add(string sname, string jobtype, string classnote, string state, string cron, string desc)
+//        {
+//            CronJob qbc = new CronJob()
+//            {
+//                JobName = sname,
+//                JobType = jobtype,
+//                ClassNote = classnote,
+//                State = state,
+//                CronExpression = cron,
+//                Description = desc
+//            };
+//            var flag = dal.Add(qbc);
+//            if (flag) ScheduManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 修改Rwpz
+//        /// </summary>
+//        /// <param name="sname">服务名称</param>
+//        /// <param name="jobtype">Job完整类名</param>
+//        /// <param name="classnote">类说明</param>
+//        /// <param name="state">状态</param>
+//        /// <param name="cron">表达式</param>
+//        /// <param name="desc">计划描述</param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult alert(string sname, string jobtype, string classnote, string state, string cron, string desc)
+//        {
+//            CronJob qbc = new CronJob()
+//            {
+//                JobName = sname,
+//                JobType = jobtype,
+//                ClassNote = classnote,
+//                State = state,
+//                CronExpression = cron,
+//                Description = desc
+//            };
+//            var flag = dal.Update(qbc);
+//            if (flag) ScheduManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 删除Rwpz
+//        /// </summary>
+//        /// <param name="ids"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult delete(string[] ids)
+//        {
+//            var flags = new List<bool>();
+//            foreach (var id in ids)
+//            {
+//                flags.Add(dal.Delete(id));
+//            }
+//            var flag = flags.Contains(true) ? true : false;
+//            if (flag) ScheduManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 启动Rwpz
+//        /// </summary>
+//        /// <param name="ids"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult start(string[] ids)
+//        {
+//            string sqlstr = "";
+//            foreach (var id in ids)
+//            {
+//                sqlstr += $"Id={id} or ";
+//            }
+//            sqlstr = sqlstr.Trim().TrimEnd('r').TrimEnd('o').Trim();
+//            var lst = dal.Select(sqlstr);
+//            if (lst == null) return Json(false);
+
+//            lst.ForEach(p => p.State = "true");
+//            var flag = dal.Update(lst);
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 停止Rwpz
+//        /// </summary>
+//        /// <param name="ids"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult stop(string[] ids)
+//        {
+//            string sqlstr = "";
+//            foreach (var id in ids)
+//            {
+//                sqlstr += $"Id={id} or ";
+//            }
+//            sqlstr = sqlstr.Trim().TrimEnd('r').TrimEnd('o').Trim();
+//            var lst = dal.Select(sqlstr);
+//            if (lst == null) return Json(false);
+
+//            lst.ForEach(p => p.State = "false");
+//            var flag = dal.Update(lst);
+//            return Json(flag);
+//        }
+//    }
+//}

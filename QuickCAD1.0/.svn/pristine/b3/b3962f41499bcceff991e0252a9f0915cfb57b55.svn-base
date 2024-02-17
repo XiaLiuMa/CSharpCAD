@@ -1,0 +1,153 @@
+﻿namespace MsDataSimulator.Views.UserPanels
+{
+    partial class TdPanel
+    {
+        /// <summary> 
+        /// 必需的设计器变量。
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary> 
+        /// 清理所有正在使用的资源。
+        /// </summary>
+        /// <param name="disposing">如果应释放托管资源，为 true；否则为 false。</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region 组件设计器生成的代码
+
+        /// <summary> 
+        /// 设计器支持所需的方法 - 不要修改
+        /// 使用代码编辑器修改此方法的内容。
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.tBoxMsg = new System.Windows.Forms.TextBox();
+            this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
+            this.labType = new System.Windows.Forms.Label();
+            this.butOnOff = new System.Windows.Forms.Button();
+            this.labTdh = new System.Windows.Forms.Label();
+            this.tableLayoutPanel1.SuspendLayout();
+            this.tableLayoutPanel2.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.ColumnCount = 1;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Controls.Add(this.tBoxMsg, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.tableLayoutPanel2, 0, 0);
+            this.tableLayoutPanel1.Cursor = System.Windows.Forms.Cursors.Default;
+            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 2;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(314, 107);
+            this.tableLayoutPanel1.TabIndex = 0;
+            // 
+            // tBoxMsg
+            // 
+            this.tBoxMsg.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tBoxMsg.Location = new System.Drawing.Point(3, 35);
+            this.tBoxMsg.Multiline = true;
+            this.tBoxMsg.Name = "tBoxMsg";
+            this.tBoxMsg.ReadOnly = true;
+            this.tBoxMsg.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tBoxMsg.Size = new System.Drawing.Size(308, 69);
+            this.tBoxMsg.TabIndex = 1;
+            this.tBoxMsg.TextChanged += new System.EventHandler(this.tBoxBM_TextChanged);
+            // 
+            // tableLayoutPanel2
+            // 
+            this.tableLayoutPanel2.ColumnCount = 3;
+            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 50F));
+            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 80F));
+            this.tableLayoutPanel2.Controls.Add(this.labType, 0, 0);
+            this.tableLayoutPanel2.Controls.Add(this.butOnOff, 0, 0);
+            this.tableLayoutPanel2.Controls.Add(this.labTdh, 0, 0);
+            this.tableLayoutPanel2.Cursor = System.Windows.Forms.Cursors.WaitCursor;
+            this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 3);
+            this.tableLayoutPanel2.Name = "tableLayoutPanel2";
+            this.tableLayoutPanel2.RowCount = 1;
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(308, 26);
+            this.tableLayoutPanel2.TabIndex = 2;
+            this.tableLayoutPanel2.UseWaitCursor = true;
+            // 
+            // labType
+            // 
+            this.labType.AutoSize = true;
+            this.labType.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.labType.Location = new System.Drawing.Point(231, 0);
+            this.labType.Name = "labType";
+            this.labType.Size = new System.Drawing.Size(74, 26);
+            this.labType.TabIndex = 9;
+            this.labType.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.labType.UseWaitCursor = true;
+            // 
+            // butOnOff
+            // 
+            this.butOnOff.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.butOnOff.Location = new System.Drawing.Point(181, 3);
+            this.butOnOff.Name = "butOnOff";
+            this.butOnOff.Size = new System.Drawing.Size(44, 20);
+            this.butOnOff.TabIndex = 7;
+            this.butOnOff.Text = "打开";
+            this.butOnOff.UseVisualStyleBackColor = true;
+            this.butOnOff.UseWaitCursor = true;
+            this.butOnOff.Click += new System.EventHandler(this.butOnOff_Click);
+            // 
+            // labTdh
+            // 
+            this.labTdh.AutoSize = true;
+            this.labTdh.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.labTdh.Font = new System.Drawing.Font("宋体", 10F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(134)));
+            this.labTdh.ForeColor = System.Drawing.Color.Red;
+            this.labTdh.Location = new System.Drawing.Point(3, 0);
+            this.labTdh.Name = "labTdh";
+            this.labTdh.Size = new System.Drawing.Size(172, 26);
+            this.labTdh.TabIndex = 1;
+            this.labTdh.Text = "通道号";
+            this.labTdh.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.labTdh.UseWaitCursor = true;
+            // 
+            // TdPanel
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.AutoValidate = System.Windows.Forms.AutoValidate.EnablePreventFocusChange;
+            this.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.Controls.Add(this.tableLayoutPanel1);
+            this.Cursor = System.Windows.Forms.Cursors.Default;
+            this.Name = "TdPanel";
+            this.Size = new System.Drawing.Size(314, 107);
+            this.Load += new System.EventHandler(this.TdPanel_Load);
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
+            this.tableLayoutPanel2.ResumeLayout(false);
+            this.tableLayoutPanel2.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        public System.Windows.Forms.TextBox tBoxMsg;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
+        private System.Windows.Forms.Label labTdh;
+        public System.Windows.Forms.Button butOnOff;
+        public System.Windows.Forms.Label labType;
+    }
+}

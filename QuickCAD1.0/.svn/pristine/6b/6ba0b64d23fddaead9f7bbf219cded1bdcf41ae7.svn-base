@@ -1,0 +1,18 @@
+﻿namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 网络字符叠加对应关系
+    /// </summary>
+    public class WLZFDJDYGX
+    {
+        /// <summary>
+        /// 坐标信息
+        /// </summary>
+        public ZBXX ZBXX { get; set; }
+
+        /// <summary>
+        /// 网络设备信息
+        /// </summary>
+        public WLSB WLSB { get; set; }
+    }
+}

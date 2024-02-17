@@ -1,0 +1,3 @@
+﻿@using IsolatorOrigin
+@using IsolatorOrigin.Models
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers

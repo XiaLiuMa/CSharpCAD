@@ -1,0 +1,36 @@
+﻿using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.RabbitMqPkg;
+using Max.BaseKit.Exts;
+using IsolatorTarget.Storage.Entities;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// RabbitMq发送服务:命令码"R&*"
+    /// </summary>
+    public class RabbitMqService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <param name="rmq"></param>
+        public void ConsumeData(IsolatorData idata, RmqProduceEntity rmq)
+        {
+            var lll = rmq.Convert<RmqProducerCfg>();
+            RmqManager.Instance.Publich(lll, JsonUtil.ObjectToStr(idata));
+
+            //try
+            //{
+            //    string idsStr = JsonUtil.ObjectToStr(idata);
+            //    byte[] bytes = Encoding.UTF8.GetBytes(idsStr);
+            //    MqManager.Instance.JavaMQ?.Send(bytes, idata.Rwmc);//发送到Java的MQ
+            //}
+            //catch (Exception ex)
+            //{
+            //    NLogger.Error($"RabbitService消费{idata.Cmd}异常{ex.Message}。");
+            //}
+        }
+    }
+}

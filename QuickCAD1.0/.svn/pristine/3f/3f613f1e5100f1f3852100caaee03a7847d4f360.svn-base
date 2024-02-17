@@ -1,0 +1,2 @@
+var params = "127.0.0.1:52301";
+var appname = 'XXXX后台管理';

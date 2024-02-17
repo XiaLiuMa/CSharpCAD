@@ -1,0 +1,17 @@
+﻿using System;
+using System.Threading;
+
+namespace QuartzTest
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+            OneService.Instance.Start("001");
+            Thread.Sleep(2000);
+            OneService.Instance.Start("002");
+            while (true) Console.ReadLine();
+        }
+    }
+}

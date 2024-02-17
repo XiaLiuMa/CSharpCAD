@@ -1,0 +1,325 @@
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using Max.BaseKit;
+using SetCharLib.Mod;
+using SetCharLib.UniView;
+
+namespace SetCharLib.SetCharacter
+{
+    /// <summary>
+    /// 宇视网络摄像机字符叠加
+    /// </summary>
+    public class UniViewSetCharacter:WLSetCharacter
+    {
+        private const int zfdjqyIndex = 1;
+
+        /// <summary>
+        /// 登陆ID
+        /// </summary>
+        private string loginId = string.Empty;
+
+        #region 构造函数
+        public UniViewSetCharacter(WLZFDJDYGX dygx): base(dygx)
+        {
+            if (!IMOS_MV_SDK.IsInitSdk)
+            {
+                if (IMOS_MV_SDK.IMOS_MW_Initiate() >= 0)
+                {
+                    IMOS_MV_SDK.IsInitSdk = true;
+                }
+            }
+            if (!bLogin)
+            {
+                Login();
+            }
+        } 
+        #endregion
+
+        #region 登陆设备
+        /// <summary>
+        /// 登陆设备
+        /// </summary>
+        /// <returns></returns>
+        public bool Login()
+        {
+            lock (IMOS_MV_SDK.dctLogins)
+            {
+                string key = wlzfdjdygx.WLSB.IPADDRESS + "," + wlzfdjdygx.WLSB.PORT;
+                if (!IMOS_MV_SDK.dctLogins.TryGetValue(key,out loginId))
+                {
+                    if (wlzfdjdygx != null && !bLogin)
+                    {
+                        IntPtr ptrLoginInfo = Marshal.AllocHGlobal(IMOS_MV_SDK.IMOS_MW_CODE_LEN);
+                        if (IMOS_MV_SDK.IMOS_MW_Login(wlzfdjdygx.WLSB.USER_NAME, wlzfdjdygx.WLSB.USER_PWD, wlzfdjdygx.WLSB.IPADDRESS, 0, ptrLoginInfo) >= 0)
+                        {
+                            loginId = Marshal.PtrToStringAnsi(ptrLoginInfo);
+                            Marshal.FreeHGlobal(ptrLoginInfo);
+                            bLogin = true;
+                            IMOS_MV_SDK.dctLogins.Add(key, loginId);
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+                else
+                {
+                    if (string.IsNullOrEmpty(loginId))
+                    {
+                        //还没登录完就尝试等待
+                        Thread.Sleep(500);
+                        loginId = IMOS_MV_SDK.dctLogins[key];
+                    }
+                    bLogin = true;
+                    return true;
+                } 
+            }
+        } 
+        #endregion
+
+        #region 清除旅客信息
+        /// <summary>
+        /// 清除旅客信息
+        /// </summary>
+        /// <returns></returns>
+        public override bool ClearLKXX(string zjhm)
+        {
+            bool re = false;
+
+            try
+            {
+                if (!bLogin)
+                {
+                    Login();
+                }
+                if (bLogin)
+                {
+                    int sizeOsd = Marshal.SizeOf(typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+                    IntPtr ptrOsd = Marshal.AllocHGlobal(sizeOsd);
+                    if (IMOS_MV_SDK.IMOS_MW_GetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd, ptrOsd) >= 0)
+                    {
+
+                        IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S osd = new IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S();
+                        osd = (IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S)Marshal.PtrToStructure(ptrOsd, typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+
+                        #region 清空旅客信息
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulX = (int)wlzfdjdygx.ZBXX.Line1X;
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulY = (int)wlzfdjdygx.ZBXX.Line1Y;
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].szValue = GetBytesByStr("");
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].szValue = GetBytesByStr("");
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].szValue = GetBytesByStr("");
+                        #endregion
+
+                        int sizeOsd1 = Marshal.SizeOf(osd);
+                        IntPtr ptrOsd1 = Marshal.AllocHGlobal(sizeOsd1);
+                        Marshal.StructureToPtr(osd, ptrOsd1, false);
+
+                        if (IMOS_MV_SDK.IMOS_MW_SetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd1, ptrOsd1) >= 0)
+                        {
+                            re = true;
+                        }
+
+                        Marshal.FreeHGlobal(ptrOsd);
+                        Marshal.FreeHGlobal(ptrOsd1);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error(ex.ToString());
+                re = false;
+            }
+            return re;
+        } 
+        #endregion
+
+        #region 清除所有信息
+        /// <summary>
+        /// 清除所有信息
+        /// </summary>
+        /// <returns></returns>
+        public override bool ClearAll()
+        {
+            bool re = false;
+            try
+            {
+                if (!bLogin)
+                {
+                    Login();
+                }
+                if (bLogin)
+                {
+                    int sizeOsd = Marshal.SizeOf(typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+                    IntPtr ptrOsd = Marshal.AllocHGlobal(sizeOsd);
+                    if (IMOS_MV_SDK.IMOS_MW_GetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd, ptrOsd) >= 0)
+                    {
+
+                        IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S osd = new IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S();
+                        osd = (IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S)Marshal.PtrToStructure(ptrOsd, typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+
+                        #region 清空所有信息
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulX = (int)wlzfdjdygx.ZBXX.Line1X;
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulY = (int)wlzfdjdygx.ZBXX.Line1Y;
+                        osd.astInfoOSD[zfdjqyIndex].bEnable = true;
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].szValue = GetBytesByStr("");
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].szValue = GetBytesByStr("");
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].szValue = GetBytesByStr("");
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[3].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[3].szValue = GetBytesByStr("");
+                        #endregion
+
+                        int sizeOsd1 = Marshal.SizeOf(osd);
+                        IntPtr ptrOsd1 = Marshal.AllocHGlobal(sizeOsd1);
+                        Marshal.StructureToPtr(osd, ptrOsd1, false);
+
+                        if (IMOS_MV_SDK.IMOS_MW_SetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd1, ptrOsd1) >= 0)
+                        {
+                            re = true;
+                        }
+
+                        Marshal.FreeHGlobal(ptrOsd);
+                        Marshal.FreeHGlobal(ptrOsd1);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error(ex.ToString());
+                re = false;
+            }
+            return re;
+        } 
+        #endregion
+
+        #region 设置字符叠加
+        /// <summary>
+        /// 设置字符叠加
+        /// </summary>
+        /// <param name="djmsg"></param>
+        /// <returns></returns>
+        public override bool SetCharacter(DjMessage djmsg)
+        {
+            bool re = false;
+            try
+            {
+                if (!bLogin)
+                {
+                    Login();
+                }
+                if (bLogin)
+                {
+                    int sizeOsd = Marshal.SizeOf(typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+                    IntPtr ptrOsd = Marshal.AllocHGlobal(sizeOsd);
+                    if (IMOS_MV_SDK.IMOS_MW_GetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd, ptrOsd) >= 0)
+                    {
+
+                        IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S osd = new IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S();
+                        osd = (IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S)Marshal.PtrToStructure(ptrOsd, typeof(IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG_S));
+
+                        #region 叠加信息
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulX = (int)wlzfdjdygx.ZBXX.Line1X;
+                        osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulY = (int)wlzfdjdygx.ZBXX.Line1Y;
+                        //osd.astInfoOSD[zfdjqyIndex].stArea.stTopLeft.ulY = (int)wlzfdjdygx.ZBXX.Line1Y - 10;
+                        osd.astInfoOSD[zfdjqyIndex].bEnable = true;
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[0].szValue = GetBytesByStr(djmsg.Lkpjxx);
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[1].szValue = GetBytesByStr(djmsg.Lkgj + " " + djmsg.Jtgj);
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[2].szValue = GetBytesByStr(djmsg.Lkzjhm + " " + djmsg.Lkxm);
+
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[3].ulInfoType = IMOS_MV_SDK.IMOS_MW_OSD_INFO_TYPE_USERDEF;
+                        osd.astInfoOSD[zfdjqyIndex].astInfoParam[3].szValue = GetBytesByStr(djmsg.Czybm + " " + djmsg.Czydm + " " + djmsg.Czyxm);
+                        #endregion
+
+                        int sizeOsd1 = Marshal.SizeOf(osd);
+                        IntPtr ptrOsd1 = Marshal.AllocHGlobal(sizeOsd1);
+                        Marshal.StructureToPtr(osd, ptrOsd1, false);
+
+                        if (IMOS_MV_SDK.IMOS_MW_SetConfig(loginId, IMOS_MV_SDK.IMOS_MW_INFO_OSD_CFG, 0, ref sizeOsd1, ptrOsd1) >= 0)
+                        {
+                            re = true;
+                        }
+
+                        Marshal.FreeHGlobal(ptrOsd);
+                        Marshal.FreeHGlobal(ptrOsd1);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error(ex.ToString());
+                re = false;
+            }
+
+            return re;
+        } 
+        #endregion
+
+        #region 销毁函数
+        /// <summary>
+        /// 销毁函数
+        /// </summary>
+        /// <returns></returns>
+        public override bool Dispose()
+        {
+            bool re = false;
+            try
+            {
+                if (!bLogin)
+                {
+                    Login();
+                }
+                if (bLogin)
+                {
+                    re = ClearAll();
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error(ex.ToString());
+                re = false;
+            }
+            return re;
+        } 
+        #endregion
+
+        #region string转64长度字节
+        /// <summary>
+        /// string转64长度字节
+        /// </summary>
+        /// <param name="str"></param>
+        /// <returns></returns>
+        private byte[] GetBytesByStr(string str)
+        {
+            byte[] cmd = new byte[IMOS_MV_SDK.IMOS_MW_OSD_INFO_LEN + 4];
+
+            byte[] tempCmd = Encoding.UTF8.GetBytes(str);
+
+            for (int i = 0; i < tempCmd.Length; i++)
+            {
+                cmd[i] = tempCmd[i];
+            }
+
+            return cmd;
+        } 
+        #endregion
+    }
+}

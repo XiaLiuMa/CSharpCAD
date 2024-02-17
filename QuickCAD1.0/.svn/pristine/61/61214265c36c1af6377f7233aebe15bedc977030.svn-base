@@ -1,0 +1,51 @@
+﻿using GaCharSet.Comm;
+using Max.BaseKit;
+using System;
+
+namespace GaCharSet
+{
+    static class Program
+    {
+        /// <summary>
+        /// 应用程序的主入口点。
+        /// </summary>
+        static void Main()
+        {
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            string process_name = AsGlobal.Config.ProcessName;//进程名称
+            System.Threading.Mutex mutex = new System.Threading.Mutex(false, process_name);
+            bool Running = !mutex.WaitOne(0, false);
+            if (!Running)
+            {
+                AsGlobal.Init();
+                WebServer.Instance.StartService();  //启动Web服务
+                while (true) Console.ReadKey();
+            }
+        }
+
+        /// <summary>
+        /// 控制台进程关闭事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        {
+            AsGlobal.DisInit();
+            WebServer.Instance.Dispose();
+        }
+
+        /// <summary>
+        /// 未捕获的异常
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            NLogger.Error($"系统未捕获异常：{e.ToString()}");
+            AsGlobal.DisInit();
+            WebServer.Instance.Dispose();
+            Environment.Exit(0);
+        }
+    }
+}

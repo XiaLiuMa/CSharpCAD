@@ -1,0 +1,240 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using SetCharLib.Mod;
+using SetCharLib.SetCharacter;
+using GaCharSet.Config;
+using Max.BaseKit;
+
+namespace GaCharSet.UseData.SetChar
+{
+    public class GlobalSetChar
+    {
+        /// <summary>
+        /// 网络字符叠加对应关系缓存字典
+        /// </summary>
+        private static Dictionary<string, List<WLZFDJDYGX>> _WlDic = new Dictionary<string, List<WLZFDJDYGX>>();
+
+        /// <summary>
+        /// 模拟字符叠加对应关系缓存
+        /// </summary>
+        private static List<MNZFDJDYGX> lstMNZfdj = null;
+
+        public static ConcurrentQueue<ClearLKXXstl> _ConcurrentQueueClearLKXXstl = new ConcurrentQueue<ClearLKXXstl>();
+
+
+        /// <summary>
+        /// 根据通道号获取网络字符叠加对应关系
+        /// </summary>
+        /// <param name="mstdh">口岸代码|通道号</param>
+        /// <returns></returns>
+        public static List<WLZFDJDYGX> GetWLZfdjqygx(string mstdh)
+        {
+            if (!_WlDic.Keys.Contains(mstdh))
+            {
+                var glgxdic = new CamInfoDal().SelectGlgx(mstdh);//设备关联关系列表
+                glgxdic?.ForEach(p =>    //有可能一个通道有几个设备
+                {
+                    string _mstdh = p["MSTDH"]?.ToString();//kadm|tdh
+                    try
+                    {
+                        WLZFDJDYGX wl = new WLZFDJDYGX()//网络设备对应关系
+                        {
+                            WLSB = new WLSB(),
+                            ZBXX = new ZBXX()
+                        };
+
+                        wl.WLSB.TDH = _mstdh;//MSTDH
+                        wl.WLSB.CHANNEL = int.Parse(p["CHANNEL"]?.ToString());
+                        wl.WLSB.SBXH = p["SBXH"]?.ToString();
+                        wl.WLSB.IPADDRESS = p["IP"]?.ToString();
+                        wl.WLSB.PORT = int.Parse(p["PORT"]?.ToString());
+                        wl.WLSB.USER_NAME = p["USER_NAME"]?.ToString();
+                        wl.WLSB.USER_PWD = p["USER_PWD"]?.ToString();
+
+                        wl.ZBXX.Line1X = int.Parse(p["LINE1X"]?.ToString());
+                        wl.ZBXX.Line1Y = int.Parse(p["LINE1Y"]?.ToString());
+                        wl.ZBXX.Line2X = int.Parse(p["LINE2X"]?.ToString());
+                        wl.ZBXX.Line2Y = int.Parse(p["LINE2Y"]?.ToString());
+                        wl.ZBXX.Line3X = int.Parse(p["LINE3X"]?.ToString());
+                        wl.ZBXX.Line3Y = int.Parse(p["LINE3Y"]?.ToString());
+                        wl.ZBXX.Line4X = int.Parse(p["LINE4X"]?.ToString());
+                        wl.ZBXX.Line4Y = int.Parse(p["LINE4Y"]?.ToString());
+
+                        #region 没有字典新增字典，有字典并且VALUE中不存在的情况下往列表中追加
+                        if (!_WlDic.Keys.Contains(_mstdh))
+                        {
+                            _WlDic.TryAdd(_mstdh, new List<WLZFDJDYGX>() { wl });
+                        }
+                        else
+                        {
+                            if (!_WlDic[_mstdh].Contains(wl))
+                            {
+                                _WlDic[_mstdh].Add(wl);
+                            }
+                        }
+                        #endregion
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"获取网络设备对应关系异常：{ex.Message}");
+                    }
+                });
+            }
+
+            if (string.IsNullOrEmpty(mstdh))//如果为空,查询所有WL设备
+            {
+                List<WLZFDJDYGX> wllst = new List<WLZFDJDYGX>();
+                foreach (var item in _WlDic)
+                {
+                    wllst.AddRange(item.Value);
+                }
+                return wllst;
+            }
+            else
+            {
+                if (_WlDic.Keys.Contains(mstdh))
+                {
+                    return _WlDic[mstdh];
+                }
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// 根据通道号获取模拟字符叠加对应关系
+        /// </summary>
+        /// <param name="tdh"></param>
+        /// <returns></returns>
+        //        public static List<MNZFDJDYGX> GetMNZfdjqygx(string tdh)
+        //        {
+        //            if (lstMNZfdj == null)
+        //            {
+        //                lock (locker)
+        //                {
+        //                    if (lstMNZfdj == null)
+        //                    {
+        //                        lstMNZfdj = new List<MNZFDJDYGX>();
+
+        //                        string strSql = string.Empty;
+        //                        if (GlobalService.dbType.Equals("Ms"))
+        //                        {
+        //                            strSql = " select * from View_QWSJ_ZFDJ_MNSBDYGX";
+        //                        }
+        //                        else if (GlobalService.dbType.Equals("Acc"))
+        //                        {
+        //                            strSql = @"SELECT   QWSJ_T_ZFDJ_CKSB.PORT_NAME, QWSJ_T_ZFDJ_CKSB.baudRate, QWSJ_T_ZFDJ_CKSB.DATABITS, 
+        //                QWSJ_T_ZFDJ_CKSB.parity, QWSJ_T_ZFDJ_CKSB.STOPBITS, QWSJ_T_ZFDJ_CKSB.handShake, 
+        //                QWSJ_T_ZFDJ_TDSBDYGX.mstdh, QWSJ_T_ZFDJ_TDSBDYGX.SBLX, QWSJ_T_ZFDJ_MNSB.JKTDH, 
+        //                QWSJ_T_ZFDJ_ZBXX.czydm_djzb_x, QWSJ_T_ZFDJ_ZBXX.czydm_djzb_y, QWSJ_T_ZFDJ_ZBXX.czyxm_djzb_x, 
+        //                QWSJ_T_ZFDJ_ZBXX.czyxm_djzb_y, QWSJ_T_ZFDJ_ZBXX.czybm_djzb_x, QWSJ_T_ZFDJ_ZBXX.czybm_djzb_y, 
+        //                QWSJ_T_ZFDJ_ZBXX.lkzjhm_djzb_x, QWSJ_T_ZFDJ_ZBXX.lkzjhm_djzb_y, QWSJ_T_ZFDJ_ZBXX.lkxm_djzb_x, 
+        //                QWSJ_T_ZFDJ_ZBXX.lkxm_djzb_y, QWSJ_T_ZFDJ_ZBXX.lkpjxx_djzb_x, QWSJ_T_ZFDJ_ZBXX.lkpjxx_djzb_y, 
+        //                QWSJ_T_ZFDJ_CKSB.CKSBID
+        //FROM      (((QWSJ_T_ZFDJ_TDSBDYGX INNER JOIN
+        //                QWSJ_T_ZFDJ_MNSB ON QWSJ_T_ZFDJ_TDSBDYGX.SBID = QWSJ_T_ZFDJ_MNSB.MNSBID) INNER JOIN
+        //                QWSJ_T_ZFDJ_ZBXX ON QWSJ_T_ZFDJ_MNSB.ZBID = QWSJ_T_ZFDJ_ZBXX.ZBID) INNER JOIN
+        //                QWSJ_T_ZFDJ_CKSB ON QWSJ_T_ZFDJ_MNSB.CKSBID = QWSJ_T_ZFDJ_CKSB.CKSBID)";
+        //                        }
+        //                        List<Dictionary<string, object>> listDic = SqlUtil.Select(strSql, GlobalService.SqlOperate);
+        //                        listDic.ForEach(d =>
+        //                        {
+        //                            View_QWSJ_ZFDJ_MNSBDYGX zfdjdygx = JsonConvert.DeserializeObject<View_QWSJ_ZFDJ_MNSBDYGX>(JsonConvert.SerializeObject(d));
+        //                            MNZFDJDYGX mn = new MNZFDJDYGX();
+
+        //                            mn.ZBXX.CZYBM_DJZB_X = zfdjdygx.CZYBM_DJZB_X;
+        //                            mn.ZBXX.CZYBM_DJZB_Y = zfdjdygx.CZYBM_DJZB_Y;
+
+        //                            mn.ZBXX.CZYDM_DJZB_X = zfdjdygx.CZYDM_DJZB_X;
+        //                            mn.ZBXX.CZYDM_DJZB_Y = zfdjdygx.CZYDM_DJZB_Y;
+
+        //                            mn.ZBXX.CZYXM_DJZB_X = zfdjdygx.CZYXM_DJZB_X;
+        //                            mn.ZBXX.CZYXM_DJZB_Y = zfdjdygx.CZYXM_DJZB_Y;
+
+        //                            mn.ZBXX.LKZJHM_DJZB_X = zfdjdygx.LKZJHM_DJZB_X;
+        //                            mn.ZBXX.LKZJHM_DJZB_Y = zfdjdygx.LKZJHM_DJZB_Y;
+
+        //                            mn.ZBXX.LKXM_DJZB_X = zfdjdygx.LKXM_DJZB_X;
+        //                            mn.ZBXX.LKXM_DJZB_Y = zfdjdygx.LKXM_DJZB_Y;
+
+        //                            mn.ZBXX.LKPJXX_DJZB_X = zfdjdygx.LKPJXX_DJZB_X;
+        //                            mn.ZBXX.LKPJXX_DJZB_Y = zfdjdygx.LKPJXX_DJZB_Y;
+
+        //                            mn.MNSB.BAUDRATE = zfdjdygx.BAUDRATE;
+        //                            mn.MNSB.DATABITS = zfdjdygx.DATABITS;
+        //                            mn.MNSB.HANDSHAKE = zfdjdygx.HANDSHAKE;
+        //                            mn.MNSB.JKTDH = zfdjdygx.JKTDH;
+        //                            mn.MNSB.PARITY = zfdjdygx.PARITY;
+        //                            mn.MNSB.PORT_NAME = zfdjdygx.PORT_NAME;
+
+        //                            lstMNZfdj.Add(mn);
+        //                        });
+        //                    }
+        //                }
+        //            }
+        //            return lstMNZfdj.FindAll(a => a.MNSB.JKTDH.Equals(tdh));
+        //        }
+
+        //public static void StartClearLKXX()
+        //{
+        //    System.Threading.Thread th = new Thread(() =>
+        //    {
+        //        while (true)
+        //        {
+        //            try
+        //            {
+        //                ClearLKXXstl _ClearLKXXstl = new ClearLKXXstl();
+        //                if (_ConcurrentQueueClearLKXXstl.TryDequeue(out _ClearLKXXstl))
+        //                {
+        //                    double eventDuration = DateTime.Now.CompareCalculate(_ClearLKXXstl.RZSJ);//
+
+        //                    if (eventDuration > GlobalService.djtlsj)
+        //                    {
+        //                        WLSetCharacter iSetCharacter = SetCharacterFactory.CreatWLSetCharacter(_ClearLKXXstl._WLZFDJDYGX);
+
+        //                        if (iSetCharacter != null)
+        //                        {
+        //                            iSetCharacter.ClearLKXX(_ClearLKXXstl.zjhm);
+        //                        }
+        //                    }
+        //                    else
+        //                    {
+        //                        _ConcurrentQueueClearLKXXstl.Enqueue(_ClearLKXXstl);
+        //                    }
+        //                }
+        //            }
+        //            catch (Exception ex)
+        //            {
+        //                NLogger.Error(ex.Message);
+        //            }
+
+        //            Thread.Sleep(1000);
+        //        }
+        //    });
+
+        //    th.Start();
+        //}
+
+        /// <summary>
+        /// 清空所有通道字符叠加
+        /// </summary>
+        /// <returns></returns>
+        public static bool ClearAll()
+        {
+            NLogger.Info("清除字符叠加");
+            bool re = SetCharacterFactory.ClearALLWL();
+            NLogger.Info("字符叠加清除成功");
+            return re;
+        }
+    }
+
+    public class ClearLKXXstl
+    {
+        public WLZFDJDYGX _WLZFDJDYGX { get; set; }
+
+        public DateTime RZSJ { get; set; }
+
+        public string zjhm { get; set; }
+    }
+}

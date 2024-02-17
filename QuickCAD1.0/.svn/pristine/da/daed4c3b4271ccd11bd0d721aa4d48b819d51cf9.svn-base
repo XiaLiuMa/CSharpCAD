@@ -1,0 +1,63 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.Core.Handlers;
+using Max.ISolator.SeriaPortPkg;
+using Max.SerialPort;
+using Minio.DataModel;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口同步助手
+    /// </summary>
+    public class SerialPortSyncer : AbsSyncer, ISyncer
+    {
+        public SerialPortSyncer(string iparam)
+        {
+            try
+            {
+                NLogger.Info($"初始化串口助手。。。");
+                var mParam = JsonUtil.StrToObject<List<SerialPortCfg>>(iparam);
+                if (mParam == null || mParam.Count <= 0)
+                {
+                    NLogger.Error($"串口助手参数不合理，初始化失败。");
+                    return;
+                }
+                SerialPortManager.Instance.GenerateSerialClient(mParam);
+                SerialPortHandler.Instance.SubscribeSerialPort();
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化串口助手异常：{ex.Message}");
+            }
+        }
+
+        public override void SyncData(IsolatorData idata)
+        {
+            if (idata == null || idata?.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1);//缓存文件
+
+                    string datastr = JsonConvert.SerializeObject(tlst[i]);
+                    byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+                    var client = SerialPortManager.Instance.GetFreeSerialPort();
+                    client?.SendBytes(ys_bytes);
+                    NLogger.Debug($"串口发送{idata.Cmd}数据...");
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口同步数据异常：{ex.Message}");
+                }
+            }
+        }
+    }
+}

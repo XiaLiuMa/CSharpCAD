@@ -1,0 +1,43 @@
+﻿using System.Data;
+using System.Collections.Generic;
+using System.Data.Odbc;
+
+namespace Max.DbTool.Imp.SQL
+{
+    /// <summary>
+    /// 提供达梦数据库操作实现
+    /// </summary>
+    public class DamengOperate : AbsSqlOperate
+    {
+        public override DbConfig Config { get; set; }
+        public DamengOperate(DbConfig config) { Config = config; }
+        protected override IDbConnection GetConnection()
+        {
+            return new OdbcConnection(Config.ConnStr);
+        }
+
+        public bool Execute(string sqlstr)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public DataTable Query(string sqlstr)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+        {
+            throw new System.NotImplementedException();
+        }
+        public override void Dispose()
+        {
+            DbOperateManger.I.ReturnObject(Config, this);
+        }
+    }
+}

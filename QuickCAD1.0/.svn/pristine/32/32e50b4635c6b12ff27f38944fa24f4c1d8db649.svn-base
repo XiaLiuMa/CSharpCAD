@@ -1,0 +1,127 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Security.Claims;
+using WebApplication1.Models;
+using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
+using System.Net;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// 子任务控制器
+    /// </summary>
+    [Authorize]
+    public class SubTaskController : Controller
+    {
+        private readonly ILogger<SubTaskController> _logger;
+
+        public SubTaskController(ILogger<SubTaskController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Add()
+        {
+            return View();
+        }
+
+        public IActionResult Edit()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<SubTask> PagingSearch(int page = 1, int limit = 10, string state = "")
+        {
+            var rd = new ResultPaging<SubTask>();
+            rd.Count = 35;
+            rd.Data = new List<SubTask>();
+            for (int i = 0; i < 10; i++)
+            {
+                rd.Data.Add(new SubTask()
+                {
+                    Cmd = $"D&00{i}",
+                    TaskName = "BJ_YW_T_CRJRY",
+                    TaskDes = "出入境人员",
+                    TaskType = "CCGJob",
+                    PriorityLevel = 0,
+                    CutType = "D",
+                    CzType = "R",
+                    TaskState = "启用",
+                    DelayTime = 60,
+                    Dbs = "001,002,003",
+                    SqlStr = "SELECT * FROM BJ_YW_T_CRJRY WHEERE CRRQSJ>='{0}' AND CRRQSJ<='{1}'"
+                });
+            }
+            return rd;
+        }
+    }
+    /// <summary>
+    /// 子任务
+    /// </summary>
+    public class SubTask
+    {
+        /// <summary>
+        /// 主键命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 任务名称
+        /// </summary>
+        public string TaskName { get; set; }
+        /// <summary>
+        /// 任务描述
+        /// </summary>
+        public string TaskDes { get; set; }
+        /// <summary>
+        /// 任务类型(AJCJob/CCGJob/CDKJob/TCGJob/TDKJob等)
+        /// </summary>
+        public string TaskType { get; set; }
+        /// <summary>
+        /// 任务优先级
+        /// </summary>
+        public int PriorityLevel { get; set; }
+        /// <summary>
+        /// 切片类型,只用C类任务和T类任务，A类任务配置无效
+        /// 用于C类任务时：用于减少数据压力，单个配置(Y/M/D/H)用于拆分查询时间
+        /// 用于T类任务时：指定统计维度(多个用,隔开；如："Y,M,D,H")
+        /// </summary>
+        public string CutType { get; set; }
+        /// <summary>
+        /// 操作类型
+        /// </summary>
+        public string CzType { get; set; } = "R";
+        /// <summary>
+        /// 任务状态(是否启用)
+        /// </summary>
+        public string TaskState { get; set; }
+        /// <summary>
+        /// 数据延迟时长(分钟)
+        /// </summary>
+        public double DelayTime { get; set; }
+        /// <summary>
+        /// 关联的数据库(多个用,隔开)
+        /// </summary>
+        public string Dbs { get; set; }
+        /// <summary>
+        /// Sql语句
+        /// </summary>
+        public string SqlStr { get; set; }
+    }
+}

@@ -1,0 +1,84 @@
+﻿//using Max.BaseKit;
+//using Microsoft.AspNetCore.Mvc;
+//using DataSyncSource.Config;
+//using System;
+//using System.Linq;
+//using System.Threading.Tasks;
+
+//namespace DataSyncSource.WebApi
+//{
+//    /// <summary>
+//    /// 手动任务管理
+//    /// </summary>
+//    [Route("app/sub_sdrw/[action]")]
+//    public class Sub_sdrwController : Controller
+//    {
+//        /// <summary>
+//        /// 获取Job列表(返回状态为true的任务列表)
+//        /// </summary>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult loadjobs()
+//        {
+//            var jobs = ScheduManger.Instance.Lst.Where(p => bool.Parse(p.State)).ToList();
+//            return Json(jobs);
+//        }
+
+//        /// <summary>
+//        /// 获取子任务列表(返回状态为true的任务列表)
+//        /// </summary>
+//        /// <param name="jname"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult loadzrws(string jname)
+//        {
+//            if (string.IsNullOrEmpty(jname)) return Json(null);
+//            var zrwlst = SubTaskManger.Instance.Lst.Where(p => bool.Parse(p.State)).ToList();
+//            if (jname.Equals("ALL")) return Json(zrwlst);
+//            var zrws = zrwlst.Where(p => jname.Equals(p.JobId)).ToList();
+//            return Json(zrws);
+//        }
+
+//        /// <summary>
+//        /// 开始手动任务
+//        /// </summary>
+//        /// <param name="cmds"></param>
+//        /// <param name="time1"></param>
+//        /// <param name="time2"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult start(string cmds, string time1, string time2)
+//        {
+//            bool flag = false;
+//            try
+//            {
+//                string[] cmdarray = cmds.Split(',');
+//                Task.Factory.StartNew(() =>
+//                {
+//                    foreach (var cmd in cmdarray)
+//                    {
+//                        var zrw = SubTaskManger.Instance.SelectForCmd(cmd);
+//                        var job = ScheduManger.Instance.SelectForId(zrw.JobId);
+//                        Task.Factory.StartNew(() =>
+//                        {
+//                            //var service = ReflectUtil.GetClassObject(job.JobType) as IScheduleService;
+//                            //string[] _ids = zrw.Dbs.Split(',');
+//                            //foreach (string dbid in _ids)
+//                            //{
+//                            //    NLogger.Info($"后台执行{job.JobName},子任务{cmds}：{time1}-{time2}");
+//                            //    service?.RunSD(zrw.Cmd, dbid, zrw.Rwlx, time1, time2);
+//                            //}
+//                        });
+//                    }
+//                });
+//                flag = true;
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Error($"后台配置启动手动任务失败：{ex.Message}");
+//                flag = false;
+//            }
+//            return Json(flag);
+//        }
+//    }
+//}

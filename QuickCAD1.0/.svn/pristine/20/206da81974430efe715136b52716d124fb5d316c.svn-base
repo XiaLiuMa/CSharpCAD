@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--WEB服务IP地址-->
+	<WebIp>127.0.0.1</WebIp>
+	<!--WEB服务端口号-->
+	<WebPort>52301</WebPort>
+	<!--程序名称-->
+	<AppName>Ms数据同步服务</AppName>
+	<!--进程名称(同一个服务器上运行多个此程序时修改)-->
+	<ProcessName>DataSyncSource</ProcessName>
+	<!--是否启用自动重启-->
+	<AutoRestartEnable>true</AutoRestartEnable>
+	<!--自动重启定时时长(单位天,支持小数)-->
+	<AutoRestartTimes>1</AutoRestartTimes>
+	<!--是否启用任务日志-->
+	<JobLogEnable>false</JobLogEnable>
+	<!--日志保存时长(天)-->
+	<LogDays>7</LogDays>
+	<!--同步类型(1:网闸,2:串口,3:串口服务器)-->
+	<SyncType>1</SyncType>
+	<!--块大小(单个文件或单条消息的大小，单位M，不建议设置太小，起码要保证大于单条数据的大小，默认设置2M)-->
+	<BlockSize>2</BlockSize>
+	<!--网闸模式配置-->
+	<NetBrake>
+		<BuildPath>D:\SjtbTemp\MsBuildPath</BuildPath>
+		<!--MS端文件生成路径【通常只需配这一个即可】，指向的是网闸MS端配置的地址-->
+		<SyncPath>D:\SjtbTemp\MsSyncPath</SyncPath>
+		<ScanPath>D:\SjtbTemp\GaSyncPath</ScanPath>
+	</NetBrake>
+	<!--串口模式配置，支持多个串口共存-->
+	<SerialPorts>
+		<SerialPort>
+			<PortName>COM6</PortName>
+			<BaudRate>115200</BaudRate>
+			<DataBit>8</DataBit>
+			<StopBit>1</StopBit>
+			<Parity>None</Parity>
+		</SerialPort>
+	</SerialPorts>
+	<!--串口服务器模式配置，支持多个串口服务器共存-->
+	<SerialServers>
+		<SerialServer>
+			<ServerIP>127.0.0.1</ServerIP>
+			<ServerPort>8007</ServerPort>
+		</SerialServer>
+	</SerialServers>
+</AppConfig>
+
+

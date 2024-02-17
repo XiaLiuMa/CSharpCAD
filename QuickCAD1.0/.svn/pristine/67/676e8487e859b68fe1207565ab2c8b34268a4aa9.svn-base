@@ -1,0 +1,83 @@
+﻿//using Max.BaseKit;
+//using System;
+//using Max.BaseKit.Utils;
+//using DataSyncSource.ExQuartz;
+//using Max.ISolator;
+//using DataSyncSource.Config.Mods;
+//using DataSyncSource.Jobs;
+
+//namespace DataSyncSource.Comm
+//{
+//    public class AsGlobal
+//    {
+//        private static AppConfig _Config;
+//        /// <summary>
+//        /// App系统配置
+//        /// </summary>
+//        public static AppConfig Config
+//        {
+//            get
+//            {
+//                if (_Config == null)
+//                {
+//                    string filepath = $@"{AppContext.BaseDirectory}/DataSyncSource.xml";
+//                    _Config = XmlUtils.Load<AppConfig>(filepath);
+//                }
+//                return _Config;
+//            }
+//            set
+//            {
+//                _Config = value;
+//            }
+//        }
+
+//        /// <summary>
+//        /// 初始化系统
+//        /// </summary>
+//        public static void Init()
+//        {
+//            try
+//            {
+//                NLogger.Info($"启动{Config.AppName}...");
+
+//                #region 启动隔离器
+//                string iparam = (Config.SyncType == 1) ? JsonUtil.ObjectToStr(Config.NetBrake) : (Config.SyncType == 2) ? JsonUtil.ObjectToStr(Config.SerialPorts) : (Config.SyncType == 3) ? JsonUtil.ObjectToStr(Config.SerialServers) : "";
+//                MaxISolator.Instance.InitISolator(Config.SyncType, Config.BlockSize, iparam, (p) => { if (p == 1) Program.Restart(); });
+//                #endregion
+
+//                LogManager.Instance.StartLogCleaning();
+//                GlobalJobsEx.Instance.StartBootJobs();//启动开机任务
+//                JobRepertory.Init();//启动自动任务
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Error($"启动{Config.AppName}异常：{ex.Message}");
+//            }
+//        }
+
+//        /// <summary>
+//        /// 释放系统
+//        /// </summary>
+//        public static void DisInit()
+//        {
+//            NLogger.Info($"停止{Config.AppName}...");
+//            try
+//            {
+//                JobRepertory.Stop();
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Error($"停止{Config.AppName}异常：{ex.Message}");
+//            }
+//        }
+
+//        /// <summary>
+//        /// 保存系统配置文件
+//        /// </summary>
+//        public static void SaveAppConfig()
+//        {
+//            string filepath = $@"{AppContext.BaseDirectory}/DataSyncSource.xml";
+//            XmlUtils.Save(Config, filepath);
+//        }
+//    }
+//}

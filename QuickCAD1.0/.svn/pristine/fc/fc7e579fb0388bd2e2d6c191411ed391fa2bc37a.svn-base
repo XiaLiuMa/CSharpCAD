@@ -1,0 +1,153 @@
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+
+namespace Max.BaseKit.Exts
+{
+    public static class StringExt
+    {
+        /// <summary>
+        /// 字符包含判断(全包含、半包含)
+        /// </summary>
+        /// <param name="str">待判断字符串</param>
+        /// <param name="AllInclusive">false：半包含，true：全包含</param>
+        /// <param name="args">参与判断的字符</param>
+        /// <returns></returns>
+        public static bool JudgeInclusion(this string str, bool AllInclusive, params char[] args)
+        {
+            if (string.IsNullOrEmpty(str)) return false;
+            if (args?.Length <= 0) return true;
+            if (AllInclusive) //全包含
+            {
+                foreach (char c in args)
+                {
+                    if (!str.Contains(c)) return false;
+                }
+                return true;
+            }
+            else  //半包含
+            {
+                foreach (char c in args)
+                {
+                    if (str.Contains(c)) return true;
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// 字符串包含判断(全包含、半包含)
+        /// </summary>
+        /// <param name="str">待判断字符串</param>
+        /// <param name="AllInclusive">false：半包含，true：全包含</param>
+        /// <param name="args">参与判断的字符</param>
+        /// <returns></returns>
+        public static bool JudgeInclusion(this string str, bool AllInclusive, params string[] args)
+        {
+            if (string.IsNullOrEmpty(str)) return false;
+            if (args?.Length <= 0) return true;
+            if (AllInclusive) //全包含
+            {
+                foreach (string s in args)
+                {
+                    if (!str.Contains(s)) return false;
+                }
+                return true;
+            }
+            else  //半包含
+            {
+                foreach (string s in args)
+                {
+                    if (str.Contains(s)) return true;
+                }
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// string扩展方法
+        /// </summary>
+        /// <param name="tgsj"></param>
+        /// <returns></returns>
+        public static string FormatFssj(this string tgsj)
+        {
+            var tgsjFormated = tgsj.Substring(0, 4) + "-" + tgsj.Substring(4, 2) + "-" + tgsj.Substring(6, 2) + " " + tgsj.Substring(8, 2) + ":" + tgsj.Substring(10, 2) + ":" + tgsj.Substring(12, 2);
+            return tgsjFormated;
+        }
+        /// <summary>
+        /// string 扩展方法，通关时间转换
+        /// </summary>
+        /// <param name="tgsj"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        public static DateTime FormatFssj(this string tgsj, object args)
+        {
+            var tgsjFormated = tgsj.Substring(0, 4) + "-" + tgsj.Substring(4, 2) + "-" + tgsj.Substring(6, 2) + " " + tgsj.Substring(8, 2) + ":" + tgsj.Substring(10, 2) + ":" + tgsj.Substring(12, 2);
+            return Convert.ToDateTime(tgsjFormated);
+        }
+
+        /// <summary>
+        /// string 扩展方法,解析Wybs包含的时间
+        /// </summary>
+        /// <param name="wybs"></param>
+        /// <returns></returns>
+        public static DateTime ParseWybs(this string wybs)
+        {
+            var sj = wybs.Substring(8, 4) + "-" + wybs.Substring(12, 2) + "-" + wybs.Substring(14, 2) + " " + wybs.Substring(16, 2) + ":" + wybs.Substring(18, 2) + ":" + wybs.Substring(20, 2);
+            return Convert.ToDateTime(sj);
+        }
+
+        /// <summary>
+        /// 判断文件是否被占用(返回true是被占用，返回false是未被占用)
+        /// </summary>
+        /// <param name="fname">文件全名</param>
+        /// <param name="timeout">超时时长(单位s)</param>
+        /// <returns></returns>
+        public static bool IsFileInUsing(this string fname, int timeout = 0)
+        {
+            if (!File.Exists(fname)) return false;
+            bool isUse = true;
+            if (timeout <= 0)
+            {
+                FileStream fs = default;
+                try
+                {
+                    fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.None);
+                    isUse = false;
+                }
+                catch
+                {
+
+                }
+                finally
+                {
+                    if (fs != null) fs.Close();
+                }
+            }
+            else
+            {
+                for (int i = 0; i < timeout * 10; i++)
+                {
+                    FileStream fs = default;
+                    try
+                    {
+                        fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.None);
+                        isUse = false;
+                    }
+                    catch
+                    {
+
+                    }
+                    finally
+                    {
+                        if (fs != null) fs.Close();
+                    }
+                    if (!isUse) return isUse; //未被占用的情况下直接返回
+                    Thread.Sleep(100);
+                }
+            }
+            return isUse;
+        }
+    }
+}

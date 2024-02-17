@@ -1,0 +1,198 @@
+﻿using System.Collections.Generic;
+using SetCharLib.Mod;
+using SetCharLib.HikVision;
+using System.Collections.Concurrent;
+using SetCharLib.Helper;
+using SetCharLib.UniView;
+using System.ComponentModel;
+using Isolator.SetCharacter.SetCharacter;
+using Max.BaseKit;
+
+namespace SetCharLib.SetCharacter
+{
+    public class SetCharacterFactory
+    {
+        private static int uret = -1;
+
+        /// <summary>
+        /// 网络字符叠加缓存
+        /// </summary>
+        public static ConcurrentDictionary<string, WLSetCharacter> dicWLSetCharacter = new ConcurrentDictionary<string, WLSetCharacter>();
+
+        /// <summary>
+        /// 模拟字符叠加缓存
+        /// </summary>
+        public static ConcurrentDictionary<string, MNSetCharacter> dicMNSetCharacter = new ConcurrentDictionary<string, MNSetCharacter>();
+
+        /// <summary>
+        /// 串口缓存
+        /// </summary>
+        public static ConcurrentDictionary<string, SerialClass> dicSerial = new ConcurrentDictionary<string, SerialClass>();
+
+        private static object objLck = new object();
+
+        //public static bool IsTgtp = ConfigurationManager.AppSettings["IsTgtp"].ToString() == "true" ? true : false;
+        //public static string ztlj = ConfigurationManager.AppSettings["ZPLJ"].ToString();
+
+        public static bool IsTgtp;
+        public static string ztlj;
+
+        static SetCharacterFactory()
+        {
+            //IsTgtp = ConfigHandler.GetInstance().baseConfig.IsTgtp;
+            //ztlj = ConfigHandler.GetInstance().baseConfig.ZPLJ;
+        }
+
+        /// <summary>
+        /// 创建网络字符叠加设备
+        /// </summary>
+        /// <param name="wlzfdjdygx">网络字符叠加对应关系</param>
+        /// <param name="wllx">网络设备类型</param>
+        /// <returns>字符叠加接口</returns>
+        public static WLSetCharacter CreatWLSetCharacter(WLZFDJDYGX wlzfdjdygx)
+        {
+            WLSetCharacterType wllx = WLSetCharacterType.HikExx;
+            switch (wlzfdjdygx.WLSB.SBXH)
+            {
+                case "海康": wllx = WLSetCharacterType.Hik; break;
+                case "海康扩展": wllx = WLSetCharacterType.HikExx; break;
+                case "宇视": wllx = WLSetCharacterType.UniView; break;
+                case "大华": wllx = WLSetCharacterType.DH; break;
+                default: wllx = WLSetCharacterType.HikExx; break;
+            }
+
+            string strKey = wlzfdjdygx.WLSB.TDH + "," + wlzfdjdygx.WLSB.IPADDRESS + "," + wlzfdjdygx.WLSB.PORT + "," + wlzfdjdygx.WLSB.CHANNEL;
+
+            if (dicWLSetCharacter.TryGetValue(strKey, out WLSetCharacter wl))
+            {
+                return wl;
+            }
+            else
+            {
+                if (wllx == WLSetCharacterType.Hik)
+                {
+                    wl = new HikSetCharacter(wlzfdjdygx);
+                    dicWLSetCharacter.GetOrAdd(strKey, wl);
+                    return wl;
+                }
+                else if (wllx == WLSetCharacterType.UniView)
+                {
+                    wl = new UniViewSetCharacter(wlzfdjdygx);
+                    dicWLSetCharacter.GetOrAdd(strKey, wl);
+                    return wl;
+                }
+                else if (wllx == WLSetCharacterType.HikEx)
+                {
+                    wl = new HikExSetCharacter(wlzfdjdygx);
+                    dicWLSetCharacter.GetOrAdd(strKey, wl);
+                    return wl;
+                }
+                else if (wllx == WLSetCharacterType.HikExx)
+                {
+                    wl = new HikExxSetCharacter(wlzfdjdygx);
+                    dicWLSetCharacter.GetOrAdd(strKey, wl);
+                    return wl;
+                }
+                else if (wllx == WLSetCharacterType.DH)
+                {
+                    wl = new DaHuaSetCharacter(wlzfdjdygx);
+                    dicWLSetCharacter.GetOrAdd(strKey, wl);
+                    return wl;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 创建模拟字符叠加设备
+        /// </summary>
+        /// <param name="mnzfdjdygx">模拟字符叠加对应关系</param>
+        /// <returns>字符叠加接口</returns>
+        public static MNSetCharacter CreatMNSetCharacter(MNZFDJDYGX mnzfdjdygx)
+        {
+            string strKey = mnzfdjdygx.MNSB.PORT_NAME + "," + mnzfdjdygx.MNSB.JKTDH;
+            MNSetCharacter mn;
+            if (dicMNSetCharacter.TryGetValue(strKey, out mn))
+            {
+                return mn;
+            }
+            else
+            {
+                mn = new Max1800SetCharacter(mnzfdjdygx);
+                SerialClass ser = null;
+                if (!dicSerial.TryGetValue(mnzfdjdygx.MNSB.PORT_NAME, out ser))
+                {
+                    ser = new SerialClass();
+                    if (ser.Init(mnzfdjdygx.MNSB.PORT_NAME))
+                    {
+                        dicSerial.GetOrAdd(mnzfdjdygx.MNSB.PORT_NAME,ser);
+                    }
+                }
+
+                mn.SerialClass = ser;
+                dicMNSetCharacter.GetOrAdd(strKey, mn);
+                return mn;
+            }
+        }
+
+        /// <summary>
+        /// 清空所有网络字符叠加信息
+        /// </summary>
+        /// <returns></returns>
+        public static bool ClearALLWL()
+        {
+            bool re = false;
+            try
+            {
+                foreach (WLSetCharacter wl in dicWLSetCharacter.Values)
+                {
+                    wl.Dispose();
+                }
+                foreach (KeyValuePair<string, int> pair in HikNetSdk.dctLogins)
+                {
+                    HikNetSdk.NET_DVR_Logout(pair.Value);
+                }
+                HikNetSdk.NET_DVR_Cleanup();
+
+                foreach (KeyValuePair<string, string> pair in IMOS_MV_SDK.dctLogins)
+                {
+                    uret=IMOS_MV_SDK.IMOS_MW_Logout(pair.Value);
+                    if (uret != 0)
+                    {
+                        NLogger.Info("登出失败:" + pair.Key + ",错误号为：" + uret.ToString());
+                    }
+                }
+                IMOS_MV_SDK.IMOS_MW_Cleanup();
+                re = true;
+            }
+            catch (System.Exception ex)
+            {
+                NLogger.Error(ex.ToString());
+                re= false;
+            }
+            return re;
+        }
+    }
+
+    /// <summary>
+    /// 网络字符叠加类型
+    /// </summary>
+    public enum WLSetCharacterType
+    {
+        [Description("海康")]
+        Hik,
+        [Description("模拟")]
+        MN,
+        [Description("宇视系列")]
+        UniView,
+        [Description("海康扩展")]
+        HikEx,
+        [Description("海康扩展1")]
+        HikExx,
+        [Description("大华")]
+        DH
+    }
+}

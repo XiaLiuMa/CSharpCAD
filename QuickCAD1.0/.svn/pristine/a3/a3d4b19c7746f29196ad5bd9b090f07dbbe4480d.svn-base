@@ -1,0 +1,56 @@
+﻿using System;
+using Dapper.Contrib.Extensions;
+
+namespace DataSyncTarget.Config.Entities
+{
+    [Table("TargetRmqPdr")]
+    [Serializable]
+    /// <summary>
+    /// 目标RabbitMQ生产者
+    /// </summary>
+    public class TargetRmqPdr
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// Vhost地址
+        /// </summary>
+        public string Vhost { get; set; }
+        /// <summary>
+        /// Ip地址
+        /// </summary>
+        public string Ip { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int Port { get; set; }
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string Use { get; set; }
+        /// <summary>
+        /// 密码
+        /// </summary>
+        public string Pwd { get; set; }
+        /// <summary>
+        /// 会话名称
+        /// </summary>
+        public string EName { get; set; }
+        /// <summary>
+        /// 会话密钥
+        /// </summary>
+        public string EKey { get; set; }
+        /// <summary>
+        /// 会话类型
+        /// </summary>
+        public string EType { get; set; }
+        /// <summary>
+        /// 最大消息大小(M)
+        /// </summary>
+        public double? MaxSize { get; set; }
+    }
+}
+

@@ -1,0 +1,120 @@
+﻿using IsolatorTarget.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using IsolatorTarget.Storage.Entities;
+using IsolatorTarget.Business;
+using Max.BaseKit.Exts;
+
+namespace IsolatorTarget.Controllers
+{
+    /// <summary>
+    /// 目标相机控制器
+    /// </summary>
+    [Authorize]
+    public class TargetCameraController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Detail()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 搜索所有
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<List<TargetCameraEntity>>> SearchAll()
+        {
+            var rlst = ConfigCacher.I.TargetCameraCacher.Where();
+            return Ok(new ResultMsg<List<TargetCameraEntity>>() { Code = StatusType.Success, Msg = "查询成功", Data = rlst });
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<TargetCameraEntity> PagingSearch(int page = 1, int limit = 10, string condition = "")
+        {
+            var rd = new ResultPaging<TargetCameraEntity>();
+            var tlst = ConfigCacher.I.TargetCameraCacher.Where();
+            if (!string.IsNullOrEmpty(condition))
+            {
+                tlst = tlst.FindAll(p => p.SBMC.Contains(condition) || p.SBMC.Contains(condition)).ToList();
+            }
+            var lst = tlst.Skip((page - 1) * limit).Take(limit).ToList();
+            rd.Count = tlst.Count;
+            rd.Data = lst;
+            return rd;
+        }
+
+        /// <summary>
+        /// 新增
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Add(TargetCameraEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增失败，参数为空" });
+            try
+            {
+                bool flag = ConfigCacher.I.TargetCameraCacher.Add(obj);
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增成功" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"新增失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 修改
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Update(TargetCameraEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改失败，参数为空" });
+            try
+            {
+                bool flag = ConfigCacher.I.TargetCameraCacher.Updata(obj, p => p.Id.Equals(obj.Id));
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改成功" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"修改失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Delete(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            try
+            {
+                var idArr = ids.TrimEnd(",").Split(',').ToList();
+                bool flag = ConfigCacher.I.TargetCameraCacher.RemoveWherre(p => idArr.Contains(p.Id));
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除成功", Data = null });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除失败", Data = null });
+            }
+        }
+    }
+}

@@ -1,0 +1,174 @@
+var json = [];
+//nameList与widthList的数组长度要一致
+var nameList = ['', '编号', '串口服务器名称', 'IP地址', '端口号'] //table的列名
+var widthList = [5, 20, 180, 160, 100] //table每列的宽度
+
+$(function() {
+    UpdataPage(); // 加载页面时初始化表格
+    CkfwqQuery(); //初始化表格数据
+
+    // 点击查询按钮
+    $("#select").on("click", function() {
+        CkfwqQuery();
+    });
+
+    // 点击删除按钮
+    $("#delete").on("click", function() {
+        if ($("input[name='checktr']:checked").length <= 0) {
+            alert("请至少选择其中一项数据进行删除！")
+            return false;
+        }
+        var delArr = [];
+        // 删除选择的列表项
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                var a = $(this).parents("tr").find("td").eq(1).text();
+                delArr.push(a);
+            }
+        })
+        $.ajax({
+            url: "http://" + params + "/app/res_ckfwq/delete",
+            headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+            type: "post",
+            data: {
+                ids: delArr
+            },
+            async: false,
+            error: function() {
+                console.log("错误");
+            },
+            success: function(res) {
+                // 如果请求成功，将返回的json数组赋给数组json
+                if (res == true) {
+                    CkfwqQuery();
+                    location.reload();
+                } else {
+                    alert(res)
+                }
+            }
+        })
+    });
+
+    // 点击添加按钮
+    $("#add").on("click", function() {
+        $("#confirm").attr("czlx", "0");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击修改按钮
+    $("#update").on("click", function() {
+        if ($("input[name='checktr']:checked").length != 1) {
+            alert("请选择其中一项数据进行修改！")
+            return false;
+        }
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                $("input[name='cid']").val(json[i].id);
+                $("input[name='cname']").val(json[i].cname);
+                $("input[name='cip']").val(json[i].cip);
+                $("input[name='cport']").val(json[i].cport);
+            }
+        });
+        $("#confirm").attr("czlx", "1");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击关闭按钮
+    $(".close").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+
+    // 点击确定按钮
+    $("#confirm").on("click", function() {
+        var _cid = $("input[name='cid']").val();
+        var _cname = $("input[name='cname']").val();
+        var _cip = $("input[name='cip']").val();
+        var _cport = $("input[name='cport']").val();
+
+        if ($(this).attr("czlx") == "0") {
+            //添加操作
+            $.ajax({
+                url: "http://" + params + "/app/res_ckfwq/add",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    cname: _cname,
+                    cip: _cip,
+                    cport: _cport
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    if (res == true) {
+                        CkfwqQuery();
+                        // location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            })
+        } else {
+            //修改操作
+            $.ajax({
+                url: "http://" + params + "/app/res_ckfwq/alert",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    cid: _cid,
+                    cname: _cname,
+                    cip: _cip,
+                    cport: _cport
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    // 如果请求成功，将返回的json数组赋给数组json
+                    if (res == true) {
+                        CkfwqQuery();
+                        // location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            });
+        }
+        $(".peizhi").css("display", "none");
+    });
+
+    // 点击取消按钮
+    $("#cancel").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+});
+
+
+
+
+//数据库数据查询
+function CkfwqQuery() {
+    var condition = $("input[name='condition']").val();
+    $.ajax({
+        // url: "http://" + params + "/app/res_ckfwq/limit",
+        url: "http://" + params + "/app/res_ckfwq/query",
+        headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+        type: "get",
+        data: {
+            condition: condition
+                // condition: condition,
+                // page: 1,
+                // rows: 10
+        },
+        async: false,
+        success: function(res) {
+            // console.log(res);
+            json = (res == null) ? [] : res;
+            reloadpage();
+        }
+    })
+}

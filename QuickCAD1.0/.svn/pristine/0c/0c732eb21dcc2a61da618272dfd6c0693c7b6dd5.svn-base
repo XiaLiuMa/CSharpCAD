@@ -1,0 +1,59 @@
+{
+  "code": 0,
+  "msg": "",
+  "count": 19,
+  "data": [
+    {
+      "authorityId": 1,
+      "authorityName": "任务1",
+      "isMenu": 0,
+      "checked": 0,
+      "parentId": -1
+    },
+    {
+      "authorityId": 2,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "checked": 0,
+      "parentId": 1
+    },
+    {
+      "authorityId": 3,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "checked": 0,
+      "parentId": 1
+    },
+    {
+      "authorityId": 4,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "checked": 0,
+      "parentId": 1
+    },
+    {
+      "authorityId": 5,
+      "authorityName": "任务2",
+      "isMenu": 0,
+      "parentId": -1
+    },
+    {
+      "authorityId": 6,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "parentId": 5
+    },
+    {
+      "authorityId": 7,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "parentId": 5
+    },
+    {
+      "authorityId": 8,
+      "authorityName": "数据库1",
+      "isMenu": 1,
+      "parentId": 5
+    }
+  ]
+}

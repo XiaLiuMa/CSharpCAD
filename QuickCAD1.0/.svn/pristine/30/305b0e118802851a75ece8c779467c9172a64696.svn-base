@@ -1,0 +1,10 @@
+﻿namespace IsolatorTarget.Models
+{
+    /// <summary>
+    /// 系统配置模型
+    /// </summary>
+    public class MySettingMod
+    {
+        public bool IsBizUsable { get; set; }
+    }
+}

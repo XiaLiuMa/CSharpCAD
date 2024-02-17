@@ -1,0 +1,278 @@
+﻿using Max.BaseKit.Utils;
+using Max.BaseKit;
+using Max.BaseKit.Exts;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using Max.BaseKit.Customs;
+
+namespace Max.ISolator.Core
+{
+    public class MaxIsolator
+    {
+        #region 单例
+        private static MaxIsolator i;
+        private readonly static object objLock = new object();
+        public static MaxIsolator I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new MaxIsolator();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 消费文件缓存路径
+        /// </summary>
+        public string ConsumeCachePath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 是否备份消费文件
+        /// </summary>
+        public bool IsBackupConsume { get; private set; } = false;
+        /// <summary>
+        /// 消费文件备份路径
+        /// </summary>
+        public string ConsumeBackupPath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 数据消费管道大小，用于控制消费并行数
+        /// </summary>
+        public int ConsumeChannelSize { get; private set; } = 50;
+
+        #region 去除
+        ///// <summary>
+        ///// 生产文件缓存路径
+        ///// </summary>
+        //public string ProduceCachePath { get; private set; } = string.Empty;
+        ///// <summary>
+        ///// 是否备份生产文件
+        ///// </summary>
+        //public bool IsBackupProduce { get; private set; } = false;
+        ///// <summary>
+        ///// 生产文件备份路径
+        ///// </summary>
+        //public string ProduceBackupPath { get; private set; } = string.Empty;
+        ///// <summary>
+        ///// 数量大小(单个文件可容纳多少条数据)
+        ///// </summary>
+        //public int ItemSize { get; private set; }
+        ///// <summary>
+        ///// 容积大小(单个文件可容纳多大的数据，单位M)
+        ///// </summary>
+        //public int BulkSize { get; private set; }
+        ///// <summary>
+        ///// 是否压缩数据
+        ///// </summary>
+        //public bool IsZip { get; private set; } 
+        #endregion
+
+        /// <summary>
+        /// 待消费的文件集
+        /// </summary>
+        public CustomConcurrentList<string> WaitConsumeFiles { get; set; }
+        /// <summary>
+        /// 正在消费的文件集(队列：先入先出)
+        /// </summary>
+        public BlockingCollection<string> ConsumingFiles { get; set; }
+        /// <summary>
+        /// 监听器集合
+        /// </summary>
+        private List<IListener> IListener_Lst { get; set; }
+        /// <summary>
+        /// 隔离器字典
+        /// </summary>
+        public ConcurrentDictionary<string, IIsolator> IIsolator_Dic { get; set; }
+        /// <summary>
+        /// 隔离器回调函数
+        /// </summary>
+        public Action<int> OnCallback { get; private set; }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        /// <param name="consumeCachePath">消费文件缓存路径</param>
+        /// <param name="isBackupConsume">是否备份消费文件</param>
+        /// <param name="consumeBackupPath">消费文件备份路径</param>
+        /// <param name="consumeChannelSize">数据消费管道大小，用于控制消费并行数</param>
+        /// <param name="callback">隔离器回调函数</param>
+        public void Init(string consumeCachePath, bool isBackupConsume, string consumeBackupPath, int consumeChannelSize, Action<int> callback)
+        {
+            this.ConsumeCachePath = consumeCachePath;
+            this.IsBackupConsume = isBackupConsume;
+            this.ConsumeBackupPath = consumeBackupPath;
+            this.ConsumeChannelSize = consumeChannelSize;
+            this.OnCallback = callback;
+            IListener_Lst = new List<IListener>();
+            IIsolator_Dic = new ConcurrentDictionary<string, IIsolator>();
+            WaitConsumeFiles = new CustomConcurrentList<string>();
+            ConsumingFiles = new BlockingCollection<string>(ConsumeChannelSize);
+
+            #region 反射获取所有服务实现类
+            IList<Type> lst = ReflectionUtil.FindSubClasses(typeof(IListener));
+            foreach (Type t in lst)
+            {
+                var handler = (IListener)Activator.CreateInstance(t);
+                IListener_Lst.Add(handler);
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 启动
+        /// </summary>
+        public void BootUp()
+        {
+            foreach (var item in IIsolator_Dic)
+            {
+                item.Value?.BootUp(); //启动隔离器
+            }
+            //ScanProduceCacheFiles();
+            ParsingAndConsumeFile();
+            ScanConsumeCacheFiles();
+            ScanWaitConsumeFiles();
+        }
+
+        /// <summary>
+        /// 扫描消费缓存区文件(100毫秒扫描一次)
+        /// 扫描消费缓存区文件，并将全文件名加入到待消费区
+        /// </summary>
+        private void ScanConsumeCacheFiles()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var files = FileUtil.FindFiles(new DirectoryInfo(ConsumeCachePath), null, "*.txt");
+                        files?.ForEach(f =>
+                        {
+                            if (WaitConsumeFiles.Contains(f.FullName)) return;
+                            WaitConsumeFiles.Add(f.FullName);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 扫描待消费区(100毫秒扫描一次)
+        /// 扫描待消费区，并将全文件名加入到正在消费区
+        /// </summary>
+        private void ScanWaitConsumeFiles()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        #region 文件名排序，然后依次加入正在生产的队列中
+                        var files = WaitConsumeFiles.OrderBy(p => p).ToList();
+                        foreach (var f in files)
+                        {
+                            if (ConsumingFiles.Count >= ConsumeChannelSize) break;//管道满了就直接跳出
+                            if (ConsumingFiles.Contains(f)) continue;
+                            bool flag = ConsumingFiles.TryAdd(f);//将文件加入正在消费区
+                            if (flag) WaitConsumeFiles.Remove(f);
+                        }
+                        #endregion
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 解析&消费文件
+        /// </summary>
+        private void ParsingAndConsumeFile()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                foreach (var fname in ConsumingFiles.GetConsumingEnumerable())
+                {
+                    IsolatorData idata = default;
+                    if (!File.Exists(fname)) break;
+                    if (fname.IsFileInUsing(600))
+                    {
+                        NLogger.Warn($"{fname}文件10分钟内还是占用状态，该文件放弃消费。");
+                        break;
+                    }
+                    //触发类型@优先级@执行时间(精确到毫秒)@命令码@任务名@开始时间_结束时间_切片序号_数据条数
+                    //0@1@20240105122336888@123@Test01@20240101000000_20250101000000_1_238.txt
+                    string[] strs = fname.Split('@');
+                    if (strs == null || strs.Length < 6) break;
+                    string datastr = FileUtil.StreamRead(fname, null);
+                    idata = JsonUtil.StrToObject<IsolatorData>(datastr);
+                    if (idata != null) idata.Id = fname;//用文件名作为数据Id
+                    if (idata == null)
+                    {
+                        //ConsumeFileCompleteEvent(fname);//对于空文件或者不符合协议的文件直接消费完成
+                        return;
+                    }
+
+                    //消费数据
+                    IListener_Lst?.ForEach(listener =>
+                    {
+                        listener.ConsumeData(idata, (p) =>
+                        {
+
+                        });
+                    });
+
+                    if (MaxIsolator.I.IsBackupConsume)
+                    {
+                        var sfPath = fname;//源文件路径
+                        var dfPath = fname.Replace(MaxIsolator.I.ConsumeCachePath, MaxIsolator.I.ConsumeBackupPath);//目标文件路径
+                        FileUtil.StreamMove(fname, dfPath);//移动到备份路径
+                    }
+                    else
+                    {
+                        File.Delete(fname);//删除文件
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// 停止
+        /// </summary>
+        public void ShutDown()
+        {
+
+        }
+
+        /// <summary>
+        /// 销毁
+        /// </summary>
+        public void Dispose()
+        {
+
+        }
+    }
+}

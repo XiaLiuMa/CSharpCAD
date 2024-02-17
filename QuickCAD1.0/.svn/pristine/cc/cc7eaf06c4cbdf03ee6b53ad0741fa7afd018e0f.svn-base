@@ -1,0 +1,248 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form layuimini-form">
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">主键Id</label>
+            <div class="layui-input-block">
+                <input id="id" name="id" type="text" placeholder="请输入主键Id" value="" class="layui-input" lay-verify="required">
+                <tip>主键Id，建议以"R"开头，如若不是，后台会自动添加上。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">虚拟地址</label>
+            <div class="layui-input-block">
+                <input id="vhost" name="vhost" type="text" placeholder="请输入虚拟地址" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">IP地址</label>
+            <div class="layui-input-block">
+                <input id="ip" name="ip" type="text" placeholder="请输入IP地址" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">端口号</label>
+            <div class="layui-input-block">
+                <input id="port" name="port" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">用户名</label>
+            <div class="layui-input-block">
+                <input id="ueserName" name="ueserName" type="text" placeholder="请输入用户名" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">密码</label>
+            <div class="layui-input-block">
+                <input id="password" name="password" type="text" placeholder="请输入密码" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">Exchange名称</label>
+            <div class="layui-input-block">
+                <input id="exchangeName" name="exchangeName" type="text" placeholder="请输入Exchange名称" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">Exchange类型</label>
+            <div class="layui-input-block">
+                <select id="exchangeType" name="exchangeType" lay-verify="required" lay-search="">
+                    <option value="topic" selected>topic</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">路由密钥</label>
+            <div class="layui-input-block">
+                <input id="routingKey" name="routingKey" type="text" placeholder="请输入路由密钥" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">是否持久化</label>
+            <div class="layui-input-block">
+                <input id="persistence" name="persistence" type="checkbox" lay-skin="switch" title="是|否">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">过期时间(秒)</label>
+            <div class="layui-input-block">
+                <input id="expiryTime" name="expiryTime" type="number" autocomplete="off" class="layui-input" min="0" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">优先级(0-9)</label>
+            <div class="layui-input-block">
+                <input id="priority" name="priority" type="number" autocomplete="off" class="layui-input" min="-1" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">最大消息大小(M)</label>
+            <div class="layui-input-block">
+                <input id="maxSize" name="maxSize" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">最大并行数</label>
+            <div class="layui-input-block">
+                <input id="concurrency" name="concurrency" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">描述</label>
+            <div class="layui-input-block">
+                <input id="iDescribe" name="iDescribe" type="text" placeholder="描述" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item" id="saveBtn">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" id="saveBtn1">确认保存</button>
+            </div>
+        </div>
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>说明1</h3><br>
+            <h4>说明2</h4>
+            <p>如果需要，这里可以放一些说明。</p><br>
+            <h4>说明3</h4>
+            <p>如果需要，这里可以放一些说明。</p>
+        </div>
+    </div>
+    </div>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod = parent.parentMod;//全局变量，子页面获取父页面传来的参数。
+        var subPageState = parent.subPageState;//全局变量，子页面状态('copy','look','add','edit')
+        layui.use(['form'], function () {
+            var form = layui.form;
+            var layer = layui.layer;
+            var $ = layui.$;
+            var apiUrl;//接口地址
+            Init();//页面初始化
+
+            function Init() {
+                switch (subPageState) {
+                    case 'look': { //查看
+                        $('#saveBtn').hide();//隐藏，不占位
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $("#vhost").val(parentMod.vhost);
+                        $('#vhost').attr("disabled", true);
+                        $("#ip").val(parentMod.ip);
+                        $('#ip').attr("disabled", true);
+                        $("#port").val(parentMod.port);
+                        $('#port').attr("disabled", true);
+                        $("#ueserName").val(parentMod.ueserName);
+                        $('#ueserName').attr("disabled", true);
+                        $("#password").val(parentMod.password);
+                        $('#password').attr("disabled", true);
+                        $("#exchangeName").val(parentMod.exchangeName);
+                        $('#exchangeName').attr("disabled", true);
+                        $("#exchangeType").val(parentMod.exchangeType);
+                        $('#exchangeType').attr("disabled", true);
+                        $('#persistence').attr('checked', parentMod.persistence);
+                        $('#persistence').attr("disabled", true);//禁用
+                        $("#expiryTime").val(parentMod.expiryTime);
+                        $('#expiryTime').attr("disabled", true);
+                        $("#priority").val(parentMod.priority);
+                        $('#priority').attr("disabled", true);
+                        $("#maxSize").val(parentMod.maxSize);
+                        $('#maxSize').attr("disabled", true);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $('#concurrency').attr("disabled", true);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        $('#iDescribe').attr("disabled", true);//禁用
+                        form.render('checkbox');
+                        form.render("select");
+                    } break;
+                    case 'add': { //新增
+                        apiUrl = '/RmqProduce/Add';
+                    } break;
+                    case 'edit': { //编辑
+                        apiUrl = '/RmqProduce/Update';
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $("#vhost").val(parentMod.vhost);
+                        $("#ip").val(parentMod.ip);
+                        $("#port").val(parentMod.port);
+                        $("#ueserName").val(parentMod.ueserName);
+                        $("#password").val(parentMod.password);
+                        $("#exchangeName").val(parentMod.exchangeName);
+                        $("#exchangeType").val(parentMod.exchangeType);
+                        $('#persistence').attr('checked', parentMod.persistence);
+                        $("#expiryTime").val(parentMod.expiryTime);
+                        $("#priority").val(parentMod.priority);
+                        $("#maxSize").val(parentMod.maxSize);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        form.render('checkbox');
+                        form.render("select");
+                    } break;
+                    case 'copy': { //拷贝
+                        apiUrl = '/RmqProduce/Add';
+                        $("#id").val(parentMod.id);
+                        $("#vhost").val(parentMod.vhost);
+                        $("#ip").val(parentMod.ip);
+                        $("#port").val(parentMod.port);
+                        $("#ueserName").val(parentMod.ueserName);
+                        $("#password").val(parentMod.password);
+                        $("#exchangeName").val(parentMod.exchangeName);
+                        $("#exchangeType").val(parentMod.exchangeType);
+                        $('#persistence').attr('checked', parentMod.persistence);
+                        $("#expiryTime").val(parentMod.expiryTime);
+                        $("#priority").val(parentMod.priority);
+                        $("#maxSize").val(parentMod.maxSize);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        form.render('checkbox');
+                        form.render("select");
+                    } break;
+                    default: break;
+                }
+            }
+
+            //监听提交
+            form.on('submit(saveBtn)', function (data) {
+                $.ajax({
+                    type: 'POST',
+                    url: apiUrl, //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: data.field,//form数据
+                    success: function (res) {//函数参数 "data" 为请求成功服务端返回的数据
+                        layer.msg(res.msg);
+                        if (res.code == 0) {
+                            window.parent.location.reload();
+                            var iframeIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(iframeIndex);//关闭iframe
+                        }
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + apiUrl + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

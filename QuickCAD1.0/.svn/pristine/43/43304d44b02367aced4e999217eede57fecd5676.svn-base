@@ -1,0 +1,29 @@
+﻿using SetCharLib.Mod;
+
+namespace SetCharLib.SetCharacter
+{
+    /// <summary>
+    /// 字符叠加接口
+    /// </summary>
+    public interface ISetCharacter
+    {
+        /// <summary>
+        /// 清除字符叠加旅客信息
+        /// </summary>
+        /// <param name="zjhm"></param>
+        /// <returns></returns>
+        bool ClearLKXX(string zjhm);
+
+        /// <summary>
+        /// 清除字符叠加所有信息
+        /// </summary>
+        /// <returns></returns>
+        bool ClearAll();
+
+        /// <summary>
+        /// 设置字符叠加信息
+        /// </summary>
+        /// <param name="djmsg">字符叠加信息</param>
+        bool SetCharacter(DjMessage djmsg);
+    }
+}

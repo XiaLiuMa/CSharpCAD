@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\Debug\</OutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Data.OracleClient" Version="1.0.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\00工具库\BaseComm\BaseComm.csproj" />
+    <ProjectReference Include="..\..\00工具库\Max.DbToolkit\Max.DbToolkit.csproj" />
+    <ProjectReference Include="..\..\00工具库\Max.ISolator\Max.ISolator.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy  $(ProjectDir)01Rely $(OutDir) /e /i /y /f" />
+  </Target>
+
+</Project>

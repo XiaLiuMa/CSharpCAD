@@ -1,0 +1,52 @@
+﻿using System;
+using RabbitMQ.Client;
+using RabbitMQ.Client.Events;
+using System.Text;
+using System.Linq;
+
+namespace Max.ISolator.RabbitMqKit
+{
+    /// <summary>
+    /// RabbitMq消费者
+    /// </summary>
+    public class RmqConsumer
+    {
+        /// <summary>
+        /// 消费者配置
+        /// </summary>
+        private readonly RmqConsumerMod _Config;
+        public RmqConsumer(RmqConsumerMod config) { _Config = config; }
+
+        /// <summary>
+        /// 初始化消费者
+        /// </summary>
+        public void Subscribe(Action<string> callBack)
+        {
+            var factory = new ConnectionFactory()
+            {
+                VirtualHost = _Config.Vhost,
+                HostName = _Config.Ip,
+                Port = _Config.Port,
+                UserName = _Config.Use,
+                Password = _Config.Pwd
+            };
+            using (var connection = factory.CreateConnection())
+            {
+                using (var channel = connection.CreateModel())
+                {
+                    channel.ExchangeDeclare(exchange: "topicdemo.exchange", type: ExchangeType.Topic, durable: true);
+                    channel.QueueDeclare(queue: "topic_que", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                    channel.QueueBind(queue: "topic_que", exchange: "topicdemo.exchange", routingKey: "#.log");
+                    var consumer = new EventingBasicConsumer(channel);
+                    consumer.Received += (s, e) =>
+                    {
+                        var body = e.Body;
+                        var data = Encoding.UTF8.GetString(body.ToArray());
+                        callBack?.Invoke(data);
+                    };
+                    channel.BasicConsume(queue: "topic_que", autoAck: true, consumer: consumer);
+                }
+            }
+        }
+    }
+}

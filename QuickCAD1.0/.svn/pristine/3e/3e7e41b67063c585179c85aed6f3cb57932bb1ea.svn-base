@@ -1,0 +1,38 @@
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
+
+namespace Max.BaseKit.Exts
+{
+    public class ConcurrentQueueEx<T> : ConcurrentQueue<T>
+    {
+        /// <summary>
+        /// 超时时长(用次数来计算，每90ms轮询一次，默认超时时长为3分钟，即2000次)
+        /// </summary>
+        private int timeout { get; set; }
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="timeout">1个单位代表90ms</param>
+        public ConcurrentQueueEx(int timeout = 2000)
+        {
+            this.timeout = timeout;
+        }
+
+        public T Dequeue()
+        {
+            T obj = default;
+            int i = 0;
+            do
+            {
+                base.TryDequeue(out obj);
+                i++;
+                if (i > timeout) break;
+                Thread.Sleep(90);
+            }
+            while (obj == null);
+            if (obj == null) throw new Exception($"ConcurrentQueueEx取可用数据超时。");
+            return obj;
+        }
+    }
+}

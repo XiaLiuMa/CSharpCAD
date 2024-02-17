@@ -1,0 +1,385 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>分步表单</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <link rel="stylesheet" href="/js/lay-module/step-lay/step.css" media="all">
+    <style>
+        .tip-icon {
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+            background: #52C41A;
+            padding: 20px;
+            line-height: 80px;
+        }
+
+        .big-tip {
+            font-size: 24px;
+            color: #333;
+            font-weight: 500;
+            margin-top: 30px;
+        }
+
+        .small-tip {
+            font-size: 14px;
+            color: #666;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="layuimini-container">
+        <div class="layuimini-main">
+            <div class="layui-fluid">
+                <div class="layui-card">
+                    <div class="layui-card-body" style="padding-top: 40px;">
+                        <div class="layui-carousel" id="stepForm" lay-filter="stepForm" style="margin: 0 auto;">
+                            <div carousel-item>
+                                <div>
+                                    <form class="layui-form" lay-filter="step1Form" style="margin: 0 auto;max-width: 1000px;padding-top: 40px;">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label">类型任务：</label>
+                                            <div class="layui-input-block">
+                                                <select id="taskType" name="taskType" lay-search="" lay-filter="taskType">
+                                                    <option value="" selected>直接选择或搜索选择</option>
+                                                    <option value="AJCJob">全表类基础任务</option>
+                                                    <option value="CCGJob">区间类常规任务</option>
+                                                    <option value="CDKJob">区间类大库任务</option>
+                                                    <option value="TCGJob">统计类常规任务</option>
+                                                    <option value="TDKJob">统计类大库任务</option>
+                                                </select>
+                                                <div class="layui-form-select">
+                                                    <div class="layui-select-title">
+                                                        <input type="text" placeholder="直接选择或搜索选择" value="" class="layui-input">
+                                                    </div>
+                                                    <dl class="layui-anim layui-anim-upbit" style="">
+                                                        <dd lay-value="" class="layui-select-tips layui-this">直接选择或搜索选择</dd>
+                                                        <dd lay-value="AJCJob" class="">全表类基础任务</dd>
+                                                        <dd lay-value="CCGJob" class="">区间类常规任务</dd>
+                                                        <dd lay-value="CDKJob" class="">区间类大库任务</dd>
+                                                        <dd lay-value="TCGJob" class="">统计类常规任务</dd>
+                                                        <dd lay-value="TDKJob" class="">统计类大库任务</dd>
+                                                    </dl>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label required">子任务：</label>
+                                            <div class="layui-input-block">
+                                                <div id="sub_transfer" name="subCmds" class="layui-transfer"></div>
+                                            </div>
+                                        </div>
+                                        <div class="layui-form-item">
+                                            <div class="layui-input-block">
+                                                <button class="layui-btn" lay-submit lay-filter="step1Form"> &emsp;下一步&emsp;</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div>
+                                    <form class="layui-form" lay-filter="step2Form" style="margin: 0 auto;max-width: 800px;padding-top: 40px;">
+                                        <div class="layui-form-item">
+                                            <div class="layui-input-block">
+                                                <div id="test12" name="test12" class="demo-tree-more"></div>
+                                            </div>
+                                        </div>
+                                        <div class="layui-form-item">
+                                            <div class="layui-input-block">
+                                                <button type="button" class="layui-btn layui-btn-primary pre">上一步</button>
+                                                <button class="layui-btn" lay-submit lay-filter="step2Form">&emsp;下一步&emsp;</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <div>
+                                    <form class="layui-form" lay-filter="step3Form" style="margin: 0 auto;max-width: 800px;padding-top: 40px;">
+                                        <div class="layui-form-item">
+                                            <label class="layui-form-label required">同步时间：</label>
+                                            <div class="layui-input-inline layui-input-wrap" style="width:200px">
+                                                <div class="layui-input-prefix">
+                                                    <i class="layui-icon layui-icon-date"></i>
+                                                </div>
+                                                <input id="stime" name="stime" type="text" placeholder="yyyy-MM-dd HH:mm:ss" class="layui-input">
+                                            </div>
+                                            <div class="layui-form-mid">-</div>
+                                            <div class="layui-input-inline layui-input-wrap" style="width:200px">
+                                                <div class="layui-input-prefix">
+                                                    <i class="layui-icon layui-icon-date"></i>
+                                                </div>
+                                                <input id="etime" name="etime" type="text" placeholder="yyyy-MM-dd HH:mm:ss" class="layui-input">
+                                            </div>
+                                        </div>
+                                        <div class="layui-form-item">
+                                            <div class="layui-input-block">
+                                                <button type="button" class="layui-btn layui-btn-primary pre">上一步</button>
+                                                <button class="layui-btn" lay-submit lay-filter="step3Form">&emsp;确认同步&emsp;</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div>
+                                    <div style="text-align: center;margin-top: 90px;">
+                                        <i class="layui-icon layui-circle tip-icon">&#xe605;</i>
+                                        <div class="big-tip">启动同步任务成功</div>
+                                        <div class="small-tip">同步任务在后台运行中，短时间内请勿频繁执行手动同步</div>
+                                    </div>
+                                    <div style="text-align: center;margin-top: 50px;">
+                                        <button class="layui-btn next">再次同步</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>正在运行的手动任务</h3><br>
+            <div id="runingJobTip"></div>
+        </div>
+    </div>
+    <script src="/lib/jquery-3.4.1/jquery.js" charset="utf-8"></script>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script src="/js/lay-config.js" charset="utf-8"></script>
+    <script>
+        layui.use(['form', 'transfer', 'step', 'tree'], function () {
+            var $ = layui.$;
+            var form = layui.form;
+            var transfer = layui.transfer;
+            var step = layui.step;
+            var laydate = layui.laydate;
+            var tree = layui.tree;
+            var transfer_data = []; //transfer数据
+            var tree_data = []; //tree数据
+
+            setInterval(function () { //设置定时器
+                SearchRuning();
+            }, 15 * 1000);
+
+            $.ajax({
+                type: 'GET',
+                url: '/ProduceTask/SearchAll', //接口地址
+                cache: false, //是否使用缓存
+                dataType: "json",//数据类型
+                success: function (res) {
+                    if (res.code == 0) {
+                        if (res.data.length > 0) {
+                            res.data.forEach(function (item) {
+                                transfer_data.push({ "value": item.cmd, "title": item.taskName });
+                            });
+                        }
+                    }
+                    // 初始化Transfer组件
+                    transfer.render({
+                        elem: '#sub_transfer',
+                        title: ['待选数据', '已选数据'],
+                        data: transfer_data,
+                        id: 'sub_transfer',
+                        showSearch: true
+                    });
+                },
+                error: function () {
+                    layer.msg("接口【" + "/ProduceTask/SearchAll" + "】请求错误，状态码：" + err.status);
+                    if (err.status == 401) {
+                        parent.location.href = "/Hmoe/Login";
+                    }
+                }
+            });
+
+            SearchRuning();
+            function SearchRuning() {
+                $.ajax({
+                    type: 'GET',
+                    url: '/ManualSync/SearchRuning', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            layer.msg(res.msg);
+                            if (res.data.length > 0) {
+                                var rundiv = layui.$('#runingJobTip');
+                                rundiv.html("");//清空内容
+                                res.data.forEach(function (item) {
+                                    var istate = item.rState === 0 ? "等待中" : item.rState === 1 ? "运行中" : "";
+                                    var runingJobStr = "<br><p> 命令名：" + item.cmd + "    任务名称：" + item.taskName + "    数据库："
+                                        + item.dbDesc + "      时间段：" + item.sTime + "-" + item.eTime + "   启动时间：" + item.rTime + "   状态：" + istate + ";</p>"
+                                    rundiv.append(runingJobStr);//追加内容
+                                });
+                            }
+                        }
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + "/ManualSync/SearchRuning" + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+            }
+
+            step.render({
+                elem: '#stepForm',
+                filter: 'stepForm',
+                width: '100%', //设置容器宽度
+                stepWidth: '750px',
+                height: '500px',
+                stepItems: [{ title: '选择同步任务' }, { title: '选择同步数据库' }, { title: '选择同步时间' }, { title: '完成' }]
+            });
+
+            laydate.render({
+                elem: '#stime',
+                type: 'datetime'
+            });
+
+            laydate.render({
+                elem: '#etime',
+                type: 'datetime'
+            });
+
+            //监听任务类型选择事件
+            form.on('select(taskType)', function (data) {
+                $.ajax({
+                    type: 'GET',
+                    url: '/ProduceTask/SearchByType', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: { "taskType": data.value },
+                    success: function (res) {
+                        transfer_data = [];
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (item) {
+                                    transfer_data.push({ "value": item.cmd, "title": item.taskName });
+                                });
+                            }
+                        }
+                        // 初始化Transfer组件
+                        transfer.render({
+                            elem: '#sub_transfer',
+                            title: ['待选数据', '已选数据'],
+                            data: transfer_data,
+                            id: 'sub_transfer',
+                            showSearch: true
+                        });
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + "/ProduceTask/SearchByType" + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+                return false;
+            });
+
+            //监听第1步确认
+            form.on('submit(step1Form)', function (data) {
+                var cmdsstr = ""; //存储选中的transfer
+                var transfer_check_data = transfer.getData('sub_transfer');
+                transfer_check_data.forEach(function (item) {
+                    cmdsstr += item.value + ",";
+                });
+                cmdsstr = cmdsstr.substring(0, cmdsstr.lastIndexOf(','));
+                $.ajax({
+                    type: 'GET',
+                    url: '/ManualSync/SearchTaskTree', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: { "cmds": cmdsstr },
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                tree_data = res.data;
+                                tree.render({
+                                    elem: '#test12',
+                                    data: tree_data,
+                                    showCheckbox: true,   //是否显示复选框
+                                    id: 'demoId1',
+                                    click: function (obj) {
+                                        var data = obj.data;  //获取当前点击的节点数据
+                                        layer.msg('状态：' + obj.state + '<br>节点数据：' + JSON.stringify(data));
+                                    }
+                                });
+                            }
+                        }
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + "/ManualSync/SearchTaskTree" + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+
+                step.next('#stepForm');
+                return false;
+            });
+
+            //监听第2步确认
+            form.on('submit(step2Form)', function (data) {
+                step.next('#stepForm');
+                return false;
+            });
+
+            //监听第3步确认
+            form.on('submit(step3Form)', function (data) {
+                var tdatas = [];//选中的末节点数据
+                parseTreeToFlatArray(tree_data, 1, "", tdatas);
+                var step3FormData = form.val('step3Form');
+                $.ajax({
+                    type: 'POST',
+                    url: '/ManualSync/Start', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: { "mTasks": tdatas, "stime": step3FormData.stime, etime: step3FormData.etime },
+                    success: function (res) {
+                        layer.msg(res.msg);
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + "/ManualSync/Start" + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+
+                step.next('#stepForm');
+                return false;
+            });
+
+            $('.pre').click(function () {
+                step.pre('#stepForm');
+            });
+
+            $('.next').click(function () {
+                step.next('#stepForm');
+            });
+
+            // 递归将树型结构解析成平行的数组【附加逻辑：只选取选中的末节点】
+            function parseTreeToFlatArray(data, parentId, pfield, result) {
+                for (var i = 0; i < data.length; i++) {
+                    var node = data[i];
+                    if (node.isFoot && node.checked) {
+                        var newNode = {
+                            cmd: pfield,
+                            dbid: node.field
+                        };
+                        result.push(newNode);
+                    }
+                    if (node.children && node.children.length > 0) {
+                        parseTreeToFlatArray(node.children, node.id, node.field, result);
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>

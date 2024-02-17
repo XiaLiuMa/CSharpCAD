@@ -1,0 +1,239 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>子任务Index</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+</head>
+<body>
+    <div class="layuimini-container">
+        <div class="layuimini-main">
+            <fieldset class="table-search-fieldset">
+                <legend>搜索信息</legend>
+                <div style="margin: 10px 10px 10px 10px">
+                    <form class="layui-form layui-form-pane" action="">
+                        <div class="layui-form-item">
+                            <div class="layui-inline">
+                                <label class="layui-form-label">模糊搜索</label>
+                                <div class="layui-input-inline">
+                                    <input name="condition" type="text" autocomplete="off" class="layui-input">
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">任务类型</label>
+                                <div class="layui-input-inline">
+                                    <select name="rwtype">
+                                        <option value="" selected>全部</option>
+                                        <option value="AJCJob">全表类基础任务</option>
+                                        <option value="CCGJob">区间类常规任务</option>
+                                        <option value="CDKJob">区间类大库任务</option>
+                                        <option value="TCGJob">统计类常规任务</option>
+                                        <option value="TDKJob">统计类大库任务</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <label class="layui-form-label">启用状态</label>
+                                <div class="layui-input-inline">
+                                    <select name="rwstate">
+                                        <option value="" selected>全部</option>
+                                        <option value="true">启用</option>
+                                        <option value="false">禁用</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="layui-inline">
+                                <button type="submit" class="layui-btn layui-btn-primary" lay-submit lay-filter="data-search-btn"><i class="layui-icon"></i> 搜 索</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </fieldset>
+
+            <script type="text/html" id="toolbarDemo">
+                <div class="layui-btn-container">
+                    <button class="layui-btn layui-btn-normal layui-btn-sm data-add-btn" lay-event="add"> 添加 </button>
+                    <button class="layui-btn layui-btn-sm layui-btn-danger data-delete-btn" lay-event="delete"> 删除 </button>
+                </div>
+            </script>
+
+            <table class="layui-hide" id="currentTableId" lay-filter="currentTableFilter"></table>
+
+            <script type="text/html" id="currentTableBar">
+                <a class="layui-btn layui-btn-normal layui-btn-xs data-count-look" lay-event="look">查看</a>
+                <a class="layui-btn layui-btn-normal layui-btn-xs data-count-edit" lay-event="edit">编辑</a>
+                <a class="layui-btn layui-btn-xs layui-btn-danger data-count-delete" lay-event="delete">删除</a>
+            </script>
+
+        </div>
+    </div>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod; //全局变量,要传给子页面的参数
+        var subPageState; //全局变量，子页面状态('look','add','edit')
+        layui.use(['form', 'table'], function () {
+            var $ = layui.jquery;
+            var form = layui.form;
+            var table = layui.table;
+
+            var page = 1;
+            var limit = 10;
+            var tab_name = table.render({
+                elem: '#currentTableId',
+                type: "GET",
+                url: '/SubTask/PagingSearch',
+                dataType: "json",
+                where: { "page": page, "limit": limit, condition: "", rwtype: "", rwstate: "" },
+                toolbar: '#toolbarDemo',
+                defaultToolbar: ['filter', 'exports', 'print'],
+                cellMinWidth: 50,
+                cols: [[
+                    { type: "checkbox", width: 50 },
+                    { field: 'cmd', title: '命令码', sort: true },
+                    { field: 'taskName', title: '任务名称', sort: true },
+                    { field: 'taskDes', title: '任务描述' },
+                    { field: 'taskType', title: '任务类型' },
+                    { field: 'priorityLevel', title: '优先级' },
+                    { field: 'cutType', title: '切片类型' },
+                    { field: 'czType', title: '操作类型' },
+                    { field: 'taskState', title: '启用状态' },
+                    { field: 'delayTime', title: '延迟时长' },
+                    { field: 'dbs', title: '关联数据库' },
+                    { field: 'sqlStr', title: 'Sql语句' },
+                    { title: '操作', width: 160, toolbar: '#currentTableBar', align: "center" }
+                ]],
+                limits: [10, 15, 20, 30, 50, 100],
+                limit: 10,
+                page: true,
+                parseData: function (res) { //【重要：数据解析回调函数，可用于监听分页控件的操作，以及数据变化情况如删除数据】
+                    var layui_page = tab_name.config.page;
+                    //console.log(layui_page);
+                    page = layui_page.curr;
+                    limit = layui_page.limit;
+                    tab_name.config.where = { "page": page, "limit": limit, "condition": "", "dbtype": "" };
+                    //RefreshTable();
+                },
+                skin: 'line'
+            });
+
+            // 监听搜索操作
+            form.on('submit(data-search-btn)', function (data) {
+                RefreshTable();
+                return false;
+            });
+
+            //监听toolbar事件
+            table.on('toolbar(currentTableFilter)', function (obj) {
+                if (obj.event === 'add') {  // 监听添加操作
+                    subPageState = 'add';
+                    var index = layer.open({
+                        title: '添加子任务',
+                        type: 2,
+                        shade: 0.2,
+                        maxmin: false,
+                        shadeClose: true,
+                        area: ['100%', '100%'],
+                        content: '/SubTask/Detail',
+                    });
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    });
+                } else if (obj.event === 'delete') {  // 监听删除操作
+                    var checkStatus = table.checkStatus('currentTableId');
+                    checkData = checkStatus.data;
+                    layer.confirm('确定批量删除吗？', function (index) {
+                        var ids = "";
+                        checkData.forEach(function (item) {
+                            ids += item.cmd + ",";
+                        });
+                        DeleteData(ids);
+                        layer.close(index);
+                    });
+                }
+            });
+
+            //监听表格复选框选择
+            table.on('checkbox(currentTableFilter)', function (obj) {
+                console.log(obj)
+            });
+
+            table.on('tool(currentTableFilter)', function (obj) {
+                if (obj.event === 'look') {  //查看操作
+                    subPageState = 'look';
+                    parentMod = obj.data;
+                    var index = layer.open({
+                        title: '查看子任务',
+                        type: 2,
+                        shade: 0.2,
+                        maxmin: false,
+                        shadeClose: true,
+                        area: ['100%', '100%'],
+                        content: '/SubTask/Detail',
+                    });
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    });
+                } else if (obj.event === 'edit') { //编辑操作
+                    subPageState = 'edit';
+                    parentMod = obj.data;
+                    var index = layer.open({
+                        title: '编辑子任务',
+                        type: 2,
+                        shade: 0.2,
+                        maxmin: false,
+                        shadeClose: true,
+                        area: ['100%', '100%'],
+                        content: '/SubTask/Detail',
+                    });
+                    $(window).on("resize", function () {
+                        layer.full(index);
+                    });
+                    return false;
+                } else if (obj.event === 'delete') { //删除操作
+                    layer.confirm('确定删除行吗？', function (index) {
+                        DeleteData(obj.data.cmd);
+                        $('searchBton').click();//触发搜索按钮
+                        layer.close(index);
+                    });
+                }
+            });
+
+            //Table刷新
+            function RefreshTable() {
+                var condition = $('input[name="condition"]').val();
+                var rwtype = $('select[name="rwtype"]').val();
+                var rwstate = $('select[name="rwstate"]').val();
+                table.reload('currentTableId', {
+                    where: { "page": page, "limit": limit, "condition": condition, "rwtype": rwtype, "rwstate": rwstate },
+                });
+            }
+
+            //删除数据
+            function DeleteData(ids) {
+                $.ajax({
+                    type: 'Post', //你要请求的api的URL
+                    url: "/SubTask/Delete", //是否使用缓存
+                    cache: false, //数据类型，这里我用的是json
+                    dataType: "json",//必要的时候需要用JSON.stringify() 将JSON对象转换成字符串
+                    data: { ids: ids },
+                    success: function (res) {    //函数参数 "data" 为请求成功服务端返回的数据
+                        if (res.code == 0) {
+                            layer.msg(res.msg);
+                        }
+                    },
+                    //error: function (err) {
+                    //    if (err.status == 401) {
+                    //        parent.location.href = "/home/login";
+                    //    }
+                    //}
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

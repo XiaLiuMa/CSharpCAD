@@ -1,0 +1,23 @@
+﻿using SetCharLib.Helper;
+using SetCharLib.Mod;
+
+namespace SetCharLib.SetCharacter
+{
+    public abstract class MNSetCharacter : ISetCharacter
+    {
+        public SerialClass SerialClass;
+
+        public MNZFDJDYGX MNZFDJDYGX;
+
+        public MNSetCharacter(MNZFDJDYGX dygx)
+        {
+            MNZFDJDYGX = dygx;
+        }
+
+        public virtual bool ClearLKXX(string zjhm) { return true; }
+
+        public abstract bool ClearAll();
+
+        public abstract bool SetCharacter(DjMessage djmsg);
+    }
+}

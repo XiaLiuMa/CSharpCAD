@@ -1,0 +1,27 @@
+﻿using System.Collections.Generic;
+
+namespace MsDataExport
+{
+    public class AppConfig
+    {
+        public string ExportType { get; set; }
+        public string ExportPath { get; set; }
+        
+        public List<DbConfig> DbConfigs { get; set; }
+        public List<ExConfig> ExConfigs { get; set; }
+    }
+
+    public class DbConfig
+    {
+        public string Id { get; set; }
+        public string ConnectStr { get; set; }
+    }
+
+    public class ExConfig
+    {
+        public string Cmd { get; set; }
+        public string Rwmc { get; set; }
+        public string DbId { get; set; }
+        public string SqlStr { get; set; }
+    } 
+}

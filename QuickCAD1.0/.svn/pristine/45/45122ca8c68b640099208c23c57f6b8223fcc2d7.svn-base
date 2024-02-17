@@ -1,0 +1,57 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <Platforms>AnyCPU;x86;x64</Platforms>
+    <AssemblyName>GaCharSet</AssemblyName>
+    <RootNamespace>GaCharSet</RootNamespace>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Prefer32Bit>true</Prefer32Bit>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutputPath>..\..\build\output\Isolator.Ga.WindowService\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
+    <OutputPath>bin\Debug\</OutputPath>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <WarningLevel>0</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="01Rely\wwwroot\DeviceManage\**" />
+    <Compile Remove="01Rely\wwwroot\SystemConfig\**" />
+    <Compile Remove="01Rely\wwwroot\SystemManage\**" />
+    <EmbeddedResource Remove="01Rely\wwwroot\DeviceManage\**" />
+    <EmbeddedResource Remove="01Rely\wwwroot\SystemConfig\**" />
+    <EmbeddedResource Remove="01Rely\wwwroot\SystemManage\**" />
+    <None Remove="01Rely\wwwroot\DeviceManage\**" />
+    <None Remove="01Rely\wwwroot\SystemConfig\**" />
+    <None Remove="01Rely\wwwroot\SystemManage\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc" Version="2.2.0" />
+    <PackageReference Include="Microsoft.AspNetCore.StaticFiles" Version="2.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\01工具库\Max.DbToolkit\Max.DbToolkit.csproj" />
+    <ProjectReference Include="..\..\01工具库\Max.ISolator\Max.ISolator.csproj" />
+    <ProjectReference Include="..\SetCharLib\SetCharLib.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="xcopy  $(ProjectDir)01Rely $(OutDir) /e /i /y /f" />
+  </Target>
+
+</Project>

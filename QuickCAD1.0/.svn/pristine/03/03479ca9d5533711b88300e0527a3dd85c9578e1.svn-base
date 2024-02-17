@@ -1,0 +1,249 @@
+﻿using IsolatorTarget.Storage.Entities;
+using Max.BaseKit;
+using Max.BaseKit.Customs;
+using Max.ISolator.Core.Mods;
+using SetCharLib.Mod;
+using SetCharLib.SetCharacter;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 字符叠加服务
+    /// </summary>
+    public class SetCharService
+    {
+        #region 单例
+        private static SetCharService i;
+        private readonly static object objLock = new object();
+        public static SetCharService I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new SetCharService();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            if (idata == null) return;
+            idata.Lst?.ForEach(dic =>
+            {
+                try
+                {
+                    dic.TryGetValue("MSTDH", out var mstdh);//梅沙通道号("口岸代码|通道号")
+                    if (string.IsNullOrEmpty((string)mstdh)) return;
+                    var cameras = ConfigCacher.I.TargetCameraCacher.Where(p => p.IsUsable && mstdh.Equals(p.MSTDH));
+                    if (cameras == null || cameras.Count <= 0)
+                    {
+                        NLogger.Warn($"SetCharService》未找到{mstdh}对应的可用的相机设备配置。");
+                        return;
+                    }
+
+                    if (!CacheHelper.CheckDataChanged((string)mstdh, dic)) return;//缓存中数据未发生变化，便不再进行叠加或清除操作
+
+                    dic.TryGetValue("GZZZT", out var gzzzt);//工作站状态("1":上台，"2":下台)
+                    if ("1".Equals((string)gzzzt))
+                    {
+                        cameras?.ForEach(c => { SetCharacter(c, dic); }); //上台，字符叠加
+                    }
+                    else if ("2".Equals((string)gzzzt))
+                    {
+                        cameras?.ForEach(c => { ClearAll(c); }); //上台，清空字符叠加信息
+                    }
+
+                    CacheHelper.UpdateCacheData((string)mstdh, dic, (p1, p2) =>
+                    {
+                        try
+                        {
+                            var tdic = p2 as Dictionary<string, object>;
+
+                            tdic.TryGetValue("GZZZT", out var gzzzt);//工作站状态("1":上台，"2":下台)
+                            if (!"1".Equals((string)gzzzt)) return;
+
+                            tdic.TryGetValue("MSTDH", out var mstdh);//梅沙通道号("口岸代码|通道号")
+                            if (string.IsNullOrEmpty((string)mstdh)) return;
+                            var cameras = ConfigCacher.I.TargetCameraCacher.Where(p => p.IsUsable && mstdh.Equals(p.MSTDH));
+                            if (cameras == null || cameras.Count <= 0)
+                            {
+                                NLogger.Warn($"SetCharService》未找到{mstdh}对应的可用的相机设备配置。");
+                                return;
+                            }
+
+                            tdic.TryGetValue("ZJHM", out var zjhm);//证件号码
+                            cameras?.ForEach(c => { ClearLKXX(c, zjhm?.ToString()); }); //上台叠加的旅客信息已过期
+                        }
+                        catch (Exception ex)
+                        {
+                            NLogger.Warn($"SetCharService》缓存移除事件进行字符叠加异常，异常信息：{ex.Message}");
+                        }
+                    }, ConfigCacher.I.DjxxTimeout);//加入缓存，并将旅客信息过期时间设置为缓存过期时间
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"SetCharService》消费{idata.Cmd}异常，异常信息：{ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// 复位(清空叠加信息)
+        /// </summary>
+        public void Reset()
+        {
+            var cameras = ConfigCacher.I.TargetCameraCacher.Where(p => p.IsUsable);
+            cameras?.ForEach(c => { ClearAll(c); });
+        }
+
+        /// <summary>
+        /// 叠加信息
+        /// </summary>
+        /// <param name="targetCamera"></param>
+        /// <param name="dic"></param>
+        private void SetCharacter(TargetCameraEntity targetCamera, Dictionary<string, object> dic)
+        {
+            WLZFDJDYGX wlzfdjglgx = GetWLZFDJDYGX(targetCamera);
+            if (wlzfdjglgx == null) return;
+            DjMessage djmsg = GetDjMessage(dic);
+            if (djmsg == null) return;
+
+            var wLSetCharacter = SetCharacterFactory.CreatWLSetCharacter(wlzfdjglgx);
+            if (wLSetCharacter == null) return;
+
+            try
+            {
+                wLSetCharacter.SetCharacter(djmsg);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"SetCharService》字符叠加异常，异常信息：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清空字符叠加
+        /// </summary>
+        /// <param name="targetCamera"></param>
+        private void ClearAll(TargetCameraEntity targetCamera)
+        {
+            WLZFDJDYGX wlzfdjglgx = GetWLZFDJDYGX(targetCamera);
+            if (wlzfdjglgx == null) return;
+
+            var wLSetCharacter = SetCharacterFactory.CreatWLSetCharacter(wlzfdjglgx);
+            if (wLSetCharacter == null) return;
+
+            try
+            {
+                wLSetCharacter.ClearAll();
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"SetCharService》清空字符叠加异常，异常信息：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清除叠加的旅客信息
+        /// </summary>
+        /// <param name="targetCamera"></param>
+        private void ClearLKXX(TargetCameraEntity targetCamera, string? zjhm)
+        {
+            if (string.IsNullOrEmpty(zjhm)) return;
+            WLZFDJDYGX wlzfdjglgx = GetWLZFDJDYGX(targetCamera);
+            if (wlzfdjglgx == null) return;
+
+            var wLSetCharacter = SetCharacterFactory.CreatWLSetCharacter(wlzfdjglgx);
+            if (wLSetCharacter == null) return;
+
+            try
+            {
+                wLSetCharacter.ClearLKXX(zjhm);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"SetCharService》清除叠加的旅客信息异常，异常信息：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 组装网络字符叠加对应关系
+        /// </summary>
+        /// <param name="targetCamera"></param>
+        /// <returns></returns>
+        private WLZFDJDYGX GetWLZFDJDYGX(TargetCameraEntity targetCamera)
+        {
+            if (targetCamera == null) return null;
+            return new WLZFDJDYGX()
+            {
+                WLSB = new WLSB()
+                {
+                    TDH = targetCamera.MSTDH,
+                    SBXH = targetCamera.SBXH,
+                    IPADDRESS = targetCamera.IP,
+                    PORT = targetCamera.Port,
+                    CHANNEL = targetCamera.Channel,
+                    USER_NAME = targetCamera.UserName,
+                    USER_PWD = targetCamera.Password
+                },
+                ZBXX = new ZBXX()
+                {
+                    Line1X = targetCamera.Line1X,
+                    Line1Y = targetCamera.Line1Y,
+                    Line2X = targetCamera.Line2X,
+                    Line2Y = targetCamera.Line2Y,
+                    Line3X = targetCamera.Line3X,
+                    Line3Y = targetCamera.Line3Y,
+                    Line4X = targetCamera.Line4X,
+                    Line4Y = targetCamera.Line4Y
+                }
+            };
+        }
+
+        /// <summary>
+        /// 组装字符叠加信息
+        /// </summary>
+        /// <param name="dic"></param>
+        /// <returns></returns>
+        private DjMessage GetDjMessage(Dictionary<string, object> dic)
+        {
+            var djmsg = new DjMessage()
+            {
+                Czydm = dic["CZYDM"]?.ToString(),
+                Czyxm = dic["CZYXM"]?.ToString(),
+                Czybm = dic["BMMC"]?.ToString(),
+
+                Lkzjhm = dic["ZJHM"]?.ToString(),
+                Lkxm = dic["XM"]?.ToString(),
+                CSRQ = dic["CSRQ"]?.ToString(),
+                Jtgj = dic["JTGJBS"]?.ToString(),
+                Lkgj = dic["GJDQDM"]?.ToString(),
+                WYBS = dic["WYBS"]?.ToString(),
+            };
+
+            switch (dic["PJNR"]?.ToString())
+            {
+                case "1": djmsg.Lkpjxx = "非常满意"; break;
+                case "2": djmsg.Lkpjxx = "满意"; break;
+                case "3": djmsg.Lkpjxx = "时间太长"; break;
+                case "4": djmsg.Lkpjxx = "态度不好"; break;
+                default: djmsg.Lkpjxx = ""; break;
+            }
+
+            return djmsg;
+        }
+    }
+}

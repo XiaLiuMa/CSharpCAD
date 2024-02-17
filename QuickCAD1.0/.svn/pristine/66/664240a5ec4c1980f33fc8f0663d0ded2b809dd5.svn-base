@@ -1,0 +1,48 @@
+﻿using System;
+using Max.BaseKit.Utils;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.Core.Handlers
+{
+    /// <summary>
+    /// 公用数据监听助手
+    /// </summary>
+    public class CommHandler
+    {
+        /// <summary>
+        /// 服务线程安全列表
+        /// </summary>
+        private readonly ConcurrentBag<MaxIService> mServiceLst;
+        /// <summary>
+        /// 数据消费完事件
+        /// </summary>
+        public event Action<IsolatorData> ConsumeFileComplete = (p) => { };
+
+        public CommHandler()
+        {
+            #region 反射获取所有服务实现类
+            mServiceLst = new ConcurrentBag<MaxIService>();
+            IList<Type> lst = ReflectionUtil.FindSubClasses(typeof(MaxIService));
+            foreach (Type t in lst)
+            {
+                var handler = (MaxIService)Activator.CreateInstance(t);
+                mServiceLst.Add(handler);
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="data"></param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            foreach (var service in mServiceLst)
+            {
+                service.ConsumeData(idata);
+            }
+            ConsumeFileComplete?.Invoke(idata);
+        }
+    }
+}

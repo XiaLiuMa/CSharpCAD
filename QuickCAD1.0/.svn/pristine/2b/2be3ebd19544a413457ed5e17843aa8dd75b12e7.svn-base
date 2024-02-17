@@ -1,0 +1,245 @@
+﻿using MsDataSimulator.Views;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Timers;
+
+namespace MsDataSimulator.Jobs
+{
+    /// <summary>
+    /// 出入境交通工具预报
+    /// </summary>
+    public class CrjybxxJob
+    {
+        #region 单例
+        private static CrjybxxJob instance;
+        private readonly static object objLock = new object();
+        public static CrjybxxJob Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new CrjybxxJob();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        private Timer timer;
+        /// <summary>
+        /// 启动CrjjtgjybJob
+        /// </summary>
+        public void Run()
+        {
+            InsertCrjjtgjyb(null, null);//先手动触发第一次
+            timer = new Timer(5 * 60 * 1000);//间隔5分钟触发一次
+            timer.Start();
+            timer.Elapsed += InsertCrjjtgjyb;
+        }
+
+        /// <summary>
+        /// 插入出入境交通工具预报
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void InsertCrjjtgjyb(object sender, ElapsedEventArgs e)
+        {
+            DateTime dt = DateTime.Now;
+            string jtgjbs = UnitData.Instance.HBH;//航班号
+            int tnum = UnitData.Instance.NUM(1, 12);
+            #region 航显信息表BJ_FLT_DISP_ASUPSCHD
+            Dictionary<string, object> hxxx = new Dictionary<string, object>();
+            hxxx.Add("FLID", Convert.ToInt32(dt.ToString("yMMddHHmmssfff")));//唯一ID(12位)
+            hxxx.Add("FTID", "ALCDFLNOMVINSODTALCDFLNOMVINSODT");//自定义航班ID
+            hxxx.Add("TYPE", "");//消息发送类型。Meta Data段的一部分。
+            hxxx.Add("STYP", "");//消息发送的子类型. Meta Data段的一部分.DNLD – 从ASUP中下载时刻表信息 RESP –响应子系统的请求而发送的日计划时刻表。 ADFT –表示是一个adhoc航班（仅一个航班记录）
+            hxxx.Add("FFID", "");//格式为ASUPSCHD报文中相关的字段顺序，ALCD, FLNO, MVIN, SODT, FLIN
+            hxxx.Add("ALCD", "");//航空公司代码-IATA操作代码
+            hxxx.Add("FLNO", "");//航班号
+            hxxx.Add("MVIN", "");//运行标识,A – Arrival/到达 D – Departure/离港
+            string hbrq = dt.ToString("ddMMMyyHHmm", CultureInfo.CreateSpecificCulture("en-GB"));
+            hxxx.Add("SODT", "");//航班计划日期/时间。STA到达，STD离港。DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("FLTY", "");//航班类型如客机、货机、军用、VIP等由首都机场相关数据表定。ASUP将默认发送所有类型的航班，子系统根据需要接受/忽略 全部/部分航班。
+            hxxx.Add("FLIN", "");//航班标识,D – Domestic/国内 I – International/国际 M – Mixed/混合
+            hxxx.Add("ACFT", "");//航班使用的机型IATA机型
+            hxxx.Add("RENO", "");//航班注册号或尾号
+            hxxx.Add("TAOP", "");//离开当前机场时起降匹配连接航班的承运人,IATA承运人代码。仅到达时有效。
+            hxxx.Add("TAFL", "");//离开当前机场时起降匹配连接航班的航班号,仅到达时有效。
+            hxxx.Add("TAID", "");//中转航班唯一的ASUP ID
+            hxxx.Add("TRML", "");//航班航站楼
+            hxxx.Add("MAXP", UnitData.Instance.NUM(125, 350));//该航班最大载客数0 – 999
+            hxxx.Add("CSOP", "");//共享航班的主航班承运人代码,IATA操作代码
+            hxxx.Add("CSFT", "");//共享航班的主航班号
+            hxxx.Add("ESTT", "");//航班预计时间。由航班到达ETA和离港ETD计算出。
+            hxxx.Add("ACTT", "");//航班实际时间。由航班到达ATA和离港ATD计算出。
+            hxxx.Add("STND", "");//该航班当前停机位位置,机位代码根据首都机场数据决定。计划多机位且航班未到达时，该域包括计划中的第一个机位。航班停于机位后，该域包括机位最后的上轮挡。
+            hxxx.Add("PHAG", "");//航班旅客处理柜员,旅客处理柜员的机构ID。参考代码由国际首都机场定义。
+            hxxx.Add("CNCL", "");//取消日期时间。仅在航班取消时出现。DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("REMC", "");//航班自由文本注释
+            hxxx.Add("BOTM", "");//离港航班登机开始时间,DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("LACL", "");//离港航班最后通知时间,DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("FINT", "");//最终时间。当到达航班将要到达，确认降落时设定，比如降落前10分钟。一般用于确认航班在机场的资源使用确认。DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("APPT", "");//批准的离港时间,DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("EGSR", "");//离港时引擎发动请求,DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("EGST", "");//离港引擎发动时间,DDMONYYHHMM 当地时间24小时格式
+            hxxx.Add("FHAG", 123456789);//航班的机坪（或外场）处理代理,机坪处理代理的机构代码。参考首都机场的相关代码
+            hxxx.Add("MHAG", 123456789);//航班维护处理代理,维护处理代理的机构代码。参考首都机场的相关代码
+            hxxx.Add("VIPP", 123);//VIP旅客。当航班中有VIP旅客时出现,当前航班的VIP旅客数
+            hxxx.Add("VIPR", 1);//VIP航班等级标志,一个单一数字表示VIP的等级。具体数字将由BCIA决定。0表示不是VIP航班。 空表示VIP级别值被删除
+            hxxx.Add("FDIV", "");//航班转场的原因描述。带有两个参数DDES和DDIR。DDES表示航班转场相关的机场。DDIR表示转场方向（从或到DDES指定的机场）。合法的值为“TO”和“FROM”。
+            hxxx.Add("FRET", "");//包括一个航班返航原因的描述。带有REID参数表示是返航或是地面返航。原因格式是文本 Parameter REID = Char(1) G = Ground return/地面返航 A = Air return/返航
+            hxxx.Add("FLAB", "");//包括一个航班着陆中止原因的描述。带有ARES参数表示中止的原因码。原因格式是文本 Parameter ARES = Char(1) O =飞机无法在指定的跑道降落 G = 飞机绕场
+            hxxx.Add("LBNO", 123);//离港航班本地值机行李件数
+            hxxx.Add("LBWT", 1223);//离港航班本地值机行李总重量,单位公斤
+            hxxx.Add("PAXC", 123);//航班旅客总数
+            #endregion
+            bool flag = OrcalUtil.Merger("BJ_FLT_DISP_ASUPSCHD", new string[] { "FLID", "FTID" }, hxxx);
+            if (flag) MainForm.Instance.RefreshTabPanel("YBJTGJ", hxxx);
+
+
+            #region 航班资料表BJ_PI_T_HBZL(暂不考虑)
+            //Dictionary<string, object> hbzl = new Dictionary<string, object>();
+            //hbzl.Add("HBRQ", dt.ToString("yyyyMMdd"));//航班日期
+            //hbzl.Add("HKGS", "llll");//航空公司
+            //hbzl.Add("HBH", jtgjbs);//航班号
+            //hbzl.Add("CRLX", "");//出入类型 1：入境，2：出境
+            //hbzl.Add("QFSJ", "");//起飞时间
+            //hbzl.Add("DDSJ", dt.AddHours(tnum).ToString("yyyyMMddHHmmss"));//预报到达时间
+            //hbzl.Add("SJDDSJ", dt.AddHours(tnum).AddMinutes(tnum).ToString("yyyyMMddHHmmss"));//实际到达时间
+            //hbzl.Add("QFJC", "");//起飞机场
+            //hbzl.Add("DDJC", "");//到达机场
+            //hbzl.Add("YFRS", "");//验放人数
+            //hbzl.Add("LBRS", "");//    漏报人数
+            //hbzl.Add("WUBRS", "");//   误报人数
+            //hbzl.Add("DBRS", "");//    多报人数
+            //hbzl.Add("YBRS", "");//    预报人数
+            //hbzl.Add("RKSJ", "");//    入库时间
+            //hbzl.Add("YCKBZ", "00");//   预查控标志
+            //hbzl.Add("TJBZ", "1");//    统计标志（0：未进行统计 1：正常 2：晚报 3：未报 缺省为0）
+            //hbzl.Add("SCBZ", "0");//    删除标志（0：未删除， 缺省为0，每删除一次加1）
+            //hbzl.Add("JTGJBS", jtgjbs);//  交通工具标识
+            //hbzl.Add("CRKA", "");//    出入口岸
+            //hbzl.Add("YBSJ", "");//    应报时间
+            //hbzl.Add("YBLKS", "");//   预报旅客数
+            //hbzl.Add("YBYGS", "");//   预报员工数
+            //hbzl.Add("SBLKS", "");//   申报旅客数
+            //hbzl.Add("SBYGS", "");//   申报员工数
+            //hbzl.Add("XZSBS", "");//   修整失败数
+            //hbzl.Add("CZRS", "");//    预查控查中人数
+            #endregion
+        }
+
+        /// <summary>
+        /// 插入出入境人员预报
+        /// </summary>
+        /// <param name="dic">预报交通工具</param>
+        private void InsertCrjryyb(Dictionary<string, object> dic)
+        {
+            DateTime dt = DateTime.Now;
+            #region BJ_FLT_DISP_ASUPSCHD表逻辑
+            string hbh = DicValue(dic["FLNO"]);//航班号
+            DateTime hbdt = DateTime.ParseExact(DicValue(dic["D2ZLDM"]), "ddMMMyyHHmm", CultureInfo.CurrentCulture);
+            string hbrq = hbdt.ToString("yyyyMMddHHmm");//航班日期
+            string hkgs = DicValue(dic["ALCD"]);//航空公司
+            string crbz = DicValue(dic["MVIN"]).Equals("A") ? "1" : "2";//出入标志 
+            #endregion
+            string kadm = MainForm.Instance.kadm;//口岸代码
+            string lsh = UnitData.Instance.NUM(101, 999).ToString();//流水号
+            string wybs = $"{kadm}{dt.ToString("yyyyMMddHHmmssfff")}{lsh}";//唯一标识
+            if (crbz.Equals("1"))
+            {
+                #region 入境人员预报信息BJ_PI_T_YBXX
+                Dictionary<string, object> rjryyb = new Dictionary<string, object>();
+                rjryyb.Add("WYBS", wybs);//唯一标识（3位口岸代码+14位入库时间+3位流水号）
+                rjryyb.Add("HBRQ", hbrq);//航班日期
+                rjryyb.Add("HKGS", hkgs);//航空公司
+                rjryyb.Add("HBH", hbh);//航班号
+                rjryyb.Add("DDSJ", "");//    预报到达时间
+                rjryyb.Add("RYLX", "");//    人员类型（1:  旅客 2: 机组 ）
+                rjryyb.Add("XM", "");//      姓名
+                rjryyb.Add("XB", "");//      性别（1：男 2：女 9：其他）
+                rjryyb.Add("GJDQ", "");//    国籍代码
+                rjryyb.Add("ZJLB", "");//    证件类别
+                rjryyb.Add("ZJHM", "");//    证件号码
+                rjryyb.Add("CSRQ", "");//    出生日期
+                rjryyb.Add("QZHM", "");//    签证号码
+                rjryyb.Add("TLQ", "");//     停留期
+                rjryyb.Add("JTGJBS", hbh);//  交通工具标识
+                rjryyb.Add("YCLBZ", "1");//预处理成功标志 （1：成功  0：失败）
+                bool flag = OrcalUtil.Merger("BJ_PI_T_YBXX", new string[] { "WYBS" }, rjryyb);
+                if (flag) MainForm.Instance.RefreshTabPanel("YBRJRY", rjryyb);
+                #endregion
+            }
+            else if (crbz.Equals("2"))
+            {
+                #region 出境人员预报信息BJ_IAPI_T_YBXX
+                Dictionary<string, object> cjryyb = new Dictionary<string, object>();
+                cjryyb.Add("WYBS", wybs);//唯一标识
+                cjryyb.Add("HBRQ", hbrq);//航班日期
+                cjryyb.Add("HKGS", hkgs);// 航空公司
+                cjryyb.Add("HBH", hbh);//航班号
+                cjryyb.Add("DLSJ", "");//     起飞(出境)降落(入境)时间
+                cjryyb.Add("QFJC", "");//     起飞机场
+                cjryyb.Add("DDJC", "");//     抵达机场
+                cjryyb.Add("RYLX", "");//     人员类型 1旅客 2机组
+                cjryyb.Add("ABONO", "");//    本航班旅客唯一编号ABO
+                cjryyb.Add("XM", "");//       姓名
+                cjryyb.Add("XBDM", "");//     性别代码
+                cjryyb.Add("GJDQDM", "");//   国籍地区代码
+                cjryyb.Add("ZJLBDM", "");//   证件类别代码
+                cjryyb.Add("ZJHM", "");//     证件号码
+                cjryyb.Add("CSRQ", "");//     出生日期
+                cjryyb.Add("QZZLDM", "");//   签证种类代码
+                cjryyb.Add("QZH", "");//      签证号
+                cjryyb.Add("ZJYXQ", "");//    证件有效期
+                cjryyb.Add("CRBZ", "");//     出入标识
+                cjryyb.Add("LWGJDQDM", "");// 来往国籍地区代码
+                cjryyb.Add("CRKADM", "");//   出入口岸
+                cjryyb.Add("JTGJBS", hbh);//   交通工具标识
+                cjryyb.Add("ZWH", "");//      座位号
+                cjryyb.Add("YCLBZ", "1");//    预处理标识 1成功 0失败
+                cjryyb.Add("YCKBZ", "");//    预查控标识
+                cjryyb.Add("HYZT", "");//     核验状态 0Z正常 1Z禁止 2Z详细检查 4Z数据格式错误
+                cjryyb.Add("BGBZ", "");//     主动变更标识 0未主动变更 1主动变更
+                cjryyb.Add("BGYY", "");//     主动变更原因
+                cjryyb.Add("DPH", "");//      订票号
+                cjryyb.Add("HBZT", "");//     航班状态 0取消 1关闭 2正在值机
+                cjryyb.Add("SJFBSJ", "");//   数据发布时间
+                cjryyb.Add("RKSJ", "");//     本地入库时间
+                cjryyb.Add("RYZT", "");//     人员状态 0已值机未登机 1已登机未值机 2已值机已登机
+                cjryyb.Add("BJBZ", "");//     备降标识 0正常 1备降
+                cjryyb.Add("XMPY", "");//     姓名拼音
+                cjryyb.Add("D2GJDQDM", "");// 第二国籍地区代码
+                cjryyb.Add("D2ZJLBDM", "");// 第二证件类别代码
+                cjryyb.Add("D2ZJHM", "");//   第二证件号码
+                cjryyb.Add("D2ZJYXQ", "");//  第二证件有效期
+                bool flag = OrcalUtil.Merger("BJ_IAPI_T_YBXX", new string[] { "WYBS" }, cjryyb);
+                if (flag) MainForm.Instance.RefreshTabPanel("YBCJRY", cjryyb);
+                #endregion
+            }
+        }
+
+        private string DicValue(object obj)
+        {
+            if (obj.GetType().Equals(typeof(System.DBNull))) return "";
+            return (string)obj;
+        }
+
+        public void Stop()
+        {
+            timer?.Stop();
+            timer?.Dispose();
+        }
+    }
+}

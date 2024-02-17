@@ -1,0 +1,51 @@
+﻿namespace Max.ISolator.RabbitMqKit
+{
+    /// <summary>
+    /// RabbitMq生产者配置
+    /// </summary>
+    public class RmqProducerMod
+    {
+        /// <summary>
+        /// 唯一标识
+        /// </summary>
+        public string Id { get; set; }
+        #region 基础配置
+        /// <summary>
+        /// VirtualHost地址
+        /// </summary>
+        public string Vhost { get; set; }
+        /// <summary>
+        /// Ip地址
+        /// </summary>
+        public string Ip { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int Port { get; set; }
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string Use { get; set; }
+        /// <summary>
+        /// 密码
+        /// </summary>
+        public string Pwd { get; set; }
+        #endregion
+        /// <summary>
+        /// 对话名称
+        /// </summary>
+        public string ExchangeName { get; set; }
+        /// <summary>
+        /// 对话密钥
+        /// </summary>
+        public string ExchangeKey { get; set; }
+        /// <summary>
+        /// 对话类型
+        /// </summary>
+        public string ExchangeType { get; set; }
+        /// <summary>
+        /// 最大发送条数
+        /// </summary>
+        public int MaxSize { get; set; } = 1;
+    }
+}

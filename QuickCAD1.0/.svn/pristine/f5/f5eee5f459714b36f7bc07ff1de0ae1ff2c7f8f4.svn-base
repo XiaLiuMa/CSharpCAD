@@ -1,0 +1,82 @@
+﻿using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.Core.Syncers;
+using IsolatorTarget.Business.MaxQuartz;
+
+namespace IsolatorTarget.Business
+{
+    /// <summary>
+    /// 业务主导入口
+    /// </summary>
+    public class BusinessLeader
+    {
+        #region 单例
+        private static BusinessLeader i;
+        private readonly static object objLock = new object();
+        public static BusinessLeader I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new BusinessLeader();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 启动
+        /// </summary>
+        public void BootUp()
+        {
+            InitISolator();
+        }
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        public void InitISolator()
+        {
+            string path1 = @"D:\IsolatorTest\V1.2.1\IsolatorTarget\ProduceCachePath";//生产缓存路径
+            string path2 = @"D:\IsolatorTest\V1.2.1\IsolatorTarget\ProduceBackupPath";//生产备份路径
+            string path3 = @"D:\IsolatorTest\V1.2.1\IsolatorTarget\ConsumeCachePath";//消费缓存路径
+            string path4 = @"D:\IsolatorTest\V1.2.1\IsolatorTarget\ConsumeBackupPath";//消费备份路径
+
+            MaxIsolator.I.Init(path3, false, path4, 50, (p) => { });//初始化隔离器工具
+
+            ConfigCacher.I.Gatekeeper_Lst?.ForEach(p => //加入网闸隔离器
+            {
+                if (!p.IsUsable) return;
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new GatekeeperIsolator(p.Id, p.SyncPath, p.ScanPath, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+            ConfigCacher.I.SerialPort_Lst?.ForEach(p => //加入串口隔离器
+            {
+                if (!p.IsUsable) return;
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialPortIsolator(p.Id, p.PortName, p.BaudRate, p.DataBit, p.StopBit, p.Parity, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+            ConfigCacher.I.SerialServer_Lst?.ForEach(p => //加入串口服务器隔离器
+            {
+                if (!p.IsUsable) return;
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialServerIsolator(p.Id, p.ServerIP, p.ServerPort, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+
+            MaxIsolator.I.BootUp();//启动隔离器
+        }
+
+        /// <summary>
+        /// 停止
+        /// </summary>
+        public void ShutDown()
+        {
+
+        }
+    }
+}

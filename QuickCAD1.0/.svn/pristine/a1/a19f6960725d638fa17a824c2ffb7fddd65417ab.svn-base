@@ -1,0 +1,129 @@
+﻿using IsolatorTarget.Storage;
+using IsolatorTarget.Storage.Entities;
+
+namespace IsolatorTarget.Business
+{
+    /// <summary>
+    /// 配置缓存器
+    /// </summary>
+    public class ConfigCacher
+    {
+        #region 单例
+        private static ConfigCacher i;
+        private readonly static object objLock = new object();
+        public static ConfigCacher I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new ConfigCacher();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public ConfigCacher() { Refresh(); }
+
+        /// <summary>
+        /// 网闸集合
+        /// </summary>
+        public List<GatekeeperEntity> Gatekeeper_Lst { get; private set; }
+        /// <summary>
+        /// 串口集合
+        /// </summary>
+        public List<SerialPortEntity> SerialPort_Lst { get; private set; }
+        /// <summary>
+        /// 串口服务器集合
+        /// </summary>
+        public List<SerialServerEntity> SerialServer_Lst { get; private set; }
+        /// <summary>
+        /// 数据库集合
+        /// </summary>
+        public List<UseDbEntity> UseDb_Lst { get; private set; }
+        /// <summary>
+        /// 子任务集合
+        /// </summary>
+        public List<ConsumeTaskEntity> ConsumeTask_Lst { get; private set; }
+        /// <summary>
+        /// 定时任务集合
+        /// </summary>
+        public List<CronJobEntity> CronJob_Lst { get; private set; }
+        /// <summary>
+        /// 任务运行时间集合
+        /// </summary>
+        public List<TaskRunTimeEntity> TaskRunTime_Lst { get; private set; }
+
+        /// <summary>
+        /// 设置任务运行时间
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="runTime"></param>
+        public void SetTaskRunTime(string id, string runTime)
+        {
+            var obj = TaskRunTime_Lst.Find(p => id.Equals(p.Id));
+            using (var appDbOperate = DbConfiger.I.GetAppDbOperate())
+            {
+                if (obj == null)
+                {
+                    obj = new TaskRunTimeEntity()
+                    {
+                        Id = id,
+                        RunTime = runTime
+                    };
+                    appDbOperate.Insert(obj);
+                }
+                else
+                {
+                    appDbOperate.Update(obj);
+                }
+            }
+            TaskRunTime_Lst = DbConfiger.I.QueryByCondition<TaskRunTimeEntity>();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索ConsumeTaskEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<ConsumeTaskEntity> SearchConsumeTaskByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return ConsumeTask_Lst.FindAll(p => idArr.Contains(p.Cmd)).ToList();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索UseDbEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<UseDbEntity> SearchUseDbByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return UseDb_Lst.FindAll(p => idArr.Contains(p.Id)).ToList();
+        }
+
+        /// <summary>
+        /// 刷新
+        /// </summary>
+        public void Refresh()
+        {
+            Gatekeeper_Lst = DbConfiger.I.QueryByCondition<GatekeeperEntity>();
+            SerialPort_Lst = DbConfiger.I.QueryByCondition<SerialPortEntity>(); 
+            SerialServer_Lst = DbConfiger.I.QueryByCondition<SerialServerEntity>();
+            UseDb_Lst = DbConfiger.I.QueryByCondition<UseDbEntity>();
+            ConsumeTask_Lst = DbConfiger.I.QueryByCondition<ConsumeTaskEntity>();
+            CronJob_Lst = DbConfiger.I.QueryByCondition<CronJobEntity>();
+            TaskRunTime_Lst = DbConfiger.I.QueryByCondition<TaskRunTimeEntity>();
+        }
+    }
+}

@@ -1,0 +1,98 @@
+﻿using Max.BaseKit.Exts;
+using Max.BaseKit;
+using System.Diagnostics;
+using Max.DbTool;
+using Max.DbTool.Core.Mod;
+using Max.BaseKit.Utils;
+using IsolatorOrigin.Storage.Entities;
+
+namespace IsolatorOrigin.Storage
+{
+    /// <summary>
+    /// 数据库配置
+    /// </summary>
+    public class DbConfiger
+    {
+        #region 单例
+        private static DbConfiger i;
+        private readonly static object objLock = new object();
+        public static DbConfiger I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new DbConfiger();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        private DbConfig _config;
+        /// <summary>
+        /// 获取APP的db操作对象
+        /// </summary>
+        /// <returns></returns>
+        public IDbOperate GetAppDbOperate()
+        {
+            if (_config == null)
+            {
+                _config = new DbConfig()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    DbType = "SQLITE",
+                    ConnStr = $"Data Source={AppContext.BaseDirectory}{Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName)}.db"
+                };
+            }
+            return DbOperateManger.Instance.Borrow(_config);
+        }
+
+        /// <summary>
+        /// 根据主键Id获取对象
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public T QueryFirst<T>(object id)
+        {
+            T t = default;
+            using (var appDbOperate = GetAppDbOperate())
+            {
+                t = appDbOperate.QueryFirst<T>(id);
+                //if (t == null) NLogger.Warn($"通过{id.ToJson()}主键未找到{typeof(T)}");
+                return t;
+            }
+        }
+
+        /// <summary>
+        /// 根据条件获取对象集
+        /// </summary>
+        /// <returns></returns>
+        public List<T> QueryByCondition<T>(params ConditionModel[] conditions)
+        {
+            using (var appDbOperate = GetAppDbOperate())
+            {
+                var ts = appDbOperate.QueryByCondition<T>(conditions);
+                //if (!(ts?.Count > 0)) NLogger.Warn($"通过{conditions?.ToJson()}条件未找到{typeof(T)}数据集");
+                return ts;
+            }
+        }
+
+        /// <summary>
+        /// 根据Id获取数据库操作对象
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public IDbOperate GetDbOperaterById(string id)
+        {
+            var UseDb = QueryFirst<UseDbEntity>(id);
+            return UseDb == null ? null : DbOperateManger.Instance.Borrow(JsonUtil.StrToObject<DbConfig>(UseDb.ToJson()));
+        }
+    }
+}

@@ -1,0 +1,33 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorTarget.Storage.Entities
+{
+    [Table("CronJob")]
+    /// <summary>
+    /// 定时任务实体
+    /// </summary>
+    public class CronJobEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 定时任务任务描述
+        /// </summary>
+        public string JobDes { get; set; }
+        /// <summary>
+        /// 子任务命令码(多个用,隔开)
+        /// </summary>
+        public string SubCmds { get; set; }
+        /// <summary>
+        /// Cron表达式
+        /// </summary>
+        public string CronExpr { get; set; }
+        /// <summary>
+        /// 运行计划。主要是显示对Quartz表达式的文字说明
+        /// </summary>
+        public string CronDes { get; set; }
+    }
+}

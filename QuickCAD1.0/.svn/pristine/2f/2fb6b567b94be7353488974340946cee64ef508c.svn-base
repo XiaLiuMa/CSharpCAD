@@ -1,0 +1,85 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>网络摄像机管理</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../comm/css/layui.css">
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+    <style type="text/css">
+        .peizhi {
+            width: 350px;
+            height: 480px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="handle">
+            <img id="add" src="../comm/img/add.png" alt="" />
+            <img id="delete" src="../comm/img/delete.png" alt="" />
+            <img id="update" src="../comm/img/alert.png" alt="" />
+            <input type="text" class="select-input" name="condition" placeholder="请输入摄像机名称">
+            <img id="select" src="../comm/img/select.png" alt="" />
+        </div>
+        <div id="table" class="table-div"></div>
+        <div id="pageBar" class="txtRight"></div>
+    </div>
+
+    <div class="peizhi">
+        <div class="pz-header">
+            <span class="pz-title">网络摄像机配置</span>
+            <button type="button" class="close"><span style="color: #0C4EF7;">&times;</span></button>
+        </div>
+        <div class="pz-content">
+            <div class="flexDiv" style="display: none;"><span>ID：</span><input type="text" name="sid"></div>
+            <div class="flexDiv">
+                <span>选择设备型号：</span>
+                <select class="pz-select" id="sbxhSelect">
+                    <option value="海康">海康</option>
+                    <option value="海康扩展">海康扩展</option>
+                    <option value="大华">大华</option>
+                    <option value="宇视">宇视</option>
+                </select>
+            </div>
+            <div class="flexDiv"><span>设备名称：</span><input type="text" name="sbmc"></div>
+            <div class="flexDiv"><span>IP地址：</span><input type="text" name="sbip"></div>
+            <div class="flexDiv"><span>端口号：</span><input type="text" name="port"></div>
+            <div class="flexDiv"><span>网络通道号：</span><input type="text" name="channel"></div>
+            <div class="flexDiv"><span>用户名：</span><input type="text" name="uesrname"></div>
+            <div class="flexDiv"><span>密码：</span><input type="text" name="userpwd"></div>
+            <div class="flexDiv">
+                <span>选择坐标：</span>
+                <select class="pz-select" id="zbidSelect">
+                    <!-- <option value="1">1</option> -->
+                </select>
+            </div>
+            <div class="flexDiv">
+                <span>通道号：</span>
+                <input class="percent20" type="text" name="tdh">
+                <span>口岸代码：</span>
+                <input type="text" name="kadm">
+            </div>
+        </div>
+        <div class="pz-footer">
+            <button type="button" class="btn btn-primary" id="confirm">确认</button>
+            <button type="button" class="btn btn-default btn-danger" id="cancel">取消</button>
+        </div>
+    </div>
+
+    <script src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script src="../comm/js/bootstrap.min.js"></script>
+    <script src="../comm/js/template-native.js"></script>
+    <script src="../comm/js/layui.js"></script>
+    <script type="text/javascript" src="../comm/js/mygloble.js"></script>
+    <script type="text/javascript" src="../comm/js/myutil.js"></script>
+    <script type="text/javascript" src="res_wlsxj.js"></script>
+    <script src="../comm/js/mypage.js"></script>
+    <script type="text/template" id="tableTmp"></script>
+</body>
+
+</html>

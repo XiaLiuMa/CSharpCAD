@@ -1,0 +1,126 @@
+﻿using IsolatorTarget.Storage.Entities;
+
+namespace IsolatorTarget.Business
+{
+    /// <summary>
+    /// 配置缓存器
+    /// </summary>
+    public class ConfigCacher
+    {
+        #region 单例
+        private static ConfigCacher i;
+        private readonly static object objLock = new object();
+        public static ConfigCacher I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new ConfigCacher();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 叠加信息过期时间(单位：秒)
+        /// </summary>
+        public int DjxxTimeout { get; private set; } = 180;
+
+        /// <summary>
+        /// 网闸配置缓存
+        /// </summary>
+        public CustomDbCacher<GatekeeperEntity> GatekeeperCacher { get; private set; }
+        /// <summary>
+        /// 串口配置缓存
+        /// </summary>
+        public CustomDbCacher<SerialPortEntity> SerialPortCacher { get; private set; }
+        /// <summary>
+        /// 串口服务器配置缓存
+        /// </summary>
+        public CustomDbCacher<SerialServerEntity> SerialServerCacher { get; private set; }
+        /// <summary>
+        /// 数据库配置缓存
+        /// </summary>
+        public CustomDbCacher<UseDbEntity> UseDbCacher { get; private set; }
+        /// <summary>
+        /// Kafka生产者配置缓存
+        /// </summary>
+        public CustomDbCacher<KafkaProduceEntity> KafkaProduceCacher { get; private set; }
+        /// <summary>
+        /// RabbitMQ生产者配置缓存
+        /// </summary>
+        public CustomDbCacher<RmqProduceEntity> RmqProduceCacher { get; private set; }
+        /// <summary>
+        /// Minio服务配置缓存
+        /// </summary>
+        public CustomDbCacher<ImgMinioEntity> ImgMinioCacher { get; private set; }
+        /// <summary>
+        /// FTP服务配置缓存
+        /// </summary>
+        public CustomDbCacher<ImgFtpEntity> ImgFtpCacher { get; private set; }
+        /// <summary>
+        /// 本地服务配置缓存
+        /// </summary>
+        public CustomDbCacher<ImgLocalEntity> ImgLocalCacher { get; private set; }
+        /// <summary>
+        /// (字符叠加用)目标相机配置缓存
+        /// </summary>
+        public CustomDbCacher<TargetCameraEntity> TargetCameraCacher { get; private set; }
+        /// <summary>
+        /// 消费任务配置缓存
+        /// </summary>
+        public CustomDbCacher<ConsumeTaskEntity> ConsumeTaskCacher { get; private set; }
+        /// <summary>
+        /// 用户配置缓存
+        /// </summary>
+        public CustomDbCacher<UserEntity> UserCacher { get; private set; }
+
+        public ConfigCacher()
+        {
+            GatekeeperCacher = new CustomDbCacher<GatekeeperEntity>();
+            SerialPortCacher = new CustomDbCacher<SerialPortEntity>();
+            SerialServerCacher = new CustomDbCacher<SerialServerEntity>();
+            UseDbCacher = new CustomDbCacher<UseDbEntity>();
+            KafkaProduceCacher = new CustomDbCacher<KafkaProduceEntity>();
+            RmqProduceCacher = new CustomDbCacher<RmqProduceEntity>();
+            ImgMinioCacher = new CustomDbCacher<ImgMinioEntity>();
+            ImgFtpCacher = new CustomDbCacher<ImgFtpEntity>();
+            ImgLocalCacher = new CustomDbCacher<ImgLocalEntity>();
+            TargetCameraCacher = new CustomDbCacher<TargetCameraEntity>();
+            ConsumeTaskCacher = new CustomDbCacher<ConsumeTaskEntity>();
+            UserCacher = new CustomDbCacher<UserEntity>();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索ConsumeTaskEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<ConsumeTaskEntity> SearchConsumeTaskByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return ConsumeTaskCacher.Where(p => idArr.Contains(p.Cmd)).ToList();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索UseDbEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<UseDbEntity> SearchUseDbByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return UseDbCacher.Where(p => idArr.Contains(p.Id)).ToList();
+        }
+    }
+}

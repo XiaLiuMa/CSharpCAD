@@ -1,0 +1,144 @@
+﻿using Max.BaseKit;
+using IsolatorTarget.Storage;
+using IsolatorTarget.Storage.Entities;
+using Max.DbTool.Mod;
+
+namespace IsolatorTarget.Business
+{
+    /// <summary>
+    /// 配置缓存器
+    /// </summary>
+    public class ConfigCacher
+    {
+        #region 单例
+        private static ConfigCacher i;
+        private readonly static object objLock = new object();
+        public static ConfigCacher I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new ConfigCacher();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public ConfigCacher() { RefreshAll(); }
+
+        /// <summary>
+        /// 网闸集合
+        /// </summary>
+        public List<GatekeeperEntity> Gatekeeper_Lst { get; private set; }
+        /// <summary>
+        /// 串口集合
+        /// </summary>
+        public List<SerialPortEntity> SerialPort_Lst { get; private set; }
+        /// <summary>
+        /// 串口服务器集合
+        /// </summary>
+        public List<SerialServerEntity> SerialServer_Lst { get; private set; }
+        /// <summary>
+        /// 数据库集合
+        /// </summary>
+        public List<UseDbEntity> UseDb_Lst { get; private set; }
+        /// <summary>
+        /// Kafka生产者集合
+        /// </summary>
+        public List<KafkaProduceEntity> KafkaProduce_Lst { get; private set; }
+        /// <summary>
+        /// RabbitMQ生产者集合
+        /// </summary>
+        public List<RmqProduceEntity> RmqProduce_Lst { get; private set; }
+        /// <summary>
+        /// Minio服务集合
+        /// </summary>
+        public List<ImgMinioEntity> ImgMinio_Lst { get; private set; }
+        /// <summary>
+        /// FTP服务集合
+        /// </summary>
+        public List<ImgFtpEntity> ImgFtp_Lst { get; private set; }
+        /// <summary>
+        /// 本地服务集合
+        /// </summary>
+        public List<ImgLocalEntity> ImgLocal_Lst { get; private set; }
+        /// <summary>
+        /// 消费任务集合
+        /// </summary>
+        public List<ConsumeTaskEntity> ConsumeTask_Lst { get; private set; }
+
+        /// <summary>
+        /// 根据主键Id搜索ConsumeTaskEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<ConsumeTaskEntity> SearchConsumeTaskByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return ConsumeTask_Lst.FindAll(p => idArr.Contains(p.Cmd)).ToList();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索UseDbEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<UseDbEntity> SearchUseDbByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return UseDb_Lst.FindAll(p => idArr.Contains(p.Id)).ToList();
+        }
+
+        public void RefreshGatekeeperEntity() { Gatekeeper_Lst = QueryByCondition<GatekeeperEntity>(); }
+        public void RefreshSerialPortEntity() { SerialPort_Lst = QueryByCondition<SerialPortEntity>(); }
+        public void RefreshSerialServerEntity() { SerialServer_Lst = QueryByCondition<SerialServerEntity>(); }
+        public void RefreshUseDbEntity() { UseDb_Lst = QueryByCondition<UseDbEntity>(); }
+        public void RefreshKafkaProduceEntity() { KafkaProduce_Lst = QueryByCondition<KafkaProduceEntity>(); }
+        public void RefreshRmqProduceEntity() { RmqProduce_Lst = QueryByCondition<RmqProduceEntity>(); }
+        public void RefreshImgMinioEntity() { ImgMinio_Lst = QueryByCondition<ImgMinioEntity>(); }
+        public void RefreshImgFtpEntity() { ImgFtp_Lst = QueryByCondition<ImgFtpEntity>(); }
+        public void RefreshImgLocalEntity() { ImgLocal_Lst = QueryByCondition<ImgLocalEntity>(); }
+        public void RefreshConsumeTaskEntity() { ConsumeTask_Lst = QueryByCondition<ConsumeTaskEntity>(); }
+
+        /// <summary>
+        /// 刷新全部
+        /// </summary>
+        public void RefreshAll()
+        {
+            Gatekeeper_Lst = QueryByCondition<GatekeeperEntity>();
+            SerialPort_Lst = QueryByCondition<SerialPortEntity>();
+            SerialServer_Lst = QueryByCondition<SerialServerEntity>();
+            UseDb_Lst = QueryByCondition<UseDbEntity>();
+            KafkaProduce_Lst = QueryByCondition<KafkaProduceEntity>();
+            RmqProduce_Lst = QueryByCondition<RmqProduceEntity>();
+            ImgMinio_Lst = QueryByCondition<ImgMinioEntity>();
+            ImgFtp_Lst = QueryByCondition<ImgFtpEntity>();
+            ImgLocal_Lst = QueryByCondition<ImgLocalEntity>();
+            ConsumeTask_Lst = QueryByCondition<ConsumeTaskEntity>();
+        }
+
+        private List<T> QueryByCondition<T>(params ConditionModel[] conditions)
+        {
+            try
+            {
+                var lst = DbConfiger.I.QueryByCondition<T>(conditions);
+                return lst == null ? new List<T>() : lst;
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"查询{typeof(T)}异常：{ex.Message}");
+                return new List<T>();
+            }
+        }
+    }
+}

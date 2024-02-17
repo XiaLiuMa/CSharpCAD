@@ -1,0 +1,289 @@
+﻿namespace MsDataSimulator.Views
+{
+    partial class PzMsDbForm
+    {
+        /// <summary>
+        /// Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        /// Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        /// Required method for Designer support - do not modify
+        /// the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.tabPage1 = new System.Windows.Forms.TabPage();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.btnClearOrcalTabs = new System.Windows.Forms.Button();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.butOrcalConfig = new System.Windows.Forms.Button();
+            this.orcalip = new System.Windows.Forms.TextBox();
+            this.orcalport = new System.Windows.Forms.TextBox();
+            this.label5 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label3 = new System.Windows.Forms.Label();
+            this.orcalname = new System.Windows.Forms.TextBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.orcaluser = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.orcalpwd = new System.Windows.Forms.TextBox();
+            this.tabPage3 = new System.Windows.Forms.TabPage();
+            this.txtOrcalTabs = new System.Windows.Forms.TextBox();
+            this.txtOrcalLogs = new System.Windows.Forms.TextBox();
+            this.tabControl1.SuspendLayout();
+            this.tabPage1.SuspendLayout();
+            this.panel2.SuspendLayout();
+            this.panel1.SuspendLayout();
+            this.SuspendLayout();
+            // 
+            // tabControl1
+            // 
+            this.tabControl1.Controls.Add(this.tabPage1);
+            this.tabControl1.Controls.Add(this.tabPage3);
+            this.tabControl1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tabControl1.Location = new System.Drawing.Point(0, 0);
+            this.tabControl1.Name = "tabControl1";
+            this.tabControl1.SelectedIndex = 0;
+            this.tabControl1.Size = new System.Drawing.Size(419, 450);
+            this.tabControl1.TabIndex = 3;
+            // 
+            // tabPage1
+            // 
+            this.tabPage1.Controls.Add(this.panel2);
+            this.tabPage1.Controls.Add(this.panel1);
+            this.tabPage1.Location = new System.Drawing.Point(4, 22);
+            this.tabPage1.Name = "tabPage1";
+            this.tabPage1.Padding = new System.Windows.Forms.Padding(3);
+            this.tabPage1.Size = new System.Drawing.Size(411, 424);
+            this.tabPage1.TabIndex = 0;
+            this.tabPage1.Text = "Orcal数据库";
+            this.tabPage1.UseVisualStyleBackColor = true;
+            // 
+            // panel2
+            // 
+            this.panel2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel2.Controls.Add(this.txtOrcalLogs);
+            this.panel2.Controls.Add(this.txtOrcalTabs);
+            this.panel2.Controls.Add(this.btnClearOrcalTabs);
+            this.panel2.Location = new System.Drawing.Point(8, 192);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(395, 226);
+            this.panel2.TabIndex = 25;
+            // 
+            // btnClearOrcalTabs
+            // 
+            this.btnClearOrcalTabs.Location = new System.Drawing.Point(31, 199);
+            this.btnClearOrcalTabs.Name = "btnClearOrcalTabs";
+            this.btnClearOrcalTabs.Size = new System.Drawing.Size(114, 23);
+            this.btnClearOrcalTabs.TabIndex = 22;
+            this.btnClearOrcalTabs.Text = "清空上述表的数据";
+            this.btnClearOrcalTabs.UseVisualStyleBackColor = true;
+            this.btnClearOrcalTabs.Click += new System.EventHandler(this.btnClearOrcalTabs_Click);
+            // 
+            // panel1
+            // 
+            this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.panel1.Controls.Add(this.butOrcalConfig);
+            this.panel1.Controls.Add(this.orcalip);
+            this.panel1.Controls.Add(this.orcalport);
+            this.panel1.Controls.Add(this.label5);
+            this.panel1.Controls.Add(this.label4);
+            this.panel1.Controls.Add(this.label3);
+            this.panel1.Controls.Add(this.orcalname);
+            this.panel1.Controls.Add(this.label2);
+            this.panel1.Controls.Add(this.orcaluser);
+            this.panel1.Controls.Add(this.label1);
+            this.panel1.Controls.Add(this.orcalpwd);
+            this.panel1.Location = new System.Drawing.Point(8, 6);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(395, 180);
+            this.panel1.TabIndex = 24;
+            // 
+            // butOrcalConfig
+            // 
+            this.butOrcalConfig.Location = new System.Drawing.Point(126, 152);
+            this.butOrcalConfig.Name = "butOrcalConfig";
+            this.butOrcalConfig.Size = new System.Drawing.Size(114, 23);
+            this.butOrcalConfig.TabIndex = 24;
+            this.butOrcalConfig.Text = "保存Mysql配置";
+            this.butOrcalConfig.UseVisualStyleBackColor = true;
+            this.butOrcalConfig.Click += new System.EventHandler(this.butOrcalConfig_Click);
+            // 
+            // orcalip
+            // 
+            this.orcalip.Location = new System.Drawing.Point(169, 7);
+            this.orcalip.Name = "orcalip";
+            this.orcalip.Size = new System.Drawing.Size(128, 21);
+            this.orcalip.TabIndex = 13;
+            this.orcalip.Text = "127.0.0.1";
+            // 
+            // orcalport
+            // 
+            this.orcalport.Location = new System.Drawing.Point(169, 34);
+            this.orcalport.Name = "orcalport";
+            this.orcalport.Size = new System.Drawing.Size(128, 21);
+            this.orcalport.TabIndex = 15;
+            this.orcalport.Text = "1521";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(86, 118);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(77, 12);
+            this.label5.TabIndex = 20;
+            this.label5.Text = "数据库密码：";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(74, 91);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(89, 12);
+            this.label4.TabIndex = 18;
+            this.label4.Text = "数据库用户名：";
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(86, 64);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(77, 12);
+            this.label3.TabIndex = 16;
+            this.label3.Text = "数据库名称：";
+            // 
+            // orcalname
+            // 
+            this.orcalname.Location = new System.Drawing.Point(169, 61);
+            this.orcalname.Name = "orcalname";
+            this.orcalname.Size = new System.Drawing.Size(128, 21);
+            this.orcalname.TabIndex = 17;
+            this.orcalname.Text = "orcl";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(86, 37);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(77, 12);
+            this.label2.TabIndex = 14;
+            this.label2.Text = "数据库端口：";
+            // 
+            // orcaluser
+            // 
+            this.orcaluser.Location = new System.Drawing.Point(169, 88);
+            this.orcaluser.Name = "orcaluser";
+            this.orcaluser.Size = new System.Drawing.Size(128, 21);
+            this.orcaluser.TabIndex = 19;
+            this.orcaluser.Text = "qgtg";
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(98, 10);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(65, 12);
+            this.label1.TabIndex = 12;
+            this.label1.Text = "数据库IP：";
+            // 
+            // orcalpwd
+            // 
+            this.orcalpwd.Location = new System.Drawing.Point(169, 115);
+            this.orcalpwd.Name = "orcalpwd";
+            this.orcalpwd.Size = new System.Drawing.Size(128, 21);
+            this.orcalpwd.TabIndex = 21;
+            this.orcalpwd.Text = "qgtg";
+            // 
+            // tabPage3
+            // 
+            this.tabPage3.Location = new System.Drawing.Point(4, 22);
+            this.tabPage3.Name = "tabPage3";
+            this.tabPage3.Size = new System.Drawing.Size(411, 424);
+            this.tabPage3.TabIndex = 2;
+            this.tabPage3.Text = "其它数据库";
+            this.tabPage3.UseVisualStyleBackColor = true;
+            // 
+            // txtOrcalTabs
+            // 
+            this.txtOrcalTabs.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtOrcalTabs.Location = new System.Drawing.Point(3, 3);
+            this.txtOrcalTabs.Multiline = true;
+            this.txtOrcalTabs.Name = "txtOrcalTabs";
+            this.txtOrcalTabs.ReadOnly = true;
+            this.txtOrcalTabs.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtOrcalTabs.Size = new System.Drawing.Size(173, 190);
+            this.txtOrcalTabs.TabIndex = 23;
+            // 
+            // txtOrcalLogs
+            // 
+            this.txtOrcalLogs.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.txtOrcalLogs.Location = new System.Drawing.Point(182, 3);
+            this.txtOrcalLogs.Multiline = true;
+            this.txtOrcalLogs.Name = "txtOrcalLogs";
+            this.txtOrcalLogs.ReadOnly = true;
+            this.txtOrcalLogs.ScrollBars = System.Windows.Forms.ScrollBars.Both;
+            this.txtOrcalLogs.Size = new System.Drawing.Size(208, 218);
+            this.txtOrcalLogs.TabIndex = 24;
+            // 
+            // PzMsDbForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(419, 450);
+            this.Controls.Add(this.tabControl1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+            this.MinimizeBox = false;
+            this.Name = "PzMsDbForm";
+            this.Text = "PzMsDbForm";
+            this.Load += new System.EventHandler(this.PzMsDbForm_Load);
+            this.tabControl1.ResumeLayout(false);
+            this.tabPage1.ResumeLayout(false);
+            this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
+            this.ResumeLayout(false);
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.TabPage tabPage1;
+        private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Button btnClearOrcalTabs;
+        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.Button butOrcalConfig;
+        private System.Windows.Forms.TextBox orcalip;
+        private System.Windows.Forms.TextBox orcalport;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox orcalname;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.TextBox orcaluser;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.TextBox orcalpwd;
+        private System.Windows.Forms.TabPage tabPage3;
+        private System.Windows.Forms.TextBox txtOrcalTabs;
+        private System.Windows.Forms.TextBox txtOrcalLogs;
+    }
+}

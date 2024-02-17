@@ -1,0 +1,98 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorTarget.Storage.Entities
+{
+    [Table("TargetCamera")]
+    /// <summary>
+    /// 目标相机实体(字符叠加用)
+    /// </summary>
+    public class TargetCameraEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 是否可用
+        /// </summary>
+        public bool IsUsable { get; set; }
+        /// <summary>
+        /// 梅沙通道号(口岸代码|通道号)
+        /// </summary>
+        public string MSTDH { get; set; }
+        /// <summary>
+        /// 设备名称
+        /// </summary>
+        public string SBMC { get; set; }
+        /// <summary>
+        /// 设备型号
+        /// Hik：海康
+        /// MN：模拟
+        /// UniView：宇视系列
+        /// HikEx：海康扩展
+        /// HikExx：海康扩展1
+        /// DH：大华
+        /// </summary>
+        public string SBXH { get; set; }
+        
+
+        #region 设备配置
+        /// <summary>
+        /// IP地址
+        /// </summary>
+        public string IP { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int Port { get; set; }
+        /// <summary>
+        /// 通道号
+        /// </summary>
+        public int Channel { get; set; }
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string UserName { get; set; }
+        /// <summary>
+        /// 密码
+        /// </summary>
+        public string Password { get; set; } 
+        #endregion
+
+        #region 叠加坐标
+        /// <summary>
+        /// 第1行X轴坐标
+        /// </summary>
+        public int Line1X { get; set; }
+        /// <summary>
+        /// 第1行Y轴坐标
+        /// </summary>
+        public int Line1Y { get; set; }
+        /// <summary>
+        /// 第2行X轴坐标
+        /// </summary>
+        public int Line2X { get; set; }
+        /// <summary>
+        /// 第2行Y轴坐标
+        /// </summary>
+        public int Line2Y { get; set; }
+        /// <summary>
+        /// 第3行X轴坐标
+        /// </summary>
+        public int Line3X { get; set; }
+        /// <summary>
+        /// 第3行Y轴坐标
+        /// </summary>
+        public int Line3Y { get; set; }
+        /// <summary>
+        /// 第4行X轴坐标
+        /// </summary>
+        public int Line4X { get; set; }
+        /// <summary>
+        /// 第4行Y轴坐标
+        /// </summary>
+        public int Line4Y { get; set; } 
+        #endregion
+    }
+}

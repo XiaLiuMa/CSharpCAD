@@ -1,0 +1,43 @@
+﻿using Quartz;
+using Max.BaseKit.Utils;
+
+namespace IsolatorOrigin.Business.MaxQuartz
+{
+    [DisallowConcurrentExecution]
+    public class QuartzJob : IJob
+    {
+        /// <summary>
+        /// 执行定时任务
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public Task Execute(IJobExecutionContext context)
+        {
+            DateTime now = DateTime.Now;//当前时间
+            string jobId = context.JobDetail.Key.Name;//定时任务id
+            var job = ConfigCacher.I.CronJobCacher.Find(p => jobId.Equals(p.Id));//定时任务
+            if (job == null || string.IsNullOrEmpty(job.SubCmds)) return Task.CompletedTask;
+
+            var cmds = job.SubCmds.Split(',').ToList();
+            cmds?.ForEach(cmd =>
+            {
+                var task = ConfigCacher.I.ProduceTaskCacher.Find(p => cmd.Equals(p.Cmd));//子任务
+                if (task == null || !task.TaskState || string.IsNullOrEmpty(task.Dbs)) return;
+
+                var dbids = task.Dbs.Split(',').ToList();
+                dbids?.ForEach(dbid =>
+                {
+                    var tid = $"{task.Cmd}_{dbid}";//组合id("命令码_数据库标识")
+                    var trt = ConfigCacher.I.TaskRunTimeCacher.Find(t => tid.Equals(t.Id));
+                    ConfigCacher.I.SetTaskRunTime(tid, now.ToString("yyyy-MM-dd HH:mm:ss"));
+                    string stime = trt == null ? now.AddMinutes(-10).ToString("yyyyMMddHHmmss") : trt.RunTime.TimeStrConvert("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                    string etime = now.ToString("yyyyMMddHHmmss");
+                    var db = ConfigCacher.I.UseDbCacher.Find(t => dbid.Equals(t.Id));
+                    if (db == null) return;
+                    JobKernel.RunJob(task, db, stime, etime);
+                });
+            });
+            return Task.CompletedTask;
+        }
+    }
+}

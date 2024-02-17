@@ -1,0 +1,29 @@
+﻿using System;
+using System.Collections.Concurrent;
+
+namespace Max.BaseKit.Exts
+{
+    /// <summary>
+    /// ConcurrentQueue扩展
+    /// </summary>
+    public static class ConcurrentQueueExtensions
+    {
+        public static event EventHandler<ItemAddedEventArgs> OnItemAdded;
+
+        public static void Enqueue<T>(this ConcurrentQueue<T> queue, T item)
+        {
+            queue.Enqueue(item);
+            OnItemAdded?.Invoke(queue, new ItemAddedEventArgs(item));
+        }
+    }
+
+    public class ItemAddedEventArgs : EventArgs
+    {
+        public object Item { get; }
+
+        public ItemAddedEventArgs(object item)
+        {
+            Item = item;
+        }
+    }
+}

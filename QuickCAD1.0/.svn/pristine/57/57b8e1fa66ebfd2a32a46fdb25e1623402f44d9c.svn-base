@@ -1,0 +1,227 @@
+﻿//using System;
+//using System.Data;
+//using System.Linq;
+//using System.Data.Odbc;
+//using System.Collections.Generic;
+//using Max.BaseKit;
+
+//namespace Max.DbTool.Imp
+//{
+//    /// <summary>
+//    /// 提供Gbase数据库操作实现
+//    /// </summary>
+//    public class GbaseOperate : ISqlOperate
+//    {
+//        public DbConfig Config { get; set; }
+//        public bool Execute(string sqlstr)
+//        {
+//            try
+//            {
+//                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                using (OdbcConnection connection = new OdbcConnection(Config.ConnStr))
+//                {
+//                    connection.Open();
+//                    using (var cmd = new OdbcCommand(sqlstr, connection))
+//                    {
+//                        cmd.ExecuteNonQuery();
+//                        return true;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"GBase执行的Execute异常:{ex.Message},语句:{sqlstr}");
+//                return false;
+//            }
+//        }
+//        public DataTable Query(string sqlstr)
+//        {
+//            DataTable dt = new DataTable();
+//            try
+//            {
+//                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                using (OdbcConnection connection = new OdbcConnection(Config.ConnStr))
+//                {
+//                    connection.Open();
+//                    using (var da = new OdbcDataAdapter(sqlstr, connection))
+//                    {
+//                        da.Fill(dt);
+//                        return dt;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"GBase执行的Query异常:{ex.Message},语句:{sqlstr}");
+//                return dt;
+//            }
+//        }
+
+//        /// <summary>
+//        /// 批量覆盖语句(有就修改，没有就新增)
+//        /// 【样例："MERGE INTO tname t USING (SELECT ? ID,? TNAME FROM dual) p ON (t.ID = p.ID) 
+//        ///     WHEN MATCHED THEN UPDATE SET t.TNAME = p.TNAME 
+//        ///     WHEN NOT MATCHED THEN INSERT (ID, TNAME) VALUES (p.ID, p.TNAME)"】
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="keys">主键字段集</param>
+//        /// <param name="dlst">数据集</param>
+//        public bool BatchCover(string tname, string[] keys, List<Dictionary<string, object>> dlst)
+//        {
+//            bool flag = default;
+//            try
+//            {
+//                #region ①组装带参数的修改和插入sql语句
+//                var fieldNames = dlst?.FirstOrDefault()?.Keys?.ToList(); //字段名称集[col1,col2,col3]
+//                if (fieldNames == null || fieldNames.Count <= 0) return false;
+//                string insert_p1 = string.Empty;//insert中第1个参数语句"col1,col2,col3"
+//                string insert_p2 = string.Empty;//insert中第2个参数语句"p.col1,p.col2,p.col3"
+//                string update_p1 = string.Empty;//update中第1个参数语句"t.col1=p.col1,t.col2=p.col2"
+//                foreach (var item in fieldNames)
+//                {
+//                    insert_p1 += $"{item},";
+//                    insert_p2 += $"p.{item},";
+//                    if (keys?.Length > 0 && !keys.Contains(item))
+//                    {
+//                        update_p1 += $"t.{item}=p.{item},";
+//                    }
+//                }
+//                string insert_sql = $" WHEN NOT MATCHED THEN INSERT ({insert_p1.TrimEnd(',')}) VALUES ({insert_p2.TrimEnd(',')})";//插入语句
+//                string update_sql = $" WHEN MATCHED THEN UPDATE SET {update_p1.TrimEnd(',')}";//修改语句
+//                #endregion
+
+//                #region ②组装条件语句
+//                string where_sql = " 1=1 ";//条件语句【1=1 AND t.ID = p.ID】
+//                if (keys?.Length > 0)
+//                {
+//                    foreach (var item in keys)
+//                    {
+//                        where_sql += $" AND t.{item}=p.{item} ";
+//                    }
+//                }
+//                #endregion
+
+//                using (OdbcConnection connection = new OdbcConnection(Config.ConnStr))
+//                {
+//                    connection.Open();
+//                    using (OdbcTransaction trans = connection.BeginTransaction())
+//                    {
+//                        try
+//                        {
+//                            foreach (var dic in dlst)
+//                            {
+//                                string sqlstr = string.Empty;//SQL语句
+//                                #region ③组装using语句+参数包装
+//                                string using_sql = string.Empty;//using语句
+//                                var parameters = new List<OdbcParameter>();
+//                                using_sql += " SELECT";
+//                                foreach (var item in dic)
+//                                {
+//                                    using_sql += $" ? {item.Key},";//" SELECT :ID ID,"
+//                                    object obj = (item.Value == null) ? DBNull.Value : item.Value;
+//                                    parameters.Add(new OdbcParameter("?", obj));
+//                                }
+//                                using_sql = $"{using_sql.TrimEnd(',')} FROM dual";//" SELECT :ID{0} ID,:TNAME{0} TNAME FROM dual
+//                                #endregion
+
+//                                #region ④解析操作逻辑+组装MERGE INTO完成sql语句组装
+//                                sqlstr = $"MERGE INTO {tname} t USING ({using_sql}) p ON ({where_sql}) {update_sql} {insert_sql}"; //SQL语句
+//                                #endregion
+//                                using (var cmd = new OdbcCommand(sqlstr, connection))
+//                                {
+//                                    cmd.Transaction = trans;
+//                                    cmd.Parameters.AddRange(parameters.ToArray());
+//                                    int val = cmd.ExecuteNonQuery();
+//                                }
+//                            }
+//                            trans.Commit();
+//                            flag = true;
+//                        }
+//                        catch (Exception ex)
+//                        {
+//                            NLogger.Warn($"GBase执行的BatchCover异常:{ex.Message}");
+//                            trans.Rollback();
+//                            flag = false;
+//                        }
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"GBase执行BatchCover异常:{ex.Message}");
+//            }
+//            return flag;
+//        }
+
+//        /// <summary>
+//        /// 批量删除
+//        /// </summary>
+//        /// 【样例： "DELETE FROM t WHERE col1=?";】
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="fileds">删除条件的字段集</param>
+//        /// <param name="dlst">数据集</param>
+//        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+//        {
+//            bool flag = default;
+//            #region ①组装带参数的sql语句
+//            if (fileds == null || fileds.Length <= 0) return false;
+//            string sql_p1 = string.Empty;//sql第1个参数语句"col1=:col1 AND col2=:col2"
+//            foreach (var filed in fileds)
+//            {
+//                sql_p1 += $" AND {filed}=?";
+//            }
+//            string delete_sql = $"DELETE FROM {tname} WHERE 1=1 {sql_p1} ";//delete语句 
+//            #endregion
+
+//            using (OdbcConnection conn = new OdbcConnection(Config.ConnStr))
+//            {
+//                conn.Open();
+//                using (OdbcTransaction trans = conn.BeginTransaction())
+//                {
+//                    try
+//                    {
+//                        #region ②组装sql语句的参数，并执行sql语句
+//                        foreach (var dic in dlst)
+//                        {
+//                            var parameters = new List<OdbcParameter>();
+//                            foreach (var filed in fileds)
+//                            {
+//                                if (dic.Keys.Contains(filed))
+//                                {
+//                                    parameters.Add(new OdbcParameter("?", dic[filed]));
+//                                }
+//                            }
+//                            using (var cmd = new OdbcCommand(delete_sql, conn))
+//                            {
+//                                cmd.Transaction = trans;
+//                                cmd.Parameters.AddRange(parameters.ToArray());
+//                                int val = cmd.ExecuteNonQuery();
+//                            }
+//                        }
+//                        #endregion
+//                        trans.Commit();
+//                        flag = true;
+//                    }
+//                    catch (Exception ex)
+//                    {
+//                        NLogger.Warn($"GBase执行的BatchDelete异常:{ex.Message}");
+//                        trans.Rollback();
+//                        flag = false;
+//                    }
+//                }
+//            }
+//            return flag;
+//        }
+
+//        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        {
+//            throw new NotImplementedException();
+//        }
+
+//        public void Dispose()
+//        {
+//            SqlOperateManger.Instance.Still(Config, this);
+//        }
+//    }
+//}

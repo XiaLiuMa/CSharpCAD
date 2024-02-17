@@ -1,0 +1,22 @@
+﻿namespace Max.ISolator.Core
+{
+    public class FileCodeMod
+    {
+        /// <summary>
+        /// 文件名称(全路径)
+        /// </summary>
+        public string FileName { get; set; }
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        public string CreatTime { get; set; }
+        /// <summary>
+        /// 触发标识(0:ZD，1:SD)
+        /// </summary>
+        public int TriggerType { get; set; }
+        /// <summary>
+        /// 优先级
+        /// </summary>
+        public int Level { get; set; }
+    }
+}

@@ -1,0 +1,92 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorOrigin.Storage.Entities
+{
+    [Table("SerialPort")]
+    /// <summary>
+    /// 串口实体
+    /// </summary>
+    public class SerialPortEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 是否可用
+        /// </summary>
+        public bool IsUsable { get; set; }
+        /// <summary>
+        /// 串口名称
+        /// </summary>
+        public string PortName { get; set; }
+        /// <summary>
+        /// 波特率
+        /// </summary>
+        public int BaudRate { get; set; }
+        /// <summary>
+        /// 数据位
+        /// </summary>
+        public int DataBit { get; set; }
+        /// <summary>
+        /// 停止位
+        /// </summary>
+        public int StopBit { get; set; }
+        /// <summary>
+        /// 校验位
+        /// </summary>
+        public int Parity { get; set; }
+
+        #region 隔离器通用配置
+        /// <summary>
+        /// 隔离器模式(0:双向模式，1:生产者模式，2：消费者模式)
+        /// </summary>
+        public int Mode { get; set; }
+        /// <summary>
+        /// 生产文件缓存路径
+        /// </summary>
+        public string ProduceCachePath { get; set; }
+        /// <summary>
+        /// 是否备份生产文件
+        /// </summary>
+        public bool IsBackupProduce { get; set; }
+        /// <summary>
+        /// 生产文件备份路径
+        /// </summary>
+        public string ProduceBackupPath { get; set; }
+        /// <summary>
+        /// 消费文件缓存路径
+        /// </summary>
+        public string ConsumeCachePath { get; set; }
+        /// <summary>
+        /// 是否备份消费文件
+        /// </summary>
+        public bool IsBackupConsume { get; set; }
+        /// <summary>
+        /// 消费文件备份路径
+        /// </summary>
+        public string ConsumeBackupPath { get; set; }
+        /// <summary>
+        /// 数据生产管道大小，用于控制消费并行数
+        /// </summary>
+        public int ChannelSize { get; set; }
+        /// <summary>
+        /// 数量大小(单个文件可容纳多少条数据)
+        /// </summary>
+        public int ItemSize { get; set; }
+        /// <summary>
+        /// 容积大小(单个文件可容纳多大的数据，单位M)
+        /// </summary>
+        public int BulkSize { get; set; }
+        /// <summary>
+        /// 是否压缩数据
+        /// </summary>
+        public bool IsZip { get; set; }
+        #endregion
+        /// <summary>
+        /// 串口描述
+        /// </summary>
+        public string IDescribe { get; set; }
+    }
+}

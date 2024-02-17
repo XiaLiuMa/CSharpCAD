@@ -1,0 +1,60 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorOrigin.Storage.Entities
+{
+    [Table("Gatekeeper")]
+    /// <summary>
+    /// 网闸实体
+    /// </summary>
+    public class GatekeeperEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 是否可用
+        /// </summary>
+        public bool IsUsable { get; set; }
+        /// <summary>
+        /// 同步路径
+        /// </summary>
+        public string SyncPath { get; set; }
+        /// <summary>
+        ///  扫描路径
+        /// </summary>
+        public string ScanPath { get; set; }
+
+        #region 隔离器通用配置
+        /// <summary>
+        /// 生产文件缓存路径
+        /// </summary>
+        public string ProduceCachePath { get; set; }
+        /// <summary>
+        /// 是否备份生产文件
+        /// </summary>
+        public bool IsBackupProduce { get; set; }
+        /// <summary>
+        /// 生产文件备份路径
+        /// </summary>
+        public string ProduceBackupPath { get; set; }
+        /// <summary>
+        /// 数据生产管道大小，用于控制消费并行数
+        /// </summary>
+        public int ProduceChannelSize { get; set; }
+        /// <summary>
+        /// 数量大小(单个文件可容纳多少条数据)
+        /// </summary>
+        public int ItemSize { get; set; }
+        /// <summary>
+        /// 容积大小(单个文件可容纳多大的数据，单位M)
+        /// </summary>
+        public int BulkSize { get; set; }
+        /// <summary>
+        /// 是否压缩数据
+        /// </summary>
+        public bool IsZip { get; set; }
+        #endregion
+    }
+}

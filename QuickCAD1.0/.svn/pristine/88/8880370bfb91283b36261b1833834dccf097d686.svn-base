@@ -1,0 +1,97 @@
+﻿using Max.BaseKit.Utils;
+using System;
+
+namespace SetCharLib.Helper
+{
+    public class MV1800Helper
+    {
+        /// <summary>
+        /// 获取清楚某行字符命令
+        /// </summary>
+        /// <param name="cctvChan"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        public static byte[] GetClearLineOnScreenMsg(int? cctvChan, int? x, int? y)
+        {
+            int channel = Convert.ToInt32(cctvChan);
+            int? PosX = x;
+            int? PosY = y;
+
+            byte[] msg = new byte[9];
+            msg[0] = 170;
+            msg[1] = 85;
+            msg[2] = 14;
+            msg[3] = 4;
+            msg[4] = (byte)((channel - 1) / 256);// Int((channel - 1) / 256)      '主机地址
+            msg[5] = (byte)((channel - 1) % 256);//        '字符叠加器通道号
+
+
+            msg[6] = (byte)PosX;
+            msg[7] = (byte)PosY;
+
+            int iCheckSum = 0;
+
+            for (int i = 0; i < 9; i++)
+            {
+                iCheckSum = iCheckSum + msg[i];
+            }
+
+            msg[8] = (byte)(iCheckSum % 256);
+
+            return msg;
+        }
+
+        public static byte[] GetDisplayMetafileOnVideoMsg(int? cctvChan, string strOrin, int? Xpos, int? Ypos)
+        {
+            //数据
+            //string data = Strings.StrConv(strOrin, VbStrConv.Wide, 0);
+            string data = StringUtil.ToSBC(strOrin);    //半角转全角
+            char[] values = data.ToCharArray();
+
+            //监控通道
+            int? channel = cctvChan;
+
+            byte[] msg = new byte[8 + values.Length * 2 + 1];
+            msg[0] = 170;
+            msg[1] = 85;
+            msg[2] = 13;
+            msg[3] = (byte)(values.Length * 2 + 4);
+            msg[4] = (byte)((channel - 1) / 256);// Int((channel - 1) / 256)      '主机地址
+            msg[5] = (byte)((channel - 1) % 256);//        '字符叠加器通道号
+
+            msg[6] = (byte)Xpos;
+            msg[7] = (byte)Ypos;
+            for (int i = 0; i < values.Length; i++)
+            {
+
+                //short value = (short)Strings.Asc(values[i]);
+                //string hexOutput = Conversion.Hex(value);
+                short value = (short)values[i]; //返回ASCCL码
+                string hexOutput = string.Format("{0:X}", value);   //返回16进制字符串
+
+                //string ss = Strings.Mid(hexOutput, 1, 2);
+                //string sss = Strings.Mid(hexOutput, 3, 2);
+                string ss = hexOutput.Substring(1, 2);
+                string sss = hexOutput.Substring(3, 2);
+
+                int ii = Int32.Parse(ss, System.Globalization.NumberStyles.HexNumber);
+                int iii = Int32.Parse(sss, System.Globalization.NumberStyles.HexNumber);
+
+                msg[8 + i * 2] = (byte)(Math.Abs(ii - 160));
+                msg[9 + i * 2] = (byte)(Math.Abs(iii - 160));
+            }
+
+            int iCheckSum = 0;
+
+            for (int i = 0; i < values.Length * 2 + 8; i++)
+            {
+                iCheckSum = iCheckSum + msg[i];
+            }
+
+            msg[8 + values.Length * 2] = (byte)(iCheckSum % 256);
+
+            return msg;
+        }
+    }
+}

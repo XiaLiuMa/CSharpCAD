@@ -1,0 +1,167 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using Max.BaseKit.Exts;
+using GaCharSet.Comm;
+using GaCharSet.Config.Entities;
+using System.Threading.Tasks;
+using System.Linq;
+using GaCharSet.Config;
+using Max.DbToolkit.SqlExtend.Mod;
+
+namespace GaCharSet.WebApi
+{
+    /// <summary>
+    /// 摄像机坐标管理
+    /// </summary>
+    [Route("app/res_sxjzb/[action]")]
+    public class Res_sxjzbController : Controller
+    {
+        private CamPointDal dal = new CamPointDal();
+
+        /// <summary>
+        /// 查询Sxjzb列表
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult query(string condition)
+        {
+            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and Zbmc like '%{condition}%'";
+            string where = $"1=1 {qwhere}";
+            var list = dal.Select(where);
+            return Json(list);
+        }
+
+        /// <summary>
+        /// 分页查询Sxjzb
+        /// </summary>
+        /// <param name="condition"></param>
+        /// <param name="page"></param>
+        /// <param name="rows"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult limit(string condition, string page, string rows)
+        {
+            int count = 0;
+            List<CamPoint> list = new List<CamPoint>();
+            string qwhere = string.IsNullOrEmpty(condition) ? "" : $"and Zbmc like '%{condition}%'";
+            string where = $"1=1 {qwhere}";
+            var flag = dal.SqliteSelectPage(where, int.Parse(page), int.Parse(rows), out list, out count);
+            OutPage<CamPoint> outpage = new OutPage<CamPoint>()
+            {
+                Count = count,
+                Datas = list
+            };
+            return Json(outpage);
+        }
+
+        /// <summary>
+        /// 删除Sxjzb
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult delete(string ids)
+        {
+            string[] idArray = ids.Split(',');
+            if (idArray == null || idArray.Length <= 0) return Json(false);
+            var idlst = idArray.ToList(); //要删除的id列表
+
+            #region 正在被使用的坐标不允许删除
+            CamInfoDal _dal = new CamInfoDal();
+            var wids = _dal.SelectAll();
+            wids.ForEach(p =>
+            {
+                if (idlst.Contains(p.Id.ToString()))
+                {
+                    idlst.Remove(p.Id.ToString());
+                }
+            });
+            #endregion
+
+            if (idlst?.Count <= 0) return Json(false);
+            var _flag = dal.Delete(idlst.ToArray());
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 新增Sxjzb
+        /// </summary>
+        /// <param name="zbmc"></param>
+        /// <param name="line1x"></param>
+        /// <param name="line1y"></param>
+        /// <param name="line2x"></param>
+        /// <param name="line2y"></param>
+        /// <param name="line3x"></param>
+        /// <param name="line3y"></param>
+        /// <param name="line4x"></param>
+        /// <param name="line4y"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult add(string zbmc, string line1x, string line1y, string line2x, string line2y, string line3x, string line3y, string line4x, string line4y)
+        {
+            CamPoint qbc = new CamPoint()
+            {
+                Zbmc = zbmc,
+                Line1X = line1x,
+                Line1Y = line1y,
+                Line2X = line2x,
+                Line2Y = line2y,
+                Line3X = line3x,
+                Line3Y = line3y,
+                Line4X = line4x,
+                Line4Y = line4y
+            };
+            var _flag = dal.Add(qbc);
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 修改Sxjzb
+        /// </summary>
+        /// <param name="zid"></param>
+        /// <param name="zbmc"></param>
+        /// <param name="line1x"></param>
+        /// <param name="line1y"></param>
+        /// <param name="line2x"></param>
+        /// <param name="line2y"></param>
+        /// <param name="line3x"></param>
+        /// <param name="line3y"></param>
+        /// <param name="line4x"></param>
+        /// <param name="line4y"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult alert(string zid, string zbmc, string line1x, string line1y, string line2x, string line2y, string line3x, string line3y, string line4x, string line4y)
+        {
+            CamPoint qbc = new CamPoint()
+            {
+                Id = int.Parse(zid),
+                Zbmc = zbmc,
+                Line1X = line1x,
+                Line1Y = line1y,
+                Line2X = line2x,
+                Line2Y = line2y,
+                Line3X = line3x,
+                Line3Y = line3y,
+                Line4X = line4x,
+                Line4Y = line4y
+            };
+            var _flag = dal.Update(qbc);
+            if (_flag) ChangeAfter().Employ();
+            return Json(_flag);
+        }
+
+        /// <summary>
+        /// 变更后相关事件处理
+        /// </summary>
+        private async Task ChangeAfter()
+        {
+            await Task.Run(() =>
+            {
+
+            });
+        }
+    }
+}

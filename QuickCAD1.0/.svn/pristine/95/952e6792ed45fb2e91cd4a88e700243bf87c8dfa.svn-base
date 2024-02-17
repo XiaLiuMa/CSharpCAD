@@ -1,0 +1,56 @@
+﻿using System.Collections.Generic;
+
+namespace DataSyncTarget.Config.Models
+{
+    public class AppConfig
+    {
+        /// <summary>
+        /// Web服务Ip
+        /// </summary>
+        public string WebIp { get; set; }
+        /// <summary>
+        /// Web服务Port
+        /// </summary>
+        public int WebPort { get; set; }
+        /// <summary>
+        /// App服务名称
+        /// </summary>
+        public string AppName { get; set; }
+        /// <summary>
+        /// 进程名称
+        /// </summary>
+        public string ProcessName { get; set; }
+        /// <summary>
+        /// 自动重启定时时长(单位天，支持小数),<=0表示不启用自动重启，默认值为-1
+        /// </summary>
+        public double AutoRestartTimes { get; set; } = -1;
+        /// <summary>
+        /// 日志保存天数
+        /// </summary>
+        public string LogDays { get; set; }
+        /// <summary>
+        ///  同步类型
+        /// </summary>
+        public int SyncType { get; set; }
+        /// <summary>
+        ///  块大小(单个文件或单条消息的大小，单位M)
+        /// </summary>
+        public int BlockSize { get; set; }
+        /// <summary>
+        ///  网闸配置
+        /// </summary>
+        public NetBrake NetBrake { get; set; }
+        /// <summary>
+        /// 串口配置
+        /// </summary>
+        public List<SerialPort> SerialPorts { get; set; }
+        /// <summary>
+        /// 串口服务器配置
+        /// </summary>
+        public List<SerialServer> SerialServers { get; set; }
+        /// <summary>
+        /// 文件服务器配置
+        /// </summary>
+        public MimioConfig MimioConfig { get; set; }
+    }
+}

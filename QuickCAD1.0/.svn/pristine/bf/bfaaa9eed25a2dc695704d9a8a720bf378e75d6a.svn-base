@@ -1,0 +1,39 @@
+﻿using System.IO;
+using Max.BaseKit.Utils;
+using System.Diagnostics;
+using DataSyncSource.Config.Models;
+
+namespace DataSyncSource.Config
+{
+    public class AppXmlConfiger
+    {
+        private static AppConfig _Config;
+        /// <summary>
+        /// App系统配置
+        /// </summary>
+        public static AppConfig Config
+        {
+            get
+            {
+                if (_Config == null)
+                {
+                    string filepath = $"{Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName)}.xml";
+                    _Config = XmlUtils.Load<AppConfig>(filepath);
+                }
+                return _Config;
+            }
+            set
+            {
+                _Config = value;
+            }
+        }
+        /// <summary>
+        /// 保存系统配置文件
+        /// </summary>
+        public static void SaveConfig()
+        {
+            string filepath = $"{Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName)}.xml";
+            XmlUtils.Save(Config, filepath);
+        }
+    }
+}

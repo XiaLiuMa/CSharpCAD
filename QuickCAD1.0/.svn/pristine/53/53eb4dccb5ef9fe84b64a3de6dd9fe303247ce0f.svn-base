@@ -1,0 +1,69 @@
+﻿using Max.BaseKit.Customs;
+using Max.ISolator.Core;
+using Max.ISolator.KafkaKit;
+using NPOI.SS.Formula.Functions;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.FtpKit
+{
+    public class FtpManager
+    {
+        #region 单例
+        private static FtpManager i;
+        private readonly static object objLock = new object();
+        public static FtpManager I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new FtpManager();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// FTP客户端字典
+        /// </summary>
+        public ConcurrentDictionary<string, CustomObjectPool<FtpClient>> FtpClient_Dic { get; private set; }
+
+        public FtpManager()
+        {
+            FtpClient_Dic = new ConcurrentDictionary<string, CustomObjectPool<FtpClient>>();
+        }
+
+        public FtpClient GetFtpClient(string id)
+        {
+            FtpClient_Dic.TryGetValue(id, out var pool);
+            if (pool == null)
+            {
+                pool = new CustomObjectPool<FtpClient>(CreateFtpClient, 3);
+                FtpClient_Dic.TryAdd(id, pool);
+            }
+            return pool?.GetObject();
+        }
+
+        private FtpClient CreateFtpClient()
+        {
+            return new FtpClient("", "", "", "");
+        }
+
+        public void ReturnFtpClient(string id, FtpClient ftpClient)
+        {
+            FtpClient_Dic.TryGetValue(id, out var pool);
+            if (pool == null) return;
+            pool?.ReturnObject(ftpClient);
+        }
+    }
+}

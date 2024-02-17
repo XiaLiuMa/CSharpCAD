@@ -1,0 +1,44 @@
+﻿using System;
+using Max.BaseKit;
+using Max.BaseKit.Mods;
+using Max.BaseKit.Utils;
+using Max.ISolator;
+using Max.ISolator.Mods;
+
+namespace GaCharSet.UseData.Services
+{
+    /// <summary>
+    /// 设置时间服务
+    /// </summary>
+    public class SetTimeService: MaxIService
+    {
+        public string Tag { get; set; } = "SC";
+        public string ServiceName { get; set; } = "SetTimeService";
+
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            try
+            {
+                DateTime time = Convert.ToDateTime(idata.Lst[0]["SYSDATE"]);
+                SystemTime st = new SystemTime
+                {
+                    vYear = (ushort)(Convert.ToDateTime(time)).Year,
+                    vMonth = (ushort)(Convert.ToDateTime(time)).Month,
+                    vDay = (ushort)(Convert.ToDateTime(time)).Day,
+                    vHour = (ushort)(Convert.ToDateTime(time)).Hour,
+                    vMinute = (ushort)(Convert.ToDateTime(time)).Minute,
+                    vSecond = (ushort)((Convert.ToDateTime(time)).Second)
+                };
+                Win32Util.SetLocalTime(ref st);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"设置系统时间异常：{ex.Message}");
+            }
+        }
+    }
+}

@@ -1,0 +1,792 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+using System.Threading;
+using System.Threading.Tasks;
+using Oracle.ManagedDataAccess.Client;
+using System.Globalization;
+using MsDataSimulator.Comm;
+
+namespace MsDataSimulator.Views
+{
+    public partial class MainForm1 : Form
+    {
+        public MainForm1()
+        {
+            InitializeComponent();
+        }
+        //航班类型
+        List<string> hbhcjs;
+        List<string> hbhrjs;
+        //出入境通道号
+        List<string> tdhcjs;
+        List<string> tdhrjs;
+        //姓，名
+        string[] xs;
+        string[] ms;
+        string[] gjdqdms;
+        string[] ryrjlbdms;
+        string[] rycjlbdms;
+        string[] zjlbdms;
+        string[] czydms;
+        string[] qzzldms;
+        string[] kadms;
+        Random random = new Random();
+        //开通通道数
+        int tds = 0;
+        int cjhbs = 0;
+        int rjhbs = 0;
+        //用于终止线程
+        CancellationTokenSource cts;
+        //数据库操作
+        OracleOperate sqlOperate;
+        //用于循环航班类型（C,Z,G,H）
+        int hbnum = 0;
+        //用于循环口岸代码
+        int kadmnum = 0;
+        //验放航班信息
+        Dictionary<string, DateTime> yfHbs = new Dictionary<string, DateTime>();
+        //验放通道信息
+        Dictionary<string, DateTime> yfTds = new Dictionary<string, DateTime>();
+        Dictionary<string, string> yfCzys = new Dictionary<string, string>();
+        //保存是否验放旅客
+        bool isYf = false;
+
+        /// <summary>
+        /// Ms数据库配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tsMsDbConfig_Click(object sender, EventArgs e)
+        {
+            //SjlPzForm form = new SjlPzForm();
+            //if (form.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            //{
+            //    sqlOperate.DbCon = @"DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=" + form.ip + ")(PORT=" + form.port + ")))(CONNECT_DATA=(SERVER=DEDICATED)(SID=" + form.schema + ")));PASSWORD=" + form.pwd + ";PERSIST SECURITY INFO=True;USER ID=" + form.user + "; enlist=dynamic;";
+            //}
+
+            PzMsDbForm form = new PzMsDbForm();
+            form.Show();
+        }
+
+        /// <summary>
+        /// Ga数据库配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tsGaDbConfig_Click(object sender, EventArgs e)
+        {
+            PzGaDbForm form = new PzGaDbForm();
+            form.Show();
+        }
+
+        /// <summary>
+        /// 验放按钮点击
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnYf_Click(object sender, EventArgs e)
+        {
+            int hbs = Convert.ToInt32(nudHbs.Value);
+            tds = Convert.ToInt32(nudKts.Value);
+            for (int i = 0; i < hbs; i++)
+            {
+                kadmnum++;
+                if (kadmnum >= 2)
+                {
+                    kadmnum = 0;
+                }
+                isYf = true;
+                int lvrs = random.Next(120, 200);
+                cts = new CancellationTokenSource();
+                Task t1 = new Task(() =>
+                {
+                    try
+                    {
+                        string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                        cts.Token.ThrowIfCancellationRequested();
+                        if (i % 2 == 0)
+                        {
+                            string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                            hbnum++;
+                            if (hbnum >= 4)
+                            {
+                                hbnum = 0;
+                            }
+                            Console.WriteLine(hbh + "=================");
+                            cjhbs++;
+                            sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgj
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '221', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '2', '" + DateTime.Now.ToString("dd") + "', '', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                            sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjdk
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '221', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '2', '" + DateTime.Now.ToString("dd") + "', '', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                            CreateLk(hbh, lvrs, tdhcjs, "2", cts, kadms[kadmnum]);
+
+                        }
+                        else
+                        {
+                            string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                            hbnum++;
+                            if (hbnum >= 4)
+                            {
+                                hbnum = 0;
+                            }
+                            rjhbs++;
+                            Console.WriteLine(hbh + "=================");
+                            sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgj
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '121', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '1', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+
+
+                            sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjdk
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '121', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '1', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                            CreateLk(hbh, lvrs, tdhrjs, "1", cts, kadms[kadmnum]);
+
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                }, cts.Token);
+                t1.Start();
+                Thread.Sleep(1000);
+            }
+        }
+
+        /// <summary>
+        /// 验放旅客
+        /// </summary>
+        /// <param name="hbh"></param>
+        /// <param name="lks"></param>
+        /// <param name="tdh"></param>
+        /// <param name="crbz"></param>
+        /// <param name="ctss"></param>
+        public void CreateLk(string hbh, int lks, List<string> tdh, string crbz, CancellationTokenSource ctss, string kadm)
+        {
+            try
+            {
+                yfHbs.Add(hbh, DateTime.Now);
+                int num = 0;
+                for (int i = 0; i < lks; i++)
+                {
+                    Thread.Sleep(3000);
+                    string name = xs[random.Next(0, xs.Length)] + ms[random.Next(0, ms.Length)];
+                    string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                    string rylbdm = "";
+                    if (crbz.Equals("1"))
+                        rylbdm = ryrjlbdms[random.Next(0, ryrjlbdms.Length)];
+                    else
+                        rylbdm = rycjlbdms[random.Next(0, rycjlbdms.Length)];
+                    string zjlbdm = zjlbdms[random.Next(0, zjlbdms.Length)];
+                    string qzzldm = qzzldms[random.Next(0, qzzldms.Length)];
+                    string zztdbj = DateTime.Now.Second % 2 == 0 ? "1" : "0";
+                    string czydm;
+                    if (crbz == "1")
+                    {
+                        czydm = czydms[num * 2];
+                    }
+                    else
+                    {
+                        czydm = czydms[num * 2 + 1];
+                    }
+                    kadmnum++;
+                    if (kadmnum >= 2)
+                    {
+                        kadmnum = 0;
+                    }
+                    Console.WriteLine(hbh + "=====" + name + "======" + tdh[num] + "======" + crbz + "======" + kadm);
+                    if (!yfTds.ContainsKey(tdh[num]))
+                    {
+                        DateTime time = DateTime.Now;
+                        yfTds.Add(tdh[num], time);
+                        if (!yfCzys.ContainsKey(tdh[num]))
+                        {
+                            yfCzys.Add(tdh[num], czydm);
+                            sqlOperate.RunSQL(@"insert into bj_yw_t_czyzczx
+  (czy, zcsj, zxsj, bmdm, gzzip, tdh, kadm)
+values
+  ('" + czydm + "', '" + time.ToString("yyyyMMddHHmmss") + "', '', '203001', '6.1.37.12', '" + tdh[num] + "', '" + kadm + "')");
+                        }
+                    }
+                    DataSet reader = new DataSet();
+                    bool flag = sqlOperate.RunSQL(@"select * from bj_yw_t_tdssjk where tdh = '" + tdh[num] + "' and kadm = '" + kadm + "'", ref reader);
+                    if (reader.Tables[0].Rows.Count > 0)
+                    {
+                        sqlOperate.RunSQL(@"update bj_yw_t_tdssjk t set t.gzzzt = '2', t.tdgbsj='', t.tdktsj='" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', t.czyzcsj = '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "' where t.tdh = '" + tdh[num] + "' and kadm = '" + kadm + "'");
+                    }
+                    else
+                    {
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_tdssjk
+  (tdh, gzzzt, yflklx, zjhm, wybs, tdxspdm, tdxspxx, czydm, czyxm, tdlx, dqyxmk, czyzcsj, tdktsj, tdgbsj, zcbm, ip, kadm, galkyfs, fgalkyfs, ygyfs, jtgjyfs, bkbjs, yctjs, rq)
+values
+  ('" + tdh[num] + "', '2', '', 'E" + DateTime.Now.ToString("ddHHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + tdh[num] + "', '', '', '" + czydm + "', '张三', '', '', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '', '023001', '6.1.27.18', '" + kadm + "', '', '', '', '', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "')");
+                    }
+
+                    sqlOperate.RunSQL(@"insert into bj_yw_t_crjry
+  (rylbdm, xm, gjdqdm, xbdm, csrq, zjlbdm, zjhm, qzzldm, crrq, crsj, crrqsj, crkadm, jtfsdm, jtgjbs, qwgjdqdm, fzd, crjsydm, czy, tdh, nbth, lxth, ccxmbz, ynzsm, d2zh, d2zldm, d2csrq, d2xm, ri, xmpy, jtxm, bmdm, wybs, mzdm, zdydm, zztdbj, htblbj, crbz, bgczy, bgczsj, qzh, tlq)
+values
+  ('" + rylbdm + "', '" + name + "', '" + gjdqdm + "', '0', '" + DateTime.Now.AddYears(-26).ToString("yyyyMMdd") + "', '" + zjlbdm + "', 'E" + DateTime.Now.ToString("ddHHmmss") + "', '" + qzzldm + "', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadm + "', '2', '" + hbh + "', '', '', '8', '" + czydm + "', '" + tdh[num] + "', '', '', '', '', '', '', '', '', '" + DateTime.Now.ToString("dd") + "', '', '', '023001', '" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + tdh[num] + "', '', '', '" + zztdbj + "', '', '" + crbz + "', '',  '', '', '')");
+
+                    sqlOperate.RunSQL(@"insert into bj_yw_t_crjrydk
+  (rylbdm, xm, gjdqdm, xbdm, csrq, zjlbdm, zjhm, qzzldm, crrq, crsj, crrqsj, crkadm, jtfsdm, jtgjbs, qwgjdqdm, fzd, crjsydm, czy, tdh, nbth, lxth, ccxmbz, ynzsm, d2zh, d2zldm, d2csrq, d2xm, ri, xmpy, jtxm, bmdm, wybs, mzdm, zdydm, zztdbj, htblbj, crbz, bgczy, bgczsj, qzh, tlq)
+values
+  ('" + rylbdm + "', '" + name + "', '" + gjdqdm + "', '0', '" + DateTime.Now.AddYears(-26).ToString("yyyyMMdd") + "', '" + zjlbdm + "', 'E" + DateTime.Now.ToString("ddHHmmss") + "', '" + qzzldm + "', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadm + "', '2', '" + hbh + "', '', '', '8', '" + czydm + "', '" + tdh[num] + "', '', '', '', '', '', '', '', '', '" + DateTime.Now.ToString("dd") + "', '', '', '023001', '" + DateTime.Now.ToString("yyyyMMddHHmmssfff") + tdh[num] + "', '', '', '" + zztdbj + "', '', '" + crbz + "', '',  '', '', '')");
+                    num++;
+                    if (num >= tds)
+                    {
+                        num = 0;
+                    }
+
+                }
+                yfHbs.Remove(hbh);
+                if (yfHbs.Keys.Count == 0)
+                {
+                    foreach (string item in yfTds.Keys)
+                    {
+                        sqlOperate.RunSQL(@"update bj_yw_t_tdssjk t set t.gzzzt = '1', t.tdgbsj='" + DateTime.Now.ToString("yyyyMMddHHmmss") + "',t.czyzcsj = '' where t.tdh = '" + item + "'");
+                        sqlOperate.RunSQL(@"update bj_yw_t_czyzczx set zxsj = '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "' where czy = '" + yfCzys[item] + "' and zcsj = '" + yfTds[item].ToString("yyyyMMddHHmmss") + "'");
+                    }
+                    yfTds = new Dictionary<string, DateTime>();
+                    yfCzys = new Dictionary<string, string>();
+                    isYf = false;
+                    //等待两分钟，继续下一波旅客的验放
+                    Thread.Sleep(2 * 1000);
+                    Console.WriteLine("验放下一波旅客===================");
+                    btnYf_Click(null, null);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            //ctss.Cancel();
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            sqlOperate = new OracleOperate();
+            sqlOperate.DbCon = @"DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=ORCL)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg; enlist=dynamic;";
+            hbhcjs = new List<string>();
+            hbhcjs.Add("C/Z1");
+            hbhcjs.Add("Z/Z1");
+            hbhcjs.Add("G/Z1");
+            hbhcjs.Add("H/Z1");
+            hbhrjs = new List<string>();
+            hbhrjs.Add("C/Z3084");
+            hbhrjs.Add("Z/Z3086");
+            hbhrjs.Add("G/Z3088");
+            hbhrjs.Add("H/Z3080");
+            tdhcjs = new List<string>();
+            tdhcjs.Add("0201");
+            tdhcjs.Add("0202");
+            tdhcjs.Add("1201");
+            tdhcjs.Add("1202");
+            tdhcjs.Add("0203");
+            tdhcjs.Add("0204");
+            tdhcjs.Add("0205");
+            tdhcjs.Add("0206");
+            tdhcjs.Add("0207");
+            tdhcjs.Add("0208");
+            tdhcjs.Add("0209");
+            tdhcjs.Add("0210");
+            tdhcjs.Add("0211");
+            tdhcjs.Add("0212");
+            tdhrjs = new List<string>();
+            tdhrjs.Add("0101");
+            tdhrjs.Add("0102");
+            tdhrjs.Add("1101");
+            tdhrjs.Add("1102");
+            tdhrjs.Add("0103");
+            tdhrjs.Add("0104");
+            tdhrjs.Add("0105");
+            tdhrjs.Add("0106");
+            tdhrjs.Add("0107");
+            tdhrjs.Add("0108");
+            tdhrjs.Add("0109");
+            tdhrjs.Add("0110");
+            tdhrjs.Add("0111");
+            tdhrjs.Add("0112");
+            xs = new string[] { "赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈", "褚", "卫", "蒋", "沈", "韩", "杨", "朱", "秦", "尤", "许", "何", "吕", "施", "张", "孔", "曹", "严", "华", "金", "魏", "陶", "姜", "戚", "谢", "邹", "喻", "柏", "水", "窦", "章", "云", "苏", "潘", "葛", "奚", "范", "彭", "郎", "鲁", "韦", "昌", "马", "苗", "凤", "花", "方", "俞", "任", "袁", "柳", "酆", "鲍", "史", "唐", "费", "廉", "岑", "薛", "雷", "贺", "倪", "汤" };
+            ms = new string[] { "观博", "欣竹", "欣阳", "刚军", "扬阳", "靖阳", "熙阳", "嘉萱", "铭阳", "飞", "雨荨", "文博", "诗含", "诗若", "辰海", "晓雨", "展鸣", "晓春", "洪文", "默", "轩杰", "金海", "俊杰", "展旭", "建烁", "婧琪", "婧涵", "诗晴", "传浩", "怡萍", "诗涵", "雅婷", "雅涵", "萍", "晓萍", "兴飞", "小平", "建龙", "宇谟", "子辰", "辰", "湍灵", "骅株", "春莲", "娟敏", "智涵", "欣妍", "慧妍", "雅静", "月婷", "雨婷", "芸馨", "韵涵", "涵韵", "雨欣", "馨蕾", "静媛", "子涵", "雨泽", "静蕾", "茛淯", "珑沧", "芮娟", "梓萱", "轶诚", "嘉文", "晓朋", "一凡", "昊楠", "浩楠", "瑞君", "佳宁", "雨杨", "昊然", "浩然", "滕浩", "雨菡", "海一", "晨宸", "之政", "晨菲", "修闻", "宁夫", "轩", "春菲", "佳涵", "耀宇", "耀雨", "翠", "鑫雨", "涵熙", "继欣", "菲", "兰月", "兰欣", "岚欣", "懿明", "淑菲", "荣凯", "海瑶", "涵雅", "晨曦", "麟炜", "茜", "子萱", "玥菲", "雯菲", "云涵", "靖雯", "馨怡", "江", "运浩", "飞飞", "强", "国馨", "国鑫", "雅雯", "炳君", "海宇", "海林", "瑾瑜", "成龙", "嘉麟", "芸惜", "芸希", "瀚曦", "晏", "鑫龙", "嘉懿", "永琴", "贝馨", "润芝", "润龙", "浩龙", "焱涵", "芙", "敖菲", "子君", "少兹", "子晨", "辰曦", "云曦", "梓恒", "晏畅", "晏郡", "洛瑜", "朔瑜", "晃郡", "展彰", "展荣", "展郡", "展瑜", "朔诰", "洛荣", "紫涵", "蕾", "津", "轩旗", "津诰", "津郡", "津荣", "津畅", "津飒", "津彰", "津瑜", "桀诰", "晃荣", "轩语", "桀瑔", "晃瑜", "晃", "荣泽", "小强", "晏诰", "桀畅", "悦", "桀荣", "桀彰", "宸赫", "桀郡", "桀瑜", "晋", "嘉铭", "永", "子伦", "学友", "业昆", "新沅", "宇铭" };
+            gjdqdms = new string[] { "SPM", "SS", "STP", "SUR", "SVK", "SVN", "SWE", "SWZ", "SYC", "SYR", "TCA", "TCD", "TGO", "THA", "TJK", "TKL", "TKM", "TON", "TTO", "TUN", "TUR", "TUV", "TWN", "TX", "TZA", "UGA", "UMI", "AUN", "URY", "USA", "UZB", "VAT", "VCT", "VEN", "VGB", "VIR", "VNM", "VUT", "WAK", "WLF", "WSM", "YEM", "YUG", "ZAF", "ZMB", "ZWE", "SRB", "MNE", "ABW", "AFG", "AGO", "AIA", "ALB", "AND", "ANT", "ARE", "ARG", "ARM", "ASM", "ATA", "ATF", "ATG", "AUS", "AUT", "AZE", "BDI", "BEL", "BEN", "BFA", "BGD", "BGR", "BHR", "BHS", "BIH", "BLR", "BLZ", "BMU", "BOL", "BRA", "BRB", "BRN", "BTN", "BVT", "BWA", "CAF", "CAN", "CCK", "CHE", "CHL", "CHN", "CIV", "CMR", "COD", "COG", "COK", "COL", "COM", "CPV", "CRI", "IMN", "CUB", "CXR", "CYM", "CYP", "CZE", "DEU", "DJI", "DMA", "DNK", "DOM", "DZA", "ECU", "EGY", "ERI", "ESH", "ESP", "EST", "ETH", "FIN", "FJI", "FLK", "FRA", "FRO", "FSM", "GAB", "GBR", "GEO", "GIB", "GIN", "GLP", "GMB", "GNB", "GNQ", "GRC", "GRD", "GRL", "GTM", "GUF", "GUM", "GUY", "HB", "HKG", "HMD", "HND", "HRV", "HTI", "HUN", "IDN", "IND", "IOT", "IRL", "IRN", "IRQ", "ISL", "ISR", "ITA", "JAM", "JI", "JOR", "JPN", "JTN", "KAZ", "KEN", "KGZ", "KHM", "KIR", "KNA", "KOR", "KWT", "LAO", "LBN", "LBR", "LBY", "LCA", "LIE", "LKA", "LSO", "LTU", "LUX", "LVA", "MAC", "MAR", "MCO", "MDA", "MDG", "MDV", "MEX", "MHL", "MID", "MKD", "MLB", "MLI", "MLT", "MMR", "MNG", "MNP", "MOZ", "MRT", "MSR", "MTQ", "MUS", "MWI", "UKR", "GHA", "ROU", "TLS", "YKS", "MYS", "MYT", "NAM", "NCL", "NER", "NFK", "NGA", "NIC", "NIU", "NLD", "NN", "NOR", "NPL", "NRU", "NZL", "OMN", "PAK", "PAN", "PCN", "PER", "PHL", "PLW", "PNG", "POL", "PRI", "PRK", "PRT", "PRY", "PST", "PYF", "QAT", "REU", "RUS", "RWA", "SAU", "SDN", "SEN", "SGP", "SGS", "SHN", "SJM", "SLB", "SLE", "SLV", "SMR", "SOM" };
+            //ryrjlbdms = new string[] { "11", "13", "14", "17", "1A", "1B", "31", "33", "34", "35", "36", "37", "3A", "3B" };
+            //rycjlbdms = new string[] { "21", "23", "24", "25", "26", "27", "2A", "2B", "41", "43", "44", "45", "46", "47", "4A", "4B" };
+            ryrjlbdms = new string[] { "11", "13", "14", "15", "16", "17", "31", "33", "34", "35", "36", "37" };
+            rycjlbdms = new string[] { "21", "23", "24", "25", "26", "27", "41", "43", "44", "45", "46", "47" };
+            zjlbdms = new string[] { "6", "10", "14", "15", "16", "20", "21", "22", "23", "24", "25", "26", "27", "30", "31", "32", "33", "35", "36", "37", "38", "40", "41", "42", "43", "44", "45", "46", "47", "48", "50", "51", "52", "53", "54", "55", "70", "71", "99", "91", "93" };
+            czydms = new string[] { "201", "202", "203", "204", "205", "206", "207", "208", "209", "210", "211", "212", "213", "214", "215", "216", "217", "218", "219", "220", "221", "222", "223", "224" };
+            qzzldms = new string[] { "JL", "MQ", "J1", "J2", "Q1", "Q2", "S1", "S2", "X1", "X2", "LS", "C", "D", "E", "F", "G", "L", "M", "QT", "U", "W", "Y", "Z", "B", "A", "I", "R", "S", "QC" };
+            kadms = new string[] { "001", "076" };
+            this.cboGj.DataSource = gjdqdms;
+            this.cboQzzl.DataSource = qzzldms;
+            this.cboQzzl.SelectedIndex = -1;
+            this.dtpXgcrjsj.Value = DateTime.Now.AddDays(-1);
+        }
+
+        bool flag = true;
+
+        private void btnHbAdd_Click(object sender, EventArgs e)
+        {
+            int lvrs = random.Next(120, 200);
+            tds = Convert.ToInt32(nudKts.Value);
+            kadmnum++;
+            if (kadmnum >= 2)
+            {
+                kadmnum = 0;
+            }
+            Task t2 = new Task(() =>
+            {
+                try
+                {
+                    string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                    cts.Token.ThrowIfCancellationRequested();
+                    if (flag)
+                    {
+                        string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                        hbnum++;
+                        if (hbnum >= 4)
+                        {
+                            hbnum = 0;
+                        }
+                        cjhbs++;
+                        flag = false;
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgj
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '221', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '076', '076001', '265', '0101', '1', '0', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjdk
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '221', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '076', '076001', '265', '0101', '1', '1', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                        CreateLk(hbh, lvrs, tdhcjs, "1", cts, kadms[kadmnum]);
+                    }
+                    else
+                    {
+                        string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                        hbnum++;
+                        if (hbnum >= 4)
+                        {
+                            hbnum = 0;
+                        }
+                        rjhbs++;
+                        flag = true;
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgj
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '121', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '1', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjdk
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj)
+values
+  ('" + hbh + "', '', '', '" + hbh + "', '" + gjdqdm + "', '21', '121', '', '', '" + DateTime.Now.ToString("yyyyMMdd") + "', '" + DateTime.Now.ToString("HHmmss") + "', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + kadms[kadmnum] + "', '023001', '265', '0101', '1', '2', '" + DateTime.Now.ToString("dd") + "', '','" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '','" + gjdqdm + "', '', '', '', '')");
+                        CreateLk(hbh, lvrs, tdhrjs, "2", cts, kadms[kadmnum]);
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }, cts.Token);
+            t2.Start();
+            Thread.Sleep(1000);
+        }
+
+        private void btnHbRemove_Click(object sender, EventArgs e)
+        {
+        }
+
+        private void btnTdAdd_Click(object sender, EventArgs e)
+        {
+            tds++;
+        }
+
+        private void btnTdRemove_Click(object sender, EventArgs e)
+        {
+            tds--;
+        }
+
+        private void btnSaveRylis_Click(object sender, EventArgs e)
+        {
+            if (cboBgyy.SelectedIndex == -1)
+            {
+                MessageBox.Show("变更原因不能为空");
+                return;
+            }
+            if (!cbChangeDate.Checked)
+            {
+                if (this.cboGj.SelectedIndex == -1 && this.cboCrjlx.SelectedIndex == -1 && this.cboQzzl.SelectedIndex == -1 && this.cboTdlx.SelectedIndex == -1)
+                {
+                    MessageBox.Show("请选择变更信息");
+                    return;
+                }
+            }
+            int num = DateTime.Now.Second;
+            DataSet reader = new DataSet();
+            string bgyy = cboBgyy.SelectedIndex == 0 ? "U" : "D";
+            sqlOperate.RunSQL(@"select *  from bj_yw_t_crjry t where t.crrq = '" + dtCrjsj.Value.ToString("yyyyMMdd") + "' and rownum < " + (num + 1) + " minus select *  from bj_yw_t_crjry t where t.crrq = '" + dtCrjsj.Value.ToString("yyyyMMdd") + "' and rownum < " + num, ref reader);
+            if (reader != null && reader.Tables.Count > 0)
+            {
+                DataRow row = reader.Tables[0].Rows[0];
+                string wybs = row[reader.Tables[0].Columns["wybs"]].ToString();
+                string gjdqdm = row[reader.Tables[0].Columns["gjdqdm"]].ToString();
+                string qzzldm = row[reader.Tables[0].Columns["qzzldm"]].ToString();
+                string zztdbj = row[reader.Tables[0].Columns["zztdbj"]].ToString();
+                string crbz = row[reader.Tables[0].Columns["crbz"]].ToString();
+                string rq = row[reader.Tables[0].Columns["crrq"]].ToString();
+                string sj = row[reader.Tables[0].Columns["crsj"]].ToString();
+                if (bgyy.Equals("D"))
+                {
+                    sqlOperate.RunSQL(@"delete bj_yw_t_crjry where wybs = '" + wybs + "'");
+                    sqlOperate.RunSQL(@"insert into bj_yw_t_crjrylis
+  (rylbdm, xm, gjdqdm, xbdm, csrq, zjlbdm, zjhm, qzzldm, crrq, crsj, crrqsj, crkadm, jtfsdm, jtgjbs, qwgjdqdm, fzd, crjsydm, czy, tdh, nbth, lxth, ccxmbz, ynzsm, d2zh, d2zldm, d2csrq, d2xm, ri, xmpy, jtxm, bmdm, wybs, mzdm, zdydm, zztdbj, htblbj, crbz, bgczy, bgczsj, ybgczy, ybgczsj, bgyy, bgms, qzh, tlq)
+values
+  ('" + row[reader.Tables[0].Columns["rylbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["xm"]].ToString() + "', '" + row[reader.Tables[0].Columns["gjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["xbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["csrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["zjlbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zjhm"]].ToString() + "', '" + row[reader.Tables[0].Columns["qzzldm"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["crsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrqsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crkadm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtfsdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["qwgjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["fzd"]].ToString() + "', '" + row[reader.Tables[0].Columns["crjsydm"]].ToString() + "', '" + row[reader.Tables[0].Columns["czy"]].ToString() + "', '" + row[reader.Tables[0].Columns["tdh"]].ToString() + "', '" + row[reader.Tables[0].Columns["nbth"]].ToString() + "', '" + row[reader.Tables[0].Columns["lxth"]].ToString() + "', '" + row[reader.Tables[0].Columns["ccxmbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ynzsm"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2zh"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2zldm"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2csrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2xm"]].ToString() + "', '" + row[reader.Tables[0].Columns["ri"]].ToString() + "', '" + row[reader.Tables[0].Columns["xmpy"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtxm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bmdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["wybs"]].ToString() + "', '" + row[reader.Tables[0].Columns["mzdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zdydm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zztdbj"]].ToString() + "', '" + row[reader.Tables[0].Columns["htblbj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crbz"]].ToString() + "', '201', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '201', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + bgyy + "', 'bgms', '" + row[reader.Tables[0].Columns["qzh"]].ToString() + "', '" + row[reader.Tables[0].Columns["tlq"]].ToString() + "')");
+                }
+                else
+                {
+                    string sql = "update bj_yw_t_crjry set ";
+                    if (this.cboGj.SelectedIndex != -1 && !gjdqdm.Equals(this.cboGj.Text.Trim()))
+                    {
+                        sql += "gjdqdm = '" + this.cboGj.Text.Trim() + "',";
+                    }
+                    if (this.cboQzzl.SelectedIndex != -1 && !qzzldm.Equals(this.cboQzzl.Text.Trim()))
+                    {
+                        sql += "qzzldm = '" + this.cboQzzl.Text.Trim() + "',";
+                    }
+                    if (this.cboTdlx.SelectedIndex != -1 && !zztdbj.Equals(this.cboTdlx.SelectedIndex))
+                    {
+                        sql += "zztdbj = '" + this.cboTdlx.SelectedIndex + "',";
+                    }
+                    if (this.cboCrjlx.SelectedIndex != -1 && !crbz.Equals(this.cboCrjlx.SelectedIndex))
+                    {
+                        sql += "crbz = '" + this.cboCrjlx.SelectedIndex + "',";
+                    }
+                    if (this.cbChangeDate.Checked && !this.dtCrjsj.Value.ToString("yyyyMMdd").Equals(this.dtpXgcrjsj.Value.ToString("yyyyMMdd")))
+                    {
+                        rq = this.dtpXgcrjsj.Value.ToString("yyyyMMdd");
+                        sj = DateTime.Now.ToString("HHmmss");
+                        sql += "crrq = '" + rq + "',";
+                        sql += "crsj = '" + sj + "',";
+                        sql += "crrqsj = '" + rq + sj + "',";
+                        sql += "ri = '" + this.dtpXgcrjsj.Value.ToString("dd") + "',";
+                    }
+                    if (sql.Length > 25)
+                    {
+                        sql = sql.Substring(0, sql.Length - 2);
+                        sql += " where wybs = '" + wybs + "'";
+                        sqlOperate.RunSQL(@sql);
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjrylis
+  (rylbdm, xm, gjdqdm, xbdm, csrq, zjlbdm, zjhm, qzzldm, crrq, crsj, crrqsj, crkadm, jtfsdm, jtgjbs, qwgjdqdm, fzd, crjsydm, czy, tdh, nbth, lxth, ccxmbz, ynzsm, d2zh, d2zldm, d2csrq, d2xm, ri, xmpy, jtxm, bmdm, wybs, mzdm, zdydm, zztdbj, htblbj, crbz, bgczy, bgczsj, ybgczy, ybgczsj, bgyy, bgms, qzh, tlq)
+values
+  ('" + row[reader.Tables[0].Columns["rylbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["xm"]].ToString() + "', '" + row[reader.Tables[0].Columns["gjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["xbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["csrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["zjlbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zjhm"]].ToString() + "', '" + row[reader.Tables[0].Columns["qzzldm"]].ToString() + "', '" + rq + "', '" + sj + "', '" + rq + sj + "', '" + row[reader.Tables[0].Columns["crkadm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtfsdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["qwgjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["fzd"]].ToString() + "', '" + row[reader.Tables[0].Columns["crjsydm"]].ToString() + "', '" + row[reader.Tables[0].Columns["czy"]].ToString() + "', '" + row[reader.Tables[0].Columns["tdh"]].ToString() + "', '" + row[reader.Tables[0].Columns["nbth"]].ToString() + "', '" + row[reader.Tables[0].Columns["lxth"]].ToString() + "', '" + row[reader.Tables[0].Columns["ccxmbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ynzsm"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2zh"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2zldm"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2csrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["d2xm"]].ToString() + "', '" + row[reader.Tables[0].Columns["ri"]].ToString() + "', '" + row[reader.Tables[0].Columns["xmpy"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtxm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bmdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["wybs"]].ToString() + "', '" + row[reader.Tables[0].Columns["mzdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zdydm"]].ToString() + "', '" + row[reader.Tables[0].Columns["zztdbj"]].ToString() + "', '" + row[reader.Tables[0].Columns["htblbj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crbz"]].ToString() + "', '201', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '201', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + bgyy + "', 'bgms', '" + row[reader.Tables[0].Columns["qzh"]].ToString() + "', '" + row[reader.Tables[0].Columns["tlq"]].ToString() + "')");
+                    }
+                    else
+                    {
+                        MessageBox.Show("没有可修改的数据");
+                    }
+                }
+            }
+        }
+
+        private void cbChangeDate_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.cbChangeDate.Checked)
+            {
+                this.label9.Visible = true;
+                this.dtpXgcrjsj.Visible = true;
+            }
+            else
+            {
+                this.label9.Visible = false;
+                this.dtpXgcrjsj.Visible = false;
+            }
+        }
+
+        private void cboBgyy_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (cboBgyy.SelectedIndex == 0)
+            {
+                this.cbChangeDate.Visible = true;
+            }
+            else if (cboBgyy.SelectedIndex == 1)
+            {
+                this.label9.Visible = false;
+                this.dtpXgcrjsj.Visible = false;
+                this.cbChangeDate.Visible = false;
+            }
+        }
+
+        private void cbJtgjxg_CheckedChanged(object sender, EventArgs e)
+        {
+            if (this.cbJtgjxg.Checked)
+            {
+                this.label10.Visible = true;
+                this.dtpJtgjCrjsjXg.Visible = true;
+            }
+            else
+            {
+                this.label10.Visible = false;
+                this.dtpJtgjCrjsjXg.Visible = false;
+            }
+        }
+
+        private void btnSaveJtgjlis_Click(object sender, EventArgs e)
+        {
+            if (cboJtgjbgyy.SelectedIndex == -1)
+            {
+                MessageBox.Show("变更原因不能为空");
+                return;
+            }
+            if (!cbJtgjxg.Checked)
+            {
+                if (this.cboHc.SelectedIndex == -1 && this.cboCrjlxJtgj.SelectedIndex == -1)
+                {
+                    MessageBox.Show("请选择变更信息");
+                    return;
+                }
+            }
+            int num = random.Next(0, 10);
+            DataSet reader = new DataSet();
+            string bgyy = cboJtgjbgyy.SelectedIndex == 0 ? "U" : "D";
+            sqlOperate.RunSQL(@"select *  from bj_yw_t_crjjtgj t where t.crrq = '" + dtCrjsj.Value.ToString("yyyyMMdd") + "' and rownum < " + (num + 1) + " minus select *  from bj_yw_t_crjjtgj t where t.crrq = '" + dtCrjsj.Value.ToString("yyyyMMdd") + "' and rownum < " + num, ref reader);
+            if (reader != null && reader.Tables.Count > 0)
+            {
+                DataRow row = reader.Tables[0].Rows[0];
+                string wybs = row[reader.Tables[0].Columns["wybs"]].ToString();
+                string hc = row[reader.Tables[0].Columns["hc"]].ToString();
+                string crbz = row[reader.Tables[0].Columns["crbz"]].ToString();
+                if (bgyy.Equals("D"))
+                {
+                    sqlOperate.RunSQL(@"delete bj_yw_t_crjjtgj where wybs = '" + wybs + "'");
+                    sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjlis
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj, ybgczy, ybgczsj, bgyy, bgms)
+values
+  ('" + row[reader.Tables[0].Columns["jwgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["jngjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["qtgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["hc"]].ToString() + "', '" + row[reader.Tables[0].Columns["gjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjlxdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjlbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["ygs"]].ToString() + "', '" + row[reader.Tables[0].Columns["zkrs"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["crsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrqsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crkadm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bmdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["czy"]].ToString() + "', '" + row[reader.Tables[0].Columns["tdh"]].ToString() + "', '" + row[reader.Tables[0].Columns["ccbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["crbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ri"]].ToString() + "', '" + row[reader.Tables[0].Columns["yyz"]].ToString() + "', '" + row[reader.Tables[0].Columns["wybs"]].ToString() + "', '" + row[reader.Tables[0].Columns["sfdmdd"]].ToString() + "', '" + row[reader.Tables[0].Columns["qwglzg"]].ToString() + "', '" + row[reader.Tables[0].Columns["yfbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ynzsm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bgczy"]].ToString() + "', '" + row[reader.Tables[0].Columns["bgczsj"]].ToString() + "', '202', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + bgyy + "', 'bgms')");
+                }
+                else
+                {
+                    string sql = "update bj_yw_t_crjjtgj set ";
+                    if (this.cboHc.SelectedIndex != -1 && !hc.Equals(this.cboHc.Text.Trim()))
+                    {
+                        sql += "hc = '" + this.cboHc.Text.Trim() + DateTime.Now.ToString("HHmm") + "',";
+
+                    }
+                    if (this.cboCrjlxJtgj.SelectedIndex != -1 && !crbz.Equals(this.cboCrjlxJtgj.SelectedIndex))
+                    {
+                        sql += "crbz = '" + this.cboCrjlxJtgj.SelectedIndex + "',";
+                    }
+                    if (this.cbChangeDate.Checked && !this.dtCrjsj.Value.ToString("yyyyMMdd").Equals(this.dtpXgcrjsj.Value.ToString("yyyyMMdd")))
+                    {
+                        string rq = this.dtpXgcrjsj.Value.ToString("yyyyMMdd");
+                        string sj = DateTime.Now.ToString("HHmmss");
+                        sql += "crrq = '" + rq + "',";
+                        sql += "crsj = '" + sj + "',";
+                        sql += "crrqsj = '" + rq + sj + "',";
+                    }
+                    if (sql.Length > 27)
+                    {
+                        sql = sql.Substring(0, sql.Length - 2);
+                        sql += " where wybs = '" + wybs + "'";
+                        sqlOperate.RunSQL(@sql);
+                        sqlOperate.RunSQL(@"insert into bj_yw_t_crjjtgjlis
+  (jwgjbs, jngjbs, qtgjbs, hc, gjdqdm, jtgjlxdm, jtgjlbdm, ygs, zkrs, crrq, crsj, crrqsj, crkadm, bmdm, czy, tdh, ccbz, crbz, ri, yyz, wybs, sfdmdd, qwglzg, yfbz, ynzsm, bgczy, bgczsj, ybgczy, ybgczsj, bgyy, bgms)
+values
+  ('" + row[reader.Tables[0].Columns["jwgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["jngjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["qtgjbs"]].ToString() + "', '" + row[reader.Tables[0].Columns["hc"]].ToString() + "', '" + row[reader.Tables[0].Columns["gjdqdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjlxdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["jtgjlbdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["ygs"]].ToString() + "', '" + row[reader.Tables[0].Columns["zkrs"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrq"]].ToString() + "', '" + row[reader.Tables[0].Columns["crsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crrqsj"]].ToString() + "', '" + row[reader.Tables[0].Columns["crkadm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bmdm"]].ToString() + "', '" + row[reader.Tables[0].Columns["czy"]].ToString() + "', '" + row[reader.Tables[0].Columns["tdh"]].ToString() + "', '" + row[reader.Tables[0].Columns["ccbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["crbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ri"]].ToString() + "', '" + row[reader.Tables[0].Columns["yyz"]].ToString() + "', '" + row[reader.Tables[0].Columns["wybs"]].ToString() + "', '" + row[reader.Tables[0].Columns["sfdmdd"]].ToString() + "', '" + row[reader.Tables[0].Columns["qwglzg"]].ToString() + "', '" + row[reader.Tables[0].Columns["yfbz"]].ToString() + "', '" + row[reader.Tables[0].Columns["ynzsm"]].ToString() + "', '" + row[reader.Tables[0].Columns["bgczy"]].ToString() + "', '" + row[reader.Tables[0].Columns["bgczsj"]].ToString() + "', '202', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '" + bgyy + "', 'bgms')");
+                    }
+                    else
+                    {
+                        MessageBox.Show("没有可修改的数据");
+                    }
+                }
+            }
+        }
+
+        private void btnSaveLsrjxk_Click(object sender, EventArgs e)
+        {
+            int sqlks = Convert.ToInt32(this.numLssqlks.Value);
+            for (int i = 0; i < sqlks; i++)
+            {
+                cts = new CancellationTokenSource();
+                Task t1 = new Task(() =>
+                {
+                    try
+                    {
+                        CreateLsrjxk();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                }, cts.Token);
+                t1.Start();
+                Thread.Sleep(1000);
+            }
+        }
+
+        bool lsrjxkflag = true;
+
+        public void CreateLsrjxk()
+        {
+            while (lsrjxkflag)
+            {
+                Thread.Sleep(2000);
+                string name = xs[random.Next(0, xs.Length)] + ms[random.Next(0, ms.Length)];
+                string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                string rylbdm = "";
+                if ("1".Equals("1"))
+                    rylbdm = ryrjlbdms[random.Next(0, ryrjlbdms.Length)];
+                else
+                    rylbdm = rycjlbdms[random.Next(0, rycjlbdms.Length)];
+                string zjlbdm = zjlbdms[random.Next(0, zjlbdms.Length)];
+                string qzzldm = qzzldms[random.Next(0, qzzldms.Length)];
+                int isallow = DateTime.Now.Second % 2 == 0 ? 1 : 2;
+                string sqrjqzzl = DateTime.Now.Second % 2 == 0 ? "01" : "06";
+                sqlOperate.RunSQL(@"insert into gjmq_lsrjxk_ry_rydj
+  (wybs, xm, gjdqdm, xbdm, csrq, zjlbdm, zjhm, qfrqsj, qfkadm, jtfsdm, rjhb, rjsj, lhmd, cjkadm, cjjtfsdm, cjhb, cjsj, sqrjqzzl, czy, tdh, ynzsm, d2zh, d2zldm, d2csrq, d2xm, bmdm, zdydm, bz, is_wfwg, illegal, is_yqjl, getout, is_allow, allow_visa_sort, not_allow_reason, is_birth_point, is_address_point, zp1, zp2, zp3, zp4, zp5, zw1, zw2)
+values
+  ('" + DateTime.Now.ToString("yyyyMMddHHmmss") + gjdqdm + "', '" + name + "', '" + gjdqdm + "', '0', '" + DateTime.Now.AddYears(0 - DateTime.Now.Second).ToString("yyyyMMdd") + "', '" + zjlbdm + "', 'E" + DateTime.Now.AddDays(0 - DateTime.Now.Second).ToString("ddHHmmss") + "', '" + DateTime.Now.AddDays(0 - DateTime.Now.Second).ToString("ddHHmmss") + "', '" + kadms[kadmnum] + "', '1', 'CZ3084', '" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '', '', '', '', '', '" + sqrjqzzl + "', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '" + isallow + "', '', '', '', '', '', '', '', '', '', '', '')");
+
+            }
+        }
+
+        private void btnStopLsrjxk_Click(object sender, EventArgs e)
+        {
+            lsrjxkflag = false;
+        }
+
+        private void btnAddYbxx_Click(object sender, EventArgs e)
+        {
+            int hbs = Convert.ToInt32(numYbhbs.Value);
+            for (int i = 0; i < hbs; i++)
+            {
+                kadmnum++;
+                if (kadmnum >= 2)
+                {
+                    kadmnum = 0;
+                }
+                isYf = true;
+                int lvrs = random.Next(120, 200);
+                cts = new CancellationTokenSource();
+                Task t1 = new Task(() =>
+                {
+                    try
+                    {
+                        string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                        cts.Token.ThrowIfCancellationRequested();
+                        if (i % 2 == 0)
+                        {
+                            string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                            hbnum++;
+                            if (hbnum >= 4)
+                            {
+                                hbnum = 0;
+                            }
+                            sqlOperate.RunSQL(@"insert into bj_flt_disp_asupschd
+  (type, styp, flid, ffid, ftid, alcd, flno, mvin, sodt, flty, flin, acft, reno, taop, tafl, taid, trml, maxp, csop, csft, estt, actt, stnd, phag, cncl, remc, botm, lacl, fint, appt, egsr, egst, fhag, mhag, vipp, vipr, fdiv, fret, flab, lbno, lbwt, paxc)
+values
+  ('', '', '', '', '" + hbh + DateTime.Now.ToString("yyyyMMdd") + "', '', '" + hbh + "', 'D','" + DateTime.Now.ToString("ddMMMyyHHmm", CultureInfo.CreateSpecificCulture("en-GB")) + "' , '', '', '', '', '', '', '', '2', '', '', '', '" + DateTime.Now.ToString("ddMMMyyHHmm", CultureInfo.CreateSpecificCulture("en-GB")) + "', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '" + lvrs + "')");
+                            sqlOperate.RunSQL(@"insert into bj_iapi_t_hbzl
+  (hbrq, hkgs, hbh, crlx, qfsj, ddsj, sjddsj, qfjc, ddjc, yfrs, lbrs, wubrs, dbrs, ybrs, rksj, yckbz, tjbz, scbz, jtgjbs, crka, ybsj, yblks, ybygs, sblks, sbygs, xzsbs, czrs)
+values
+  ('" + DateTime.Now.ToString("yyyyMMdd") + "', 'CHN', '" + hbh + "', '2', '', '', '', '', '', '', '', '', '', '', '', '00', '0', '0', '" + hbh + "', '" + kadms[kadmnum] + "', '', '', '', '', '', '', '')");
+                            cjhbs++;
+                            CreateYbLk(hbh, lvrs, tdhcjs, "2", cts, kadms[kadmnum]);
+                        }
+                        else
+                        {
+                            string hbh = hbhcjs[hbnum] + DateTime.Now.ToString("HHmm");
+                            hbnum++;
+                            if (hbnum >= 4)
+                            {
+                                hbnum = 0;
+                            }
+                            rjhbs++;
+                            sqlOperate.RunSQL(@"insert into bj_flt_disp_asupschd
+  (type, styp, flid, ffid, ftid, alcd, flno, mvin, sodt, flty, flin, acft, reno, taop, tafl, taid, trml, maxp, csop, csft, estt, actt, stnd, phag, cncl, remc, botm, lacl, fint, appt, egsr, egst, fhag, mhag, vipp, vipr, fdiv, fret, flab, lbno, lbwt, paxc)
+values
+  ('', '', '', '', '" + hbh + DateTime.Now.ToString("yyyyMMdd") + "', '', '" + hbh + "', 'A','" + DateTime.Now.ToString("ddMMMyyHHmm", CultureInfo.CreateSpecificCulture("en-GB")) + "' , '', '', '', '', '', '', '', '1', '', '', '', '" + DateTime.Now.ToString("ddMMMyyHHmm", CultureInfo.CreateSpecificCulture("en-GB")) + "', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '" + lvrs + "')");
+                            sqlOperate.RunSQL(@"insert into bj_iapi_t_hbzl
+  (hbrq, hkgs, hbh, crlx, qfsj, ddsj, sjddsj, qfjc, ddjc, yfrs, lbrs, wubrs, dbrs, ybrs, rksj, yckbz, tjbz, scbz, jtgjbs, crka, ybsj, yblks, ybygs, sblks, sbygs, xzsbs, czrs)
+values
+  ('" + DateTime.Now.ToString("yyyyMMdd") + "', 'CHN', '" + hbh + "', '1', '', '', '', '', '', '', '', '', '', '', '', '00', '0', '0', '" + hbh + "', '" + kadms[kadmnum] + "', '', '', '', '', '', '', '')");
+                            CreateYbLk(hbh, lvrs, tdhrjs, "1", cts, kadms[kadmnum]);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                    }
+                }, cts.Token);
+                t1.Start();
+                Thread.Sleep(1000);
+            }
+        }
+
+        /// <summary>
+        /// 验放旅客
+        /// </summary>
+        /// <param name="hbh"></param>
+        /// <param name="lks"></param>
+        /// <param name="tdh"></param>
+        /// <param name="crbz"></param>
+        /// <param name="ctss"></param>
+        public void CreateYbLk(string hbh, int lks, List<string> tdh, string crbz, CancellationTokenSource ctss, string crka)
+        {
+            int num = 0;
+            for (int i = 0; i < lks; i++)
+            {
+                Thread.Sleep(5000);
+                string name = xs[random.Next(0, xs.Length)] + ms[random.Next(0, ms.Length)];
+                string gjdqdm = gjdqdms[random.Next(0, gjdqdms.Length)];
+                string rylbdm = "";
+                if (crbz.Equals("1"))
+                    rylbdm = ryrjlbdms[random.Next(0, ryrjlbdms.Length)];
+                else
+                    rylbdm = rycjlbdms[random.Next(0, rycjlbdms.Length)];
+                string zjlbdm = zjlbdms[random.Next(0, zjlbdms.Length)];
+                string qzzldm = qzzldms[random.Next(0, qzzldms.Length)];
+                string xbdm = DateTime.Now.Second % 2 == 0 ? "1" : "2"; ;
+                string czydm;
+                if (crbz == "0")
+                {
+                    czydm = czydms[num * 2];
+                }
+                else
+                {
+                    czydm = czydms[num * 2 + 1];
+                }
+                Console.WriteLine(hbh + "=====" + name + "======" + tdh[num] + "======" + crbz);
+                if (crbz.Equals("1"))
+                {
+                    sqlOperate.RunSQL(@"insert into bj_pi_t_ybxx
+  (wybs, hbrq, hkgs, hbh, ddsj, rylx, xm, xb, gjdq, zjlb, zjhm, csrq, qzhm, tlq, jtgjbs, yclbz)
+values
+  ('" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '" + DateTime.Now.ToString("yyyyMMdd") + "', 'CHN', '" + hbh + "', '', '1', '" + name + "', '" + xbdm + "',  '" + gjdqdm + "',  '" + zjlbdm + "', 'E" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '', '', '', '" + hbh + "', '')");
+                }
+                else
+                {
+                    sqlOperate.RunSQL(@"insert into bj_iapi_t_ybxx
+  (wybs, hbrq, hkgs, hbh, dlsj, qfjc, ddjc, rylx, abono, xm, xbdm, gjdqdm, zjlbdm, zjhm, csrq, qzzldm, qzh, zjyxq, crbz, lwgjdqdm, crkadm, jtgjbs, zwh, yclbz, yckbz, hyzt, bgbz, bgyy, dph, hbzt, sjfbsj, rksj, ryzt, bjbz, xmpy, d2gjdqdm, d2zjlbdm, d2zjhm, d2zjyxq)
+values
+  ('" + DateTime.Now.ToString("yyyyMMddHHmmss") + hbh + "', '" + DateTime.Now.ToString("yyyyMMdd") + "', 'CHN', '" + hbh + "', '', '', '', '1', '', '" + name + "', '" + xbdm + "',  '" + gjdqdm + "',  '" + zjlbdm + "', 'E" + DateTime.Now.ToString("yyyyMMddHHmmss") + "', '', '" + qzzldm + "', '', '', '" + crbz + "', '', '" + crka + "', '" + hbh + "', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '')");
+                }
+            }
+            //ctss.Cancel();
+        }
+
+        
+    }
+}

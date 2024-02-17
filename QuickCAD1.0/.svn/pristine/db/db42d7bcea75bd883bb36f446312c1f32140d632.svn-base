@@ -1,0 +1,17 @@
+﻿namespace IsolatorTarget.Models
+{
+    /// <summary>
+    /// 分组字典模式前端模型
+    /// </summary>
+    public class GroupDictVMod
+    {
+        /// <summary>
+        /// 组名称
+        /// </summary>
+        public string GroupName { get; set; }
+        /// <summary>
+        /// 字典集
+        /// </summary>
+        public List<DictVMod> Options { get; set; }
+    }
+}

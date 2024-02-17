@@ -1,0 +1,53 @@
+﻿using System;
+using Quartz;
+using System.Linq;
+using System.Globalization;
+using DataSyncSource.Config;
+using System.Threading.Tasks;
+using DataSyncSource.Config.Entities;
+
+namespace DataSyncSource.QuartzExt
+{
+    [DisallowConcurrentExecution]
+    public class QuartzJob : IJob
+    {
+        /// <summary>
+        /// 全量同步方案：
+        /// 每分钟：同步半小时的数据
+        /// 每小时：同步一天的数据
+        /// 每天：同步一个月的数据
+        /// 操作方式：先根据条件删除，然后再覆盖
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public Task Execute(IJobExecutionContext context)
+        {
+            DateTime nowTime = DateTime.Now;  //当前时间
+            string id = context.JobDetail.Key.Name;//定时任务id
+            var job = AppDbConfiger.QueryFirst<CronJob>(id); //定时任务对象
+            string j_rtime = string.IsNullOrEmpty(job.RunTime) ? nowTime.AddHours(-3).ToString("yyyyMMddHHmmss") : job.RunTime;//上次运行时间
+            DateTime j_r_dt = DateTime.ParseExact(j_rtime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture);
+            if (!string.IsNullOrEmpty(job.SubCmds))
+            {
+                var cmds = job.SubCmds?.Split(',').ToList();
+                cmds?.ForEach(cmd =>
+                {
+                    var zrw = AppDbConfiger.QueryFirst<SubTask>(cmd);
+                    if (zrw != null && Convert.ToBoolean(zrw.TaskState))
+                    {
+                        DateTime t_stime = j_r_dt.AddMinutes(Convert.ToInt32($"-{zrw.DelayTime}"));//zrw处理延迟后的开始时间
+                        string stime = t_stime.ToString("yyyyMMddHHmmss");//开始时间
+                        string etime = nowTime.ToString("yyyyMMddHHmmss");//结束时间
+                        var dbs = zrw.Dbs.Split(',').ToList();
+                        dbs?.ForEach(db =>
+                        {
+                            JobKernel.RunJob(zrw, db, stime, etime);
+                        });
+                    }
+                });
+            }
+            AppDbConfiger.SetRunTime(id, nowTime.ToString("yyyyMMddHHmmss"));//记录运行时间
+            return Task.CompletedTask;
+        }
+    }
+}

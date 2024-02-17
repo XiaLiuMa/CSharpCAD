@@ -1,0 +1,37 @@
+﻿namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 网络设备信息
+    /// </summary>
+    public class WLSB
+    {
+        /// <summary>
+        /// 通道号
+        /// </summary>
+        public string TDH { get; set; }
+        /// <summary>
+        /// 设备型号
+        /// </summary>
+        public string SBXH { get; set; }
+        /// <summary>
+        /// 设备IP地址
+        /// </summary>
+        public string IPADDRESS { get; set; }
+        /// <summary>
+        /// 设备端口号
+        /// </summary>
+        public int PORT { get; set; }
+        /// <summary>
+        /// 设备通道号
+        /// </summary>
+        public int CHANNEL { get; set; }
+        /// <summary>
+        /// 设备用户名
+        /// </summary>
+        public string USER_NAME { get; set; }
+        /// <summary>
+        /// 设备密码
+        /// </summary>
+        public string USER_PWD { get; set; }
+    }
+}

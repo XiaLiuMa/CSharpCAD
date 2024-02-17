@@ -1,0 +1,52 @@
+﻿using System;
+
+namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 字符叠加信息
+    /// </summary>
+    [Serializable]
+    public class DjMessage
+    {
+        /// <summary>
+        /// 操作员部门
+        /// </summary>
+        public string Czybm { get; set; }
+        /// <summary>
+        /// 操作员代码
+        /// </summary>
+        public string Czydm { get; set; }
+        /// <summary>
+        /// 操作员姓名
+        /// </summary>
+        public string Czyxm { get; set; }
+        /// <summary>
+        /// 旅客证件号码
+        /// </summary>
+        public string Lkzjhm { get; set; }
+        /// <summary>
+        /// 旅客姓名
+        /// </summary>
+        public string Lkxm { get; set; }
+        /// <summary>
+        /// 旅客评价信息
+        /// </summary>
+        public string Lkpjxx { get; set; }
+        /// <summary>
+        /// 旅客国籍
+        /// </summary>
+        public string Lkgj { get; set; }
+        /// <summary>
+        /// 航班号
+        /// </summary>
+        public string Jtgj { get; set; }
+        /// <summary>
+        /// 出生日期
+        /// </summary>
+        public string CSRQ { get; set; }
+        /// <summary>
+        /// 唯一标识
+        /// </summary>
+        public string WYBS { get; set; }
+    }
+}

@@ -1,0 +1,77 @@
+﻿using System;
+using System.Data;
+using Max.BaseKit;
+using System.Data.SqlClient;
+using System.Collections.Generic;
+using Oracle.ManagedDataAccess.Client;
+
+namespace Max.DbTool.Imp.SQL
+{
+    /// <summary>
+    /// 提供SqlServer数据库操作实现
+    /// </summary>
+    public class MssqlOperate : AbsSqlOperate
+    {
+        public override DbConfig Config { get; set; }
+        public MssqlOperate(DbConfig config) { Config = config; }
+        protected override IDbConnection GetConnection()
+        {
+            return new OracleConnection(Config.ConnStr);
+        }
+        public bool Execute(string sqlstr)
+        {
+            try
+            {
+                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+                using (SqlConnection connection = new SqlConnection(Config.ConnStr))
+                {
+                    connection.Open();
+                    using (var cmd = new SqlCommand(sqlstr, connection))
+                    {
+                        cmd.ExecuteNonQuery();
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"Mssql执行的Execute异常:{ex.Message},语句:{sqlstr}");
+                return false;
+            }
+        }
+        public DataTable Query(string sqlstr)
+        {
+            DataTable dt = new DataTable();
+            try
+            {
+                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+                using (SqlConnection connection = new SqlConnection(Config.ConnStr))
+                {
+                    connection.Open();
+                    using (var da = new SqlDataAdapter(sqlstr, connection))
+                    {
+                        da.Fill(dt);
+                        return dt;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"Mssql执行的Query异常:{ex.Message},语句:{sqlstr}");
+                return dt;
+            }
+        }
+        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+        {
+            throw new NotImplementedException();
+        }
+        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+        {
+            throw new NotImplementedException();
+        }
+        public override void Dispose()
+        {
+            DbOperateManger.I.ReturnObject(Config, this);
+        }
+    }
+}

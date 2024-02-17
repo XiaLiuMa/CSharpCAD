@@ -1,0 +1,21 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace GaCharSet.Config.Mods
+{
+    /// <summary>
+    /// 串口服务器配置
+    /// </summary>
+    public class SerialServer
+    {
+        /// <summary>
+        /// IP
+        /// </summary>
+        public string ServerIP { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int ServerPort { get; set; }
+    }
+}

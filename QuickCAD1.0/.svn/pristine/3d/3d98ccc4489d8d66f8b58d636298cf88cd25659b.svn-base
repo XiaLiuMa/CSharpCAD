@@ -1,0 +1,89 @@
+﻿using System;
+using System.IO;
+using Max.BaseKit;
+using System.Threading;
+using Max.BaseKit.Utils;
+using System.Threading.Tasks;
+using DataSyncTarget.Config;
+
+namespace DataSyncTarget.Comm
+{
+    /// <summary>
+    /// 日志管理器
+    /// </summary>
+    public class LogManager
+    {
+        #region 单例
+        private static LogManager instance;
+        private readonly static object objLock = new object();
+        public static LogManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new LogManager();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 线程管理
+        /// </summary>
+        private CancellationTokenSource cts = new CancellationTokenSource();
+
+        /// <summary>
+        /// 启动日志清理
+        /// </summary>
+        public void StartLogCleaning()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    DateTime dtime = DateTime.Now.AddDays(Convert.ToInt32($"-{AppXmlConfiger.Config.LogDays}"));//xx天前
+                    string tstr = dtime.ToString("yyyyMMddHHmmss");
+                    NLogger.Info($"删除{tstr}前的日志(数据库和文件)");
+
+                    #region 删除过期日志文件
+                    try
+                    {
+                        var dir = $"{AppContext.BaseDirectory}/logs/";
+                        if (Directory.Exists(dir))
+                        {
+                            var files = DirectoryUtil.GetFileNames(dir); //获取所有日志文件名
+                            files?.ForEach(p =>
+                            {
+                                FileInfo f = new FileInfo(p);
+                                if (f.LastWriteTime < dtime) f.Delete();
+                            });
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"删除过期日志文件错误=={ex.Message}");
+                    }
+                    #endregion
+
+                    Thread.Sleep(10 * 60 * 1000);//10分钟清理1次
+                }
+            }, cts.Token);
+        }
+
+        /// <summary>
+        /// 停止日志清理
+        /// </summary>
+        public void StopLogCleaning()
+        {
+            cts?.Cancel();
+        }
+    }
+}

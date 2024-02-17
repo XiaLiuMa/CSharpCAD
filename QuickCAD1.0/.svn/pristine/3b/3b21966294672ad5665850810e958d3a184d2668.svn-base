@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Ms数据库配置</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../comm/css/layui.css">
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+    <style type="text/css">
+        /*隐藏表格倒数第一列*/
+        /*.layui-table tr > td:nth-last-of-type(1) {
+            display: none;
+        }*/
+        
+        .peizhi {
+            width: 350px;
+            height: 460px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="handle">
+            <img id="add" src="../comm/img/add.png" alt="" />
+            <img id="delete" src="../comm/img/delete.png" alt="" />
+            <img id="update" src="../comm/img/alert.png" alt="" />
+            <input type="text" class="select-input" name="condition" placeholder="请输入ip号">
+            <!-- 查询 -->
+            <img id="select" src="../comm/img/select.png" alt="" />
+        </div>
+        <div id="table" class="table-div"></div>
+        <div id="pageBar" class="txtRight"></div>
+    </div>
+
+    <div class="peizhi">
+        <div class="pz-header">
+            <span class="pz-title">数据库配置</span>
+            <button type="button" class="close"><span style="color: #0C4EF7;">&times;</span></button>id
+        </div>
+        <div class="pz-content">
+            <div class="flexDiv" style="display:none;"><span>编号：</span><input type="text" id="id"></div>
+            <div class="flexDiv"><span>数据库标识：</span><input type="text" id="flag" autocomplete="off"></div>
+            <div class="flexDiv"><span>数据库名称：</span><input type="text" id="dname"></div>
+            <div class="flexDiv"><span>服务器IP：</span><input type="text" id="dip"></div>
+            <div class="flexDiv"><span>数据库端口：</span><input type="text" id="port"></div>
+            <div class="flexDiv"><span>用户名：</span><input type="text" id="uname"></div>
+            <div class="flexDiv"><span>密码：</span><input type="text" id="pwd"></div>
+            <div class="flexDiv"><span>描述：</span><input type="text" id="des"></div>
+        </div>
+        <div class="pz-footer">
+            <button type="button" class="btn btn-primary" id="confirm">确认</button>
+            <button type="button" class="btn btn-default btn-danger" id="cancel">取消</button>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="../comm/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../comm/js/template-native.js"></script>
+    <script type="text/javascript" src="../comm/js/layui.js"></script>
+    <script type="text/javascript" src="../comm/js/mygloble.js"></script>
+    <script type="text/javascript" src="../comm/js/myutil.js"></script>
+    <script type="text/javascript" src="../comm/js/mypage.js"></script>
+    <script>
+        var json = [];
+        //nameList与widthList的数组长度要一致
+        var nameList = ['', '编号', '数据库标识', '数据库名称', '数据库IP', '数据库端口', '用户名', '密码', '描述'] //table的列名
+        var widthList = [5, 20, 100, 100, 100, 100, 100, 100, 120] //table每列的宽度
+
+        $(function() {
+            UpdataPage(); // 加载页面时初始化表格
+            MsDbQuery(); //初始化表格数据
+
+            // 点击查询按钮
+            $("#select").on("click", function() {
+                MsDbQuery();
+            });
+
+            // 点击删除按钮
+            $("#delete").on("click", function() {
+                if ($("input[name='checktr']:checked").length <= 0) {
+                    alert("请至少选择其中一项数据进行删除！")
+                    return false;
+                }
+                var msg = "确定要删除吗？\n\n请确认！";
+                if (confirm(msg) == false) {
+                    return false;
+                } else {
+                    var idArr = [];
+                    // 删除选择的列表项
+                    $(".trcheck").each(function(i, item) {
+                        if ($(this).prop('checked')) {
+                            var id = $(this).parents("tr").find("td").eq(1).text();
+                            idArr.push(id);
+                        }
+                    });
+                    $.ajax({
+                        url: "http://" + params + "/app/res_mssjk/delete",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            ids: idArr
+                        },
+                        // async: false,
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                MsDbQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 点击添加按钮
+            $("#add").on("click", function() {
+                $("#confirm").attr("czlx", "0");
+                $(".peizhi").css("display", "block");
+            });
+
+            // 点击修改按钮
+            $("#update").on("click", function() {
+                if ($("input[name='checktr']:checked").length != 1) {
+                    alert("请选择其中一项数据进行修改！")
+                    return false;
+                }
+                $(".trcheck").each(function(i, item) {
+                    if ($(this).prop('checked')) {
+                        var id = $(this).parents("tr").find("td").eq(1).text();
+                        var data = json.filter(p => p.id == id)[0];
+                        $("input[id='id']").val(data.id);
+                        $("input[id='flag']").val(data.Config.Id);
+                        $("input[id='dname']").val(data.dbName);
+                        $("input[id='dip']").val(data.dbIp);
+                        $("input[id='port']").val(data.dbPort);
+                        $("input[id='uname']").val(data.uname);
+                        $("input[id='pwd']").val(data.pwd);
+                        $("input[id='des']").val(data.describe);
+                        // $("input[id='ljcheck']").prop("checked", data.default);
+                    }
+                })
+                $("#confirm").attr("czlx", "1");
+                $(".peizhi").css("display", "block");
+            });
+
+            // 点击关闭按钮
+            $(".close").on("click", function() {
+                $(".peizhi").css("display", "none");
+                $(".pz-content input[type='text']").val("");
+            });
+
+            // 点击取消按钮
+            $("#cancel").on("click", function() {
+                $(".peizhi").css("display", "none");
+                $(".pz-content input[type='text']").val("");
+            });
+
+            // 点击确定按钮
+            $("#confirm").on("click", function() {
+                var _id = $("input[id='id']").val();
+                var _flag = $("input[id='flag']").val();
+                var _dname = $("input[id='dname']").val();
+                var _dip = $("input[id='dip']").val();
+                var _port = $("input[id='port']").val();
+                var _uname = $("input[id='uname']").val();
+                var _pwd = $("input[id='pwd']").val();
+                var _des = $("input[id='des']").val();
+                // var idefault = $("input[id='ljcheck']").is(':checked') ? "是" : "否";
+
+                if ($(this).attr("czlx") == "0") {
+                    //添加操作
+                    $.ajax({
+                        url: "http://" + params + "/app/res_mssjk/add",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            flag: _flag,
+                            dname: _dname,
+                            dip: _dip,
+                            port: _port,
+                            uname: _uname,
+                            pwd: _pwd,
+                            des: _des
+                        },
+                        // async: false,
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                MsDbQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    })
+                } else {
+                    //修改操作
+                    $.ajax({
+                        url: "http://" + params + "/app/res_mssjk/alert",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            id: _id,
+                            flag: _flag,
+                            dname: _dname,
+                            dip: _dip,
+                            port: _port,
+                            uname: _uname,
+                            pwd: _pwd,
+                            des: _des
+                        },
+                        // async: false,
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                MsDbQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    })
+                }
+                $(".peizhi").css("display", "none");
+            });
+        });
+
+
+
+
+        //数据库数据查询
+        function MsDbQuery() {
+            var condition = $("input[name='condition']").val();
+            $.ajax({
+                url: "http://" + params + "/app/res_mssjk/query",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                data: {
+                    condition: condition
+                },
+                // async: false,
+                success: function(res) {
+                    json = (res == null) ? [] : res;
+                    reloadpage();
+                }
+            })
+        }
+    </script>
+</body>
+
+</html>

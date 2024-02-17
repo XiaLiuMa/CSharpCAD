@@ -1,0 +1,14 @@
+﻿namespace Max.TcpKit
+{
+    public class SerialServerParam
+    {
+        /// <summary>
+        /// IP
+        /// </summary>
+        public string ServerIP { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int ServerPort { get; set; }
+    }
+}

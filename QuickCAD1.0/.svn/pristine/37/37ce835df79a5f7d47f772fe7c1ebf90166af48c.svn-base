@@ -1,0 +1,41 @@
+﻿using Max.BaseKit;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 字符叠加服务
+    /// </summary>
+    public class SetCharService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return;
+            try
+            {
+                idata.Lst.ForEach(dic =>
+                {
+                    dic.TryGetValue("MSTDH", out var mstdh);//梅沙通道号("口岸代码|通道号")
+                    var cameras = ConfigCacher.I.TargetCameraCacher.Where(p => p.IsUsable && mstdh.Equals(p.MSTDH));
+                    if (cameras == null || cameras.Count <= 0)
+                    {
+                        NLogger.Warn($"SetCharService》未找到{mstdh}对应的可用的相机设备配置。");
+                        return;
+                    }
+                    dic.TryGetValue("GZZZT", out var gzzzt);//工作站状态("1":上台，"2":下台)
+                    
+                    //TODU...区分上台下台操作，增加上台下台缓存
+
+                });
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"SetCharService消费{idata.Cmd}异常{ex.Message}。");
+            }
+        }
+    }
+}

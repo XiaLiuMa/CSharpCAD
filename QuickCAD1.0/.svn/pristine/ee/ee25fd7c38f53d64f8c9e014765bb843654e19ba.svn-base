@@ -1,0 +1,68 @@
+﻿
+using MySql.Data.MySqlClient;
+using System;
+using System.Data;
+
+namespace MsDataSimulator.Comm
+{
+    /// <summary>
+    /// 提供Mysql的数据库操作接口实现
+    /// </summary>
+    public class MysqlOperate
+    {
+        /// <summary>
+        /// 数据库连接字符串
+        /// </summary>
+        public string DbCon { get; set; }
+
+        private static object lckObj = new object();
+        public int RunSQL(string cmdText)
+        {
+            var re = 0;
+            lock (lckObj)
+            {
+                try
+                {
+                    using (var sqlDb = new MySqlConnection(DbCon))
+                    {
+                        using (var cmd = new MySqlCommand(cmdText, sqlDb))
+                        {
+                            sqlDb.Open();
+                            re = cmd.ExecuteNonQuery();
+                            cmd.Dispose();
+                            sqlDb.Close();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+                return re;
+            }
+        }
+        public void RunSQL(string cmdText, ref DataSet ds)
+        {
+            lock (lckObj)
+            {
+                try
+                {
+                    using (var sqlDb = new MySqlConnection(DbCon))
+                    {
+                        using (var da = new MySqlDataAdapter(cmdText, sqlDb))
+                        {
+                            sqlDb.Open();
+                            da.Fill(ds);
+                            da.Dispose();
+                            sqlDb.Close();
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+        }
+    }
+}

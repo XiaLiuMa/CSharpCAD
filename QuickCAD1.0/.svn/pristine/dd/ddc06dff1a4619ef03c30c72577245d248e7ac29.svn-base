@@ -1,0 +1,152 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Customs;
+using Max.BaseKit.Utils;
+using Max.ISolator.SeriaPortKit;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口同步助手
+    /// </summary>
+    public class SerialPortIsolator : AbsIsolator
+    {
+        /// <summary>
+        /// 串口客户端
+        /// </summary>
+        private SerialPortCilent spClient;
+        public override string Id { get; set; }
+        /// <summary>
+        /// 串口名称
+        /// </summary>
+        public string PortName { get; private set; }
+        /// <summary>
+        /// 波特率
+        /// </summary>
+        public int BaudRate { get; private set; }
+        /// <summary>
+        /// 数据位
+        /// </summary>
+        public int DataBit { get; private set; }
+        /// <summary>
+        /// 停止位
+        /// </summary>
+        public int StopBit { get; private set; }
+        /// <summary>
+        /// 校验位
+        /// </summary>
+        public int Parity { get; private set; }
+        public override string ProduceCachePath { get; set; }
+        public override bool IsBackupProduce { get; set; }
+        public override string ProduceBackupPath { get; set; }
+        public override int ProduceChannelSize { get; set; }
+        public override int ItemSize { get; set; }
+        public override int BulkSize { get; set; }
+        public override bool IsZip { get; set; }
+        public override CustomConcurrentList<string> WaitProduceFiles { get; set; }
+        public override BlockingCollection<string> ProducingFiles { get; set; }
+
+        /// <summary>
+        /// 创建串口隔离器
+        /// </summary>
+        /// <param name="id">主键Id</param>
+        /// <param name="portName">串口名称</param>
+        /// <param name="baudRate">波特率</param>
+        /// <param name="dataBit">数据位</param>
+        /// <param name="stopBit">停止位</param>
+        /// <param name="parity">校验位</param>
+        /// <param name="produceCachePath">生产文件缓存路径</param>
+        /// <param name="isBackupProduce">是否备份生产文件</param>
+        /// <param name="produceBackupPath">生产文件备份路径</param>
+        /// <param name="produceChannelSize">数据生产管道大小，用于控制消费并行数</param>
+        /// <param name="itemSize">数量大小(单个文件可容纳多少条数据)</param>
+        /// <param name="bulkSize">容积大小(单个文件可容纳多大的数据，单位M)</param>
+        /// <param name="isZip">是否压缩数据</param>
+        public SerialPortIsolator(string id, string portName, int baudRate, int dataBit, int stopBit, int parity, string produceCachePath, bool isBackupProduce, string produceBackupPath, int produceChannelSize, int itemSize, int bulkSize, bool isZip)
+        {
+            this.Id = id;
+            this.PortName = portName;
+            this.BaudRate = baudRate;
+            this.DataBit = dataBit;
+            this.StopBit = stopBit;
+            this.Parity = parity;
+            this.ProduceCachePath = produceCachePath;
+            this.IsBackupProduce = isBackupProduce;
+            this.ProduceBackupPath = produceBackupPath;
+            this.ProduceChannelSize = produceChannelSize;
+            this.ItemSize = itemSize;
+            this.BulkSize = bulkSize;
+            this.IsZip = isZip;
+            WaitProduceFiles = new CustomConcurrentList<string>();
+            ProducingFiles = new BlockingCollection<string>(); 
+        }
+
+        public override void BootUp()
+        {
+            try
+            {
+                spClient = new SerialPortCilent(PortName, BaudRate, DataBit, StopBit, Parity);
+                spClient.OnReceived += OnDataReceived;
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"启动串口隔离器异常：{ex.Message}");
+            }
+        }
+
+        public override void ProduceData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1, ProduceCachePath);//缓存文件
+                    WaitProduceFiles.Add(fName);//加入待消费队列
+
+                    //string datastr = JsonConvert.SerializeObject(tlst[i]);
+                    //byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+                    //var client = SerialPortManager.Instance.GetFreeSerialPort();
+                    //client?.SendBytes(ys_bytes);
+                    //NLogger.Debug($"串口发送{idata.Cmd}数据...");
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口同步数据异常：{ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// 接收到串口数据
+        /// </summary>
+        /// <param name="bytes"></param>
+        private void OnDataReceived(byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null || bytes.Length <= 0) return;
+                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+                string datastr = Encoding.UTF8.GetString(jy_bytes);
+                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(datastr);
+                NLogger.Debug($"串口接收到{idata.Cmd}数据...");
+                if (idata == null) return;
+                var fName = CacheData(idata, idata.CutNum, MaxIsolator.I.ConsumeCachePath);//缓存到文件
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"接收串口数据解析异常>>{ex.Message}");
+            }
+        }
+
+        public override void ShutDown()
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

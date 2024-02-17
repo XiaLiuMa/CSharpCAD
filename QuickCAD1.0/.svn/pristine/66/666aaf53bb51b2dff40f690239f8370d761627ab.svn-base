@@ -1,0 +1,74 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using System.Threading;
+
+namespace Max.BaseKit.Utils
+{
+    public class SystemUtil
+    {
+        public static int GetProcessId()
+        {
+            Process processes = Process.GetCurrentProcess();
+            return processes.Id;
+        }
+
+        public static int GetProcessId(string name)
+        {
+            Process[] processes = Process.GetProcesses();
+            foreach (Process process in processes)
+            {
+                if (process.ProcessName.Equals(name))
+                {
+                    return process.Id;
+                }
+            }
+            return -1;
+        }
+
+        public static int GetThreadId()
+        {
+            return Thread.CurrentThread.ManagedThreadId;
+        }
+
+        /// <summary>
+        /// 设置系统时间
+        /// </summary>
+        /// <param name="dateTime"></param>
+        /// <param name="isLinux"></param>
+        public static void SetSystemTime(DateTime dateTime, bool isLinux = false)
+        {
+            // 构造要执行的命令
+            string command = isLinux ? $"sudo date -s \"{dateTime.ToString("yyyy-MM-dd HH:mm:ss")}\"" : $"date \"{dateTime.ToString("yyyy-MM-dd HH:mm:ss")}\"";
+            try
+            {
+                // 创建一个新的进程
+                var process = new Process();
+
+                // 设置进程启动信息
+                process.StartInfo.FileName = isLinux ? "/bin/bash" : "cmd.exe";
+                process.StartInfo.Arguments = isLinux ? $"-c \"{command}\"" : $"/c {command}";
+
+                // 设置进程权限和输出信息重定向
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.RedirectStandardError = true;
+
+                // 启动进程并等待执行完成
+                process.Start();
+                process.WaitForExit();
+
+                // 输出执行结果（可选）
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+                Console.WriteLine($"Output: {output}");
+                Console.WriteLine($"Error: {error}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("设置时间失败：" + ex.Message);
+            }
+        }
+    }
+}

@@ -1,0 +1,61 @@
+﻿using System;
+using System.Text;
+using RabbitMQ.Client;
+
+namespace Max.ISolator.RabbitMqPkg
+{
+    /// <summary>
+    /// RabbitMq生产者
+    /// </summary>
+    public class RmqProducer
+    {
+        /// <summary>
+        /// 生产者配置
+        /// </summary>
+        private readonly RmqProducerCfg _Config;
+        public RmqProducer(RmqProducerCfg config) { _Config = config; }
+
+        /// <summary>
+        /// 修改数据
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <returns></returns>
+        public bool Publich(string data)
+        {
+            bool flag = default;
+
+            var factory = new ConnectionFactory()
+            {
+                VirtualHost = _Config.Vhost,
+                HostName = _Config.Ip,
+                Port = _Config.Port,
+                UserName = _Config.Use,
+                Password = _Config.Pwd
+            };
+
+            using (var connection = factory.CreateConnection())
+            {
+                using (var channel = connection.CreateModel())
+                {
+                    channel.ExchangeDeclare("topicdemo.exchange", ExchangeType.Topic, true, false, null);
+                    Console.WriteLine("输入需要传输的消息，输入Exit退出");
+                    var message = Console.ReadLine();
+                    while (message != "Exit")
+                    {
+                        Console.WriteLine("输入RouteKey");
+                        var routekey = Console.ReadLine();
+                        var body = Encoding.UTF8.GetBytes(message);
+
+                        channel.BasicPublish(exchange: "topicdemo.exchange", routingKey: routekey, basicProperties: null, body: body);
+                        Console.WriteLine(" 发送消息 {0} Routekey {1}", message, routekey);
+                        message = Console.ReadLine();
+                    }
+                }
+                Console.WriteLine("按回车退出");
+                Console.ReadLine();
+            }
+
+            return flag;
+        }
+    }
+}

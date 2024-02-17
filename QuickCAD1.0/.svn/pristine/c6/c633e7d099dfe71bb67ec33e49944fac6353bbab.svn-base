@@ -1,0 +1,95 @@
+﻿using System;
+using System.Linq;
+using Microsoft.AspNetCore.Http;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Caching.Memory;
+
+namespace DataSyncTarget.Comm
+{
+    /// <summary>
+    /// 用户缓存
+    /// </summary>
+    public class UserCacher
+    {
+        private static MemoryCache cache = new MemoryCache(new MemoryCacheOptions());
+
+        /// <summary>
+        /// 获取Token缓存
+        /// </summary>
+        /// <param name="token"></param>
+        public static string GetCache(string token)
+        {
+            return (string)cache.Get($"User_{token}");
+        }
+
+        /// <summary>
+        /// 设置Token缓存
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="user"></param>
+        /// <param name="pwd"></param>
+        public static string SetCache(HttpContext context, string user, string pwd)
+        {
+            string token = GetMD5($"{GetClientUserIp(context)}{user}{pwd}");
+            cache.Set($"User_{token}", token, new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(10)    //10分钟过期
+            });
+            return token;
+        }
+
+        /// <summary>
+        /// 延时Token缓存
+        /// </summary>
+        /// <param name="token"></param>
+        public static void DelayCache(string token)
+        {
+            cache.Set($"User_{token}", token, new MemoryCacheEntryOptions
+            {
+                SlidingExpiration = TimeSpan.FromMinutes(10)    //10分钟过期
+            });
+        }
+
+        /// <summary>
+        /// 移除Token缓存
+        /// </summary>
+        /// <param name="token"></param>
+        public static void RemoveCache(string token)
+        {
+            cache.Remove($"User_{token}");
+        }
+
+        /// <summary>
+        /// 获取客户Ip
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        private static string GetClientUserIp(HttpContext context)
+        {
+            var ip = context.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (string.IsNullOrEmpty(ip))
+            {
+                ip = context.Connection.RemoteIpAddress.ToString();
+            }
+            return ip;
+        }
+
+        /// <summary>
+        /// MD5加密
+        /// </summary>
+        /// <param name="myString"></param>
+        /// <returns></returns>
+        private static string GetMD5(string myString)
+        {
+            MD5 md5 = new MD5CryptoServiceProvider();
+            byte[] fromData = System.Text.Encoding.UTF8.GetBytes(myString);
+            byte[] targetData = md5.ComputeHash(fromData);
+            string byte2String = null;
+            for (int i = 0; i < targetData.Length; i++)
+            {
+                byte2String = byte2String + targetData[i].ToString("x2");
+            }
+            return byte2String;
+        }
+    }
+}

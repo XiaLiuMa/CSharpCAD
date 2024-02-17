@@ -1,0 +1,460 @@
+﻿using System;
+using System.Runtime.InteropServices;
+using System.Collections.Generic;
+
+namespace SetCharLib.UniView
+{
+    /// <summary>
+    /// 宇视IPC网络摄像机SDK
+    /// </summary>
+    public class IMOS_MV_SDK
+    {
+        public const string dllPath = @"Drivers\uniview\imos_mw_sdk\imos_mw_sdk.dll";
+
+        #region 宏定义
+        /// <summary>
+        /// 通用CODE长度
+        /// </summary>
+        public const int IMOS_MW_CODE_LEN = 48;
+
+        /// <summary>
+        /// 获取/设置 系统时间(含时区信息)，对应结构定义: IMOS_MW_SYSTEM_TIME_INFO_S
+        /// </summary>
+        public const int IMOS_MW_SYSTEM_TIME_INFO = 0;
+
+        /// <summary>
+        /// 获取/设置/删除 叠加OSD配置
+        /// </summary>
+        public const int IMOS_MW_INFO_OSD_CFG = 36;
+
+        /// <summary>
+        /// OSD 叠加内容的长度
+        /// </summary>
+        public const int IMOS_MW_OSD_INFO_LEN = 60;
+
+        /// <summary>
+        /// 叠加 OSD 最大个数
+        /// </summary>
+        public const int IMOS_MW_INFO_OSD_MAX_NUM = 3;
+
+        /// <summary>
+        /// OSD 叠加内容最大行数
+        /// </summary>
+        public const int IMOS_MW_INFO_OSD_LINE_MAX = 8;
+
+        /// <summary>
+        /// 遮盖 OSD 最大个数
+        /// </summary>
+        public const int IMOS_MW_COVER_OSD_MAX_NUM = 8;
+
+        /// <summary>
+        /// 叠加内容类型
+        /// </summary>
+        public const int IMOS_MW_OSD_INFO_TYPE_UNUSED = 0;    /* 不使用 */
+        public const int IMOS_MW_OSD_INFO_TYPE_USERDEF = 1;    /* 自定义 */
+        public const int IMOS_MW_OSD_INFO_TYPE_DATETIME = 2;    /* 时间日期 */
+        public const int IMOS_MW_OSD_INFO_TYPE_PTZOPER = 3;    /* 云台控制者 */
+        public const int IMOS_MW_OSD_INFO_TYPE_PTZCOORDINATS = 4;    /* 云台坐标 */
+        public const int IMOS_MW_OSD_INFO_TYPE_CRUISEINFO = 5;    /* 巡航信息 */
+        public const int IMOS_MW_OSD_INFO_TYPE_ZOOMINFO = 6;    /* 变倍信息 */
+        public const int IMOS_MW_OSD_INFO_TYPE_PRESETINFO = 7;    /* 预置位信息 */
+        public const int IMOS_MW_OSD_INFO_TYPE_ALARMINFO = 8;    /* 报警信息 */
+        public const int IMOS_MW_OSD_INFO_TYPE_ENCODEINFO = 9;    /* 编码信息 */
+
+        /// <summary>
+        /// 其他 OSD 类型
+        /// </summary>
+        public const int IMOS_MW_OSD_PIC_TIME = 0;     /**< 抓拍照片 时间OSD */
+        public const int IMOS_MW_OSD_PIC_VEHICLE_SPEED = 1;     /**< 抓拍照片 车速OSD */
+        public const int IMOS_MW_OSD_PIC_LIMITED_SPEED = 2;     /**< 抓拍照片 限速OSD */
+        public const int IMOS_MW_OSD_PIC_PECCANCY_TYPE = 3;     /**< 抓拍照片 违章类型OSD */
+        public const int IMOS_MW_OSD_PIC_VEHICLE_COLOR = 4;     /**< 抓拍照片 车身颜色OSD */
+        public const int IMOS_MW_OSD_PIC_VEHICLE_LOGO = 5;     /**< 抓拍照片 车标OSD */
+        public const int IMOS_MW_OSD_PIC_VEHICLE_TYPE = 6;     /**< 抓拍照片 车型OSD */
+        public const int IMOS_MW_OSD_TYPE_BUTT = 7;     /**< 支持的抓拍OSD个数 */
+
+        /// <summary>
+        /// OSD 字体样式
+        /// </summary>
+        public const int IMOS_MW_OSD_FONT_STYLE_NORMAL = 0;    /**< 正常 */
+        public const int IMOS_MW_OSD_FONT_STYLE_STROKES = 1;    /**< 描边 */
+        public const int IMOS_MW_OSD_FONT_STYLE_HOLLOW = 2;    /**< 空心 */
+
+        /// <summary>
+        /// OSD 字体大小
+        /// </summary>
+        public const int IMOS_MW_OSD_FONT_SIZE_LARGE = 0;    /**< 大 */
+        public const int IMOS_MW_OSD_FONT_SIZE_MIDDLE = 1;    /**< 中 */
+        public const int IMOS_MW_OSD_FONT_SIZE_SMALL = 2;    /**< 小 */
+
+        /// <summary>
+        /// OSD 颜色
+        /// </summary>
+        public const int IMOS_MW_OSD_COLOR_WHITE = 0;    /**< 白 */
+        public const int IMOS_MW_OSD_COLOR_RED = 1;    /**< 红 */
+        public const int IMOS_MW_OSD_COLOR_YELLOW = 2;    /**< 黄 */
+        public const int IMOS_MW_OSD_COLOR_BLUE = 3;    /**< 蓝 */
+        public const int IMOS_MW_OSD_COLOR_BLACK = 4;    /**< 黑 */
+        public const int IMOS_MW_OSD_COLOR_GREEN = 5;    /**< 绿 */
+        public const int IMOS_MW_OSD_COLOR_PURPLE = 6;    /**< 紫 */
+
+        /// <summary>
+        /// OSD 透明度
+        /// </summary>
+        public const int IMOS_MW_OSD_ALPHA_NO = 0;    /**< 不透明 */
+        public const int IMOS_MW_OSD_ALPHA_SEMI = 1;    /**< 半透明 */
+        public const int IMOS_MW_OSD_ALPHA_ALL = 2;    /**< 全透明 */
+        #endregion
+
+        #region SDK初始化和注销(单个进程中不支持初始化多个SDK)
+        /// <summary>
+        /// 初始化SDK,调用其他函数的前提
+        /// </summary>
+        /// <returns>
+        ///ULONG，返回如下结果： 
+        ///ERR_COMMON_SUCCEED 成功 
+        ///ERR_SDK_COMMON_FAIL 操作失败 
+        ///ERR_SDK_CREATE_THREAD_FAIL 创建线程失败 
+        ///ERR_SDK_XP_INIT_FAILED 播放器初始化失败 
+        ///ERR_SDK_REINIT SDK 已经初始化 
+        ///ERR_SDK_COMMON_NO_MEMORY 缓存不足 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_Initiate();
+
+        /// <summary>
+        /// SDK资源释放
+        /// </summary>
+        /// <returns>
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_FAIL 操作失败
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_Cleanup();
+        #endregion
+
+        #region 设置状态上报回调函数
+        /// <summary>
+        /// SDK状态上报回调函数
+        /// 1、用户需要确保该回调函数尽快返回 
+        /// 2、不能在该回调函数中直接调用播放器的任何接口函数。 
+        /// 3、参数pParam所指的缓冲区中存放的数据的类型视消息或者异常消息类型而定，用户需要根据消息或者异常消息类型对其做类型转换
+        /// </summary>
+        /// <param name="pcUserID">用户ID, 表示当前上报状态的用户</param>
+        /// <param name="ulReportType">消息或者异常消息类型，参见 IMOS_MW_STATUS_KEEPALIVE 等</param>
+        /// <param name="pParam">存放消息或异常消息数据的缓冲区指针</param>
+        public delegate void IMOS_MW_STATUS_REPORT_CALLBACK_PF(string pcUserID, int ulReportType, IntPtr pParam);
+
+        /// <summary>
+        /// 设置状态上报回调函数
+        /// 1、用户需要确保该回调函数尽快返回。 
+        ///2、不能在该回调函数中直接调用播放器SDK的任何接口函数。 
+        /// </summary>
+        /// <param name="callBack">状态上报回调函数的函数指针</param>
+        /// <returns>
+        /// 返回如下结果：ERR_COMMON_SUCCEED 成功 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_SetStatusCallback(IMOS_MW_STATUS_REPORT_CALLBACK_PF callBack);
+        #endregion
+
+        #region SDK日志和信息
+        /// <summary>
+        /// 获取SDK版本号
+        /// 调用者需保证指针所指向的内存长度不小于: IMOS_MW_SDK_CLIENT_VERSION_LEN 
+        /// </summary>
+        /// <param name="pucVersion">版本号，长度: IMOS_MW_SDK_CLIENT_VERSION_LEN 
+        /// </param>
+        /// <returns>
+        /// 返回如下结果： 
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_INVALID_PARAM 参数非法 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_GetSDKVersion(ref string pucVersion);
+
+        /// <summary>
+        /// 设置SDK日志信息
+        /// 1、日志级别的含义，实际记录所有高于设置级别的日志信息，建议设置为: IMOS_SDK_LOG_INFO。 
+        /// 2、日志保存路径需指定，路径长度和操作系统有关，sdk不做限制，windows默认路径长度小于等于256字节（包括文件名在内）。 
+        /// 3、SDK默认日志文件名称 "IMOS_MW_SDK00.log", 默认单个日志文件大小为1.5M，超过该大小时，将已有日志文件备份为"IMOS_MW_SDK01.log", 后重新记录在原文件中。 
+        /// </summary>
+        /// <param name="ulLogLevel">日志级别，参见: IMOS_SDK_LOG_CLOSE 等</param>
+        /// <param name="pcLogPath">保存路径</param>
+        /// <param name="ulLogSize">日志大小</param>
+        /// <returns>
+        ///返回如下结果： 
+        ///ERR_COMMON_SUCCEED 成功 
+        ///ERR_SDK_COMMON_INVALID_PARAM 参数非法 
+        ///ERR_SDK_LOG_CLOSE 日志已关闭 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_SetLog(int ulLogLevel, string pcLogPath, int ulLogSize);
+        #endregion
+
+        #region 用户登录（SDK用户登录、登出 ）
+        /// <summary>
+        /// 用户登录
+        /// 1、该接口用于登录IPC设备 
+        /// 2、pcUserID 用户标识，具有唯一性，后续对设备的操作都需要通过此ID实现 
+        /// </summary>
+        /// <param name="pcUserName">pcUserName 用户输入的登录名</param>
+        /// <param name="pcPassword">pcPassword 用户输入的密码</param>
+        /// <param name="pcServerIP">pcServerIP 目的终端的IP地址</param>
+        /// <param name="usServerPort">usServerPort 目的终端的端口号</param>
+        /// <param name="pcUserID">pcUserID 用户ID</param>
+        /// <returns>
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_FAIL 操作失败 
+        /// ERR_SDK_COMMON_INVALID_PARAM 输入参数非法 
+        /// ERR_SDK_NOTINIT 设备SDK未初始化 
+        /// ERR_SDK_USERFULL 设备用户已满 
+        /// ERR_SDK_USERNONEXIST 用户不存在 
+        /// ERR_SDK_USER_PASSWD_INVALID 用户密码错误 
+        /// ERR_SDK_COMMAND_TIMEOUT 请求超时 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_Login(String pcUserName, String pcPassword, String pcServerIP, ushort usServerPort, IntPtr pcUserID);
+
+        /// <summary>
+        /// 用户注销
+        /// 输入参数中用户ID，是登录时获取到的
+        /// </summary>
+        /// <param name="pcUserID">pcUserID 用户ID</param>
+        /// <returns>
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_FAIL 操作失败 
+        /// ERR_SDK_COMMON_INVALID_PARAM 输入参数非法 
+        /// ERR_SDK_USERNONEXIST 用户非法 
+        /// ERR_SDK_COMMAND_TIMEOUT 请求超时 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_Logout(string pcUserID);
+        #endregion
+
+        #region 参数配置
+        /// <summary>
+        /// 获取设备配置信息
+        /// 1、参数 ulChannel 对于各类型命令字有不同的含义，部分命令字不需要该参数，设置为无效值(0xFFFF)。 
+        /// 2、参数 pulBufferLen 入参时表示存放获取到配置的缓存区大小，出参表示实际获取到配置需要的缓存区大小； 
+        /// 对于部分长度可变的配置项，若入参缓存区大小不够，需要根据出参重新获取配置。 
+        /// 3、参数 pConfigDataBuf 表示存放获取到配置的指针，其对应的结构定义参见各命令字的说明，其中部分参数的获取，需要传入指定参数。
+        /// </summary>
+        /// <param name="pcUserID">pcUserID 用户ID</param>
+        /// <param name="ulCmdType">ulCmdType 命令类型，参见: IMOS_MW_SYSTEM_TIME_INFO 等</param>
+        /// <param name="ulChannel">ulChannel 通道号</param>
+        /// <param name="pulBufferLen">pulBufferLen 传入数据的缓冲区大小</param>
+        /// <param name="pConfigDataBuf">pConfigDataBuf 存放输出参数的缓冲区</param>
+        /// <returns>
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_FAIL 操作失败 
+        /// ERR_SDK_COMMON_INVALID_PARAM 参数非法 
+        /// ERR_SDK_USERNONEXIST 用户非法 
+        /// ERR_SDK_COMMAND_TIMEOUT 请求超时 
+        /// ERR_SDK_COMMON_NO_MEMORY 系统内存不足 
+        /// ERR_SDK_NOENOUGH_BUF 缓存大小不足
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_GetConfig(string pcUserID, int ulCmdType, int ulChannel, ref int pulBufferLen, IntPtr pConfigDataBuf);
+
+        /// <summary>
+        /// 设置设备配置信息
+        /// 1、参数 ulChannel 对于各类型命令字有不同的含义，部分命令字不需要该参数，设置为无效值(0xFFFF)。 
+        /// 2、参数 pulBufferLen 表示存放待设置的配置缓存区大小。 
+        /// 3、参数 pConfigDataBuf 表示存待设置配置的指针，其对应的结构定义参见各命令字的说明，其中部分参数的设置，需要传入指定参数。 
+        /// </summary>
+        /// <param name="pcUserID">pcUserID 用户ID</param>
+        /// <param name="ulCmdType">ulCmdType 命令类型，参见: IMOS_MW_SYSTEM_TIME_INFO 等</param>
+        /// <param name="ulChannel">ulChannel 通道号</param>
+        /// <param name="ulBufferLen">ulBufferLen 传入数据的缓冲区大小</param>
+        /// <param name="pConfigDataBuf">pConfigDataBuf 存放输入参数的缓冲区</param>
+        /// <returns>
+        /// ERR_COMMON_SUCCEED 成功 
+        /// ERR_SDK_COMMON_FAIL 操作失败 
+        /// ERR_SDK_COMMON_INVALID_PARAM 参数非法 
+        /// ERR_SDK_USERNONEXIST 用户非法 
+        /// ERR_SDK_COMMAND_TIMEOUT 请求超时 
+        /// ERR_SDK_COMMON_NO_MEMORY 系统内存不足 
+        /// </returns>
+        [DllImport(dllPath, CharSet = CharSet.Ansi, CallingConvention = CallingConvention.StdCall)]
+        public static extern int IMOS_MW_SetConfig(string pcUserID, int ulCmdType, int ulChannel, ref int ulBufferLen, IntPtr pConfigDataBuf); 
+        #endregion
+
+        #region 结构体定义
+        /// <summary>
+        /// 时间信息 
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_TIME_S
+        {
+            /// <summary>
+            /// 年，当前年数（如2009年时，该值为2009）
+            /// </summary>
+            public ushort usYear;
+
+            /// <summary>
+            /// 月，当前月份（1－12）
+            /// </summary>
+            public ushort usMonth;
+
+            /// <summary>
+            /// 日，每月的几号（1－31）
+            /// </summary>
+            public ushort usMonthDay;
+
+            /// <summary>
+            /// 时，当前小时数（0－23）
+            /// </summary>
+            public ushort usHour;
+
+            /// <summary>
+            /// 分，当前分钟数（0－59）
+            /// </summary>
+            public ushort usMinute;
+
+            /// <summary>
+            /// 秒，当前秒数（0－60）
+            /// </summary>
+            public ushort usSecond;
+
+            /// <summary>
+            /// 周几，每周的星期几（0－6），0 对应周日，
+            /// 1-6 对应周一 至 周六 ， 暂未使用
+            /// </summary>
+            public ushort usWeekday;
+
+            /// <summary>
+            /// 保留
+            /// </summary>
+            public ushort usReserve;
+        }
+
+        /// <summary>
+        /// 系统(本地)时间
+        /// lTimeZone为 本地时区与零时区的差，例如 北京时间UTC+8,则填写 8
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_SYSTEM_TIME_INFO_S
+        {
+            /// <summary>
+            /// 设置系统时区, -12到12，对应和标准时间的偏差
+            /// </summary>
+            public int lTimeZone;
+
+            /// <summary>
+            /// 本地时间
+            /// </summary>
+            public IMOS_MW_TIME_S stLocalTime;
+        }
+
+        /// <summary>
+        /// 点坐标
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_POINT_S
+        {
+            /// <summary>
+            /// 横坐标
+            /// </summary>
+            public int ulX;
+
+            /// <summary>
+            /// 纵坐标
+            /// </summary>
+            public int ulY;
+        }
+
+        /// <summary>
+        /// 矩形框坐标结构
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_RECTANGLE_S
+        {
+            /// <summary>
+            /// 左上角坐标
+            /// </summary>
+            public IMOS_MW_POINT_S stTopLeft;
+
+            /// <summary>
+            /// 右下角坐标
+            /// </summary>
+            public IMOS_MW_POINT_S stBotRight;
+        }
+
+        /// <summary>
+        /// OSD 叠加内容
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_OSD_INFO_PARAM_S
+        {
+            /// <summary>
+            /// 叠加内容类型，参考: IMOS_MW_OSD_INFO_TYPE_UNUSED 等
+            /// </summary>
+            public int ulInfoType;
+
+            /// <summary>
+            /// 自定义 OSD 内容
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = IMOS_MW_OSD_INFO_LEN + 4)]
+            public byte[] szValue;
+        }
+
+        /// <summary>
+        /// 叠加OSD参数
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_INFO_OSD_S
+        {
+            /// <summary>
+            /// 叠加区域ID
+            /// </summary>
+            public int ulIndex;
+
+            /// <summary>
+            /// 使能开关
+            /// </summary>
+            public bool bEnable;
+
+            /// <summary>
+            /// 叠加内容
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = IMOS_MW_INFO_OSD_LINE_MAX)]
+            public IMOS_MW_OSD_INFO_PARAM_S[] astInfoParam;
+
+            /// <summary>
+            /// 叠加区域
+            /// </summary>
+            public IMOS_MW_RECTANGLE_S stArea;
+        }
+
+        /// <summary>
+        /// 叠加OSD 配置
+        /// 删除该配置时，只需指定待删除区域的ID
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IMOS_MW_INFO_OSD_CFG_S
+        {
+            /// <summary>
+            /// 叠加区域个数
+            /// </summary>
+            public int ulAreaNum;
+
+            /// <summary>
+            /// 叠加OSD 配置，区域最大个数为: IMOS_MW_INFO_OSD_MAX_NUM 
+            /// </summary>
+            [MarshalAs(UnmanagedType.ByValArray, SizeConst = IMOS_MW_INFO_OSD_MAX_NUM)]
+            public IMOS_MW_INFO_OSD_S[] astInfoOSD;
+        }
+        #endregion
+
+        /// <summary>
+        /// 已登录的设备信息
+        /// </summary>
+        public static Dictionary<string, string> dctLogins = new Dictionary<string,string>();
+
+        /// <summary>
+        /// 是否实例化SDK
+        /// </summary>
+        public static bool IsInitSdk = false;
+    }
+}

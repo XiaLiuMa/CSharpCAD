@@ -1,0 +1,18 @@
+﻿using Microsoft.AspNetCore.Cors;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace GaCharSet.WebApi
+{
+    [Route("app/home/[action]")]
+    public class HomeController : Controller
+    {
+        [HttpGet]
+        public ActionResult toindex()
+        {
+            return new RedirectResult($@"/home/home.html"); //页面跳转
+        }
+    }
+}

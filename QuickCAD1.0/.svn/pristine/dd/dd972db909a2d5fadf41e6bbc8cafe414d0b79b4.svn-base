@@ -1,0 +1,518 @@
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Oracle.ManagedDataAccess.Client;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using BaseComm.Exts;
+using BaseComm.Utils;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Threading.Tasks;
+using System.Threading;
+using System.IO;
+using System.Diagnostics;
+using MySql.Data.MySqlClient;
+using BaseComm;
+using Max.DbToolkit;
+using MySqlX.XDevAPI.Relational;
+using NPOI.SS.Formula.Functions;
+using Minio.DataModel;
+using Max.DbToolkit.SqlCore;
+using Max.DbToolkit.SqlCore.Imp;
+//using System.Data.OracleClient; //需要引用System.Data.OracleClient.dll
+
+namespace MsDataExport
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            //Restart();
+
+            #region MyRegion
+            //string fname1 = @"D:\SjtbTemp\MsSyncPath/D&206@crjrydk@SD_20230711134710399_d71d0063_34.txt";
+            //string fname2 = $@"D:\SjtbTemp\BackupPath/{Path.GetFileName(fname1)}";
+            //File.Move(fname1, fname2);//备份文件
+
+            //IsFileInUsing(@"C:\Users\Administrator\Desktop\新建文本文档1.txt");
+            //Test5();
+            ////Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册GB2312编码
+            ////AsGlobal.Init();
+            //dynamic d = 2.01;
+
+            //int i = Convert.ToInt32(d);
+            //double j = Convert.ToDouble(d); 
+            #endregion
+
+            //Test3();
+
+            MysqlTest();
+
+            Console.WriteLine("HelloWord");
+            while (true) Console.ReadLine();
+        }
+        private static async Task MysqlTest()
+        {
+            byte[] bytes = File.ReadAllBytes(@"C:\Users\Administrator\Desktop\001.png");
+            //string bas64str = Convert.ToBase64String(bytes);
+            var dlst = new List<Dictionary<string, object>>();
+            var dic1 = new Dictionary<string, object>
+            {
+                { "col1", "111" },
+                { "col2", "111" },
+                { "col3", "111" },
+                { "col4", null },
+                { "img", null }
+            };
+            var dic2 = new Dictionary<string, object>
+            {
+                { "col1", "222" },
+                { "col2", "222" },
+                { "col3", "222" },
+                { "col4", 0.01 },
+                { "img", bytes }
+            };
+            var dic3 = new Dictionary<string, object>
+            {
+                { "col1", "333" },
+                { "col2", "333" },
+                { "col3", "333" },
+                { "col4", null },
+                { "img", null }
+            };
+            var dic4 = new Dictionary<string, object>
+            {
+                { "col1", "444" },
+                { "col2", "444" },
+                { "col3", "444" },
+                { "col4", 0.01 },
+                { "img", bytes }
+            };
+            var dic5 = new Dictionary<string, object>
+            {
+                { "col1", "555" },
+                { "col2", "555" },
+                { "col3", "555" },
+                { "col4", null },
+                { "img", null }
+            };
+            //dlst.Add(dic1);
+            dlst.Add(dic2);
+            //dlst.Add(dic3);
+            dlst.Add(dic4);
+            //dlst.Add(dic5);
+            Test001("Test01", new string[] { "col1" }, dlst);
+        }
+
+        /// <summary>
+        /// SQL批量操作测试
+        /// </summary>
+        private static bool Test001(string tname, string[] keys, List<Dictionary<string, object>> dlst)
+        {
+            #region Mysql测试
+            Max.DbToolkit.DbConfig config = new Max.DbToolkit.DbConfig
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                DbFlag = "T_GBASE_001",
+                DbIp = "172.31.51.249",
+                DbPort = "9088",
+                DbName = "hk_szbj",
+                Uname = "gbasedbt",
+                Pwd = "Gbasedbt123",
+                Ext = "Driver={GBase ODBC DRIVER (64-Bit)};Server=gbaseserver;",
+                Des = "测试库"
+            };
+            ISqlOperate operate = SqlManger.Instance.Borrow(config);
+            GBaseOperate gbase = operate as GBaseOperate;
+            gbase.BatchDelete(tname, keys, dlst);
+            gbase.BatchCover(tname, keys, dlst);
+            gbase.BatchDelete(tname, keys, dlst);
+            gbase.BatchCover(tname, keys, dlst);
+            return true;
+            #endregion
+
+
+            #region Mysql测试
+            //MysqlOperate mysql = new MysqlOperate()
+            //{
+            //    DbConStr = $"Server=172.31.51.249;Port=3306;Database=djk;Charset=utf8;Uid=developer;Pwd=developer@123;SSL Mode=None"
+            //};
+            //mysql.BatchCover(tname, dlst);
+            //mysql.BatchDelete(tname, keys, dlst);
+            //mysql.BatchCover(tname, dlst);
+            //return true;
+            #endregion
+
+            #region Oracle测试
+            //OracleOperate oracle = new OracleOperate()
+            //{
+            //    DbConStr = $"DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=172.31.51.229)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=123456;PERSIST SECURITY INFO=True;USER ID=qgtg20221109;enlist=dynamic;;Pooling=false;Connection Timeout=300;"
+            //};
+            //oracle.BatchCover(tname, keys, dlst);
+            //oracle.BatchDelete(tname, keys, dlst);
+            //oracle.BatchCover(tname, keys, dlst);
+            //return true;
+            #endregion
+        }
+
+        private static async Task Restart()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                Thread.Sleep(5000);
+
+                //Environment.Exit(0);
+
+
+                #region 重启方法1
+                //Application.Exit();
+                //System.Diagnostics.Process.Start(System.Reflection.Assembly.GetExecutingAssembly().Location);
+                #endregion
+
+                #region 重启方法2
+                //System.Windows.Forms.Application.Restart();
+                //Application.Current.Shutdown();
+                #endregion
+
+                #region 重启方法3
+
+                //string ll = Process.GetCurrentProcess().MainModule.FileName;
+
+                //System.Reflection.Assembly.GetEntryAssembly();
+                //string startpath = System.IO.Directory.GetCurrentDirectory();
+                //System.Diagnostics.Process.Start(startpath + “\xxx.exe”);
+                System.Diagnostics.Process.Start(Process.GetCurrentProcess().MainModule.FileName);
+                Environment.Exit(0);
+                #endregion
+
+                #region 重启方法4
+                //Process p = new Process();
+                //p.StartInfo.FileName = System.AppDomain.CurrentDomain.BaseDirectory + “xxx.exe”;
+                //p.StartInfo.UseShellExecute = false;
+                //p.Start();
+                //Application.Current.Shutdown();
+                #endregion
+            });
+        }
+
+        /// <summary>
+        /// 判断文件是否被占用
+        /// </summary>
+        /// <param name="fname">文件全名</param>
+        /// <returns></returns>
+        public static bool IsFileInUsing(string fname)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                var fs = new FileStream(fname, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None);
+                byte[] writeBytes = new byte[1000000000];
+                for (int i = 0; i < 1000000000; i++)
+                {
+                    writeBytes[i] = 0x01;
+                }
+                fs.Write(writeBytes, 0, writeBytes.Length);
+                fs.Close();
+            });
+
+            bool isUse = IsFileInUsing1(fname, 10);
+            return isUse;
+        }
+
+
+        /// <summary>
+        /// 判断文件是否被占用(返回true是被占用，返回false是未被占用)
+        /// </summary>
+        /// <param name="fname">文件全名</param>
+        /// <param name="timeout">超时时长(单位s)</param>
+        /// <returns></returns>
+        private static bool IsFileInUsing1(string fname, int timeout = 0)
+        {
+            if (!File.Exists(fname)) return false;
+            bool isUse = true;
+            if (timeout <= 0)
+            {
+                FileStream fs = default;
+                try
+                {
+                    fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.None);
+                    isUse = false;
+                }
+                catch
+                {
+
+                }
+                finally
+                {
+                    if (fs != null) fs.Close();
+                }
+            }
+            else
+            {
+                for (int i = 0; i < timeout * 10; i++)
+                {
+                    FileStream fs = default;
+                    try
+                    {
+                        fs = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.None);
+                        isUse = false;
+                    }
+                    catch
+                    {
+
+                    }
+                    finally
+                    {
+                        if (fs != null) fs.Close();
+                    }
+                    if (!isUse) return isUse; //未被占用的情况下直接返回
+                    Thread.Sleep(100);
+                }
+            }
+            return isUse;
+        }
+
+        private async static Task Test5()
+        {
+            await TTTT();
+            int i = 0;
+        }
+
+        private async static Task TTTT()
+        {
+            for (int i = 0; i < 100000; i++)
+            {
+                Thread.Sleep(500);
+            }
+        }
+
+
+
+        private static void Test4()
+        {
+            object result1 = new DataTable().Compute("23+12*356", "");
+            object result2 = new DataTable().Compute("(23+12)/356", "");
+        }
+
+        private static void Test3()
+        {
+            var obj1 = new { Str1 = "张三", Str2 = "区域1", Bol1 = true, Num = 90.0, Num1 = 90, Num2 = 80, Num3 = 70, Num4 = 60, Num5 = 50 };
+            var dic1 = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj1));
+            var obj2 = new { Str1 = "李四", Str2 = "区域2", Bol1 = true, Num = 96.0, Num1 = 96, Num2 = 82, Num3 = 75, Num4 = 68, Num5 = 53 };
+            var dic2 = JsonConvert.DeserializeObject<Dictionary<string, object>>(JsonConvert.SerializeObject(obj2));
+            var yLst = new List<Dictionary<string, object>>() { dic1, dic2 };//原数据
+            //string mJson = "{'Map':{'Id':'Str1&Str2&Bol1','Name':'Str1','Area':'Str2','IsBoy':'Bol1','TScore':'Num+(Num5-Num4)/Num3+Num2*Num1-Num','TMark.Score1':'Num1','TMark.Score2':'Num2','TMark.Score3':'Num3','TMark.Score4':'Num4','TMark.Score5':'Num5'},'Format':{'Id':'','Name':'','Area':'','IsBoy':true,'TScore':0,'TMark':{'Score1':0,'Score2':0,'Score3':0,'Score4':0,'Score5':0}}}";
+            string mJson = "{'Map':{'Id':'Str1&Str2&Bol1','Name':'Str1','Area':'Str2','IsBoy':'Bol1','TScore':'Num-Num5','TMark.Score1':'Num1','TMark.Score2':'Num2','TMark.Score3':'Num3','TMark.Score4':'Num4','TMark.Score5':'Num5'},'Format':{'Id':'','Name':'','Area':'','IsBoy':true,'TScore':0,'TMark':{'Score1':0,'Score2':0,'Score3':0,'Score4':0,'Score5':0}}}";
+            var xLst = Structural(yLst, mJson);
+        }
+
+        /// <summary>
+        /// 结构化json数据
+        /// </summary>
+        /// <param name="dataLst">原数据集</param>
+        /// <param name="mJson">结构化json配置--{"Map":{"A1":"T1","A2.B1":"T1+T2","A2.B2":"T1-T2"},"Format":{"A1":"","A2":{"B1":0,"B2":0}}}</param>
+        /// <returns></returns>
+        private static List<Dictionary<string, object>> Structural(List<Dictionary<string, object>> dataLst, string mJson)
+        {
+            if (string.IsNullOrEmpty(mJson)) return dataLst;
+            var xLst = new List<Dictionary<string, object>>();//新数据
+            #region 结构化成json新数据
+            try
+            {
+                JObject mJson_jobj = JObject.Parse(mJson);//mJson配置的JObject格式
+                string mapJson = JsonConvert.SerializeObject(mJson_jobj["Map"]);//映射json--{"A1":"T1","A2.B1":"T1+T2","A2.B2":"T1-T2"}
+                string formatJson = JsonConvert.SerializeObject(mJson_jobj["Format"]);//格式json--{"A1":"","A2":{"B1":0,"B2":0}}
+                if (string.IsNullOrEmpty(mapJson) || string.IsNullOrEmpty(formatJson)) return dataLst;
+                var map_dic = JsonConvert.DeserializeObject<Dictionary<string, string>>(mapJson);//映射字典
+                foreach (var y_dic in dataLst)
+                {
+                    try
+                    {
+                        JObject y_jobj = JObject.Parse(JsonConvert.SerializeObject(y_dic));//原数据JObject格式
+                        JObject x_jobj = JObject.Parse(formatJson);//新数据JObject格式
+                        foreach (var map_item in map_dic)
+                        {
+                            try
+                            {
+                                JToken tVal_jobj = default;//要替换的值
+                                if (map_item.Value.JudgeInclusion(false, '&', '+', '-', '*', '/', '(', ')'))
+                                {
+                                    if (map_item.Value.JudgeInclusion(false, '&'))
+                                    {
+                                        #region 字段拼接逻辑
+                                        string[] tVals = map_item.Value.Split('&');//如："T1&T2&T3"-->["T1","T2","T3"]
+                                        string montage_val = string.Empty;//拼接结果
+                                        for (int i = 0; i < tVals.Length; i++)
+                                        {
+                                            montage_val += $"{y_jobj[tVals[i]]}";
+                                        }
+                                        tVal_jobj = montage_val;
+                                        #endregion
+                                    }
+                                    else
+                                    {
+                                        #region 字段运算逻辑
+                                        List<string> tVals = map_item.Value.Split('+', '-', '*', '/', '(', ')').ToList();//如："T1-(T2+T3)"-->["T1","T2","T3"]
+                                        string[] tValAry = tVals.Where((x, i) => !string.IsNullOrEmpty(x) && tVals.FindIndex(z => z == x) == i).ToArray();//去空+去重
+                                        Array.Reverse(tValAry);//根据字符串长度排序（解决长字段名包含短字段名导致的替换问题）
+                                        string count_expression = map_item.Value;//字符串计算表达式；如："200-(30+20)+5/30"
+                                        for (int i = 0; i < tValAry.Length; i++)
+                                        {
+                                            count_expression = count_expression.Replace($"{tValAry[i]}", $"{y_jobj[tValAry[i]]}");
+                                        }
+
+                                        object obnj = CalcUtil.CalcByDataTable(count_expression);
+                                        if (typeof(double).Equals(obnj.GetType())) tVal_jobj = (double)obnj;
+                                        else if (typeof(float).Equals(obnj.GetType())) tVal_jobj = (float)obnj;
+                                        else tVal_jobj = (int)obnj;
+                                        #endregion
+                                    }
+                                }
+                                else //无拼接或简单运算逻辑
+                                {
+                                    tVal_jobj = y_jobj[map_item.Value];
+                                }
+
+                                string[] treeVals = map_item.Key.Split('.');//如：["A2","B1"]
+                                if (treeVals?.Length <= 0) continue;
+                                switch (treeVals?.Length)
+                                {
+                                    case 1: x_jobj[treeVals[0]] = tVal_jobj; break;
+                                    case 2: x_jobj[treeVals[0]][treeVals[1]] = tVal_jobj; break;
+                                    case 3: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]] = tVal_jobj; break;
+                                    case 4: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]] = tVal_jobj; break;
+                                    case 5: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]] = tVal_jobj; break;
+                                    case 6: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]] = tVal_jobj; break;
+                                    case 7: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]][treeVals[6]] = tVal_jobj; break;
+                                    case 8: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]][treeVals[6]][treeVals[7]] = tVal_jobj; break;
+                                    default: Console.WriteLine($"Structural结构化Json步骤3异常，不支持9层和9层以上的结构"); break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine($"Structural结构化Json步骤3异常：{ex.ToString()}");
+                            }
+                        }
+                        xLst.Add(x_jobj.ToObject<Dictionary<string, object>>());
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Structural结构化Json步骤2异常：{ex.ToString()}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Structural结构化Json步骤1异常：{ex.ToString()}");
+            }
+            #endregion
+            return xLst;
+        }
+
+        /// <summary>
+        /// Oraclre数据库监听测试
+        /// </summary>
+        private static void Test1()
+        {
+            string connectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=ORCL)));User Id=QGTG;Password=qgtg;";
+            using (OracleConnection connection = new OracleConnection(connectionString))
+            {
+                connection.Open();
+
+                //创建OracleDependency对象
+                OracleDependency dependency = new OracleDependency();
+                dependency.QueryBasedNotification = true;
+
+                //设置监控的SQL语句
+                using (OracleCommand command = new OracleCommand("select * from BJ_YW_T_XBDM where rowid=''", connection))
+                {
+                    command.AddRowid = true;
+                    dependency.AddCommandDependency(command);
+                    command.Notification.IsNotifiedOnce = false;
+                    //注册回调事件
+                    dependency.OnChange += (s, a) =>
+                    {
+                        Console.WriteLine("Database changed: " + a.Info.ToString());
+
+                        if (a.Details.Rows.Count <= 0) return;
+                        foreach (DataRow dr in a.Details.Rows)
+                        {
+                            foreach (DataColumn dc in a.Details.Columns)
+                            {
+                                if (dr[dc].GetType().Equals(typeof(string)))
+                                {
+                                    var str = (string)dr[dc];
+                                    Console.WriteLine("Database changed1: " + str);
+                                }
+                            }
+                        }
+                    };
+
+                    //执行查询语句
+                    using (OracleDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Console.WriteLine(reader[0].ToString());
+                        }
+                    }
+                }
+
+                Console.ReadLine();
+            }
+        }
+
+        /// <summary>
+        /// Mysql数据库监听测试
+        /// </summary>
+        private static void Test2()
+        {
+            string connectionString = "Data Source=(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521))(CONNECT_DATA=(SERVICE_NAME=ORCL)));User Id=QGTG;Password=qgtg;";
+            using (OracleConnection connection = new OracleConnection(connectionString))
+            {
+                connection.Open();
+
+                //创建OracleDependency对象
+                OracleDependency dependency = new OracleDependency();
+                dependency.QueryBasedNotification = true;
+
+                //设置监控的SQL语句
+                using (OracleCommand command = new OracleCommand("select * from BJ_YW_T_XBDM where rowid=''", connection))
+                {
+                    command.AddRowid = true;
+                    dependency.AddCommandDependency(command);
+                    command.Notification.IsNotifiedOnce = false;
+                    //注册回调事件
+                    dependency.OnChange += (s, a) =>
+                    {
+                        Console.WriteLine("Database changed: " + a.Info.ToString());
+
+                        if (a.Details.Rows.Count <= 0) return;
+                        foreach (DataRow dr in a.Details.Rows)
+                        {
+                            foreach (DataColumn dc in a.Details.Columns)
+                            {
+                                if (dr[dc].GetType().Equals(typeof(string)))
+                                {
+                                    var str = (string)dr[dc];
+                                    Console.WriteLine("Database changed1: " + str);
+                                }
+                            }
+                        }
+                    };
+
+                    //执行查询语句
+                    using (OracleDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Console.WriteLine(reader[0].ToString());
+                        }
+                    }
+                }
+
+                Console.ReadLine();
+            }
+        }
+    }
+}

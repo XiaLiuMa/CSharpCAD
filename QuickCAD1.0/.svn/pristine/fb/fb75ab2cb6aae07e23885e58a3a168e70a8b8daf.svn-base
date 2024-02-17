@@ -1,0 +1,550 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace MsDataSimulator.Jobs
+{
+    public class UnitData
+    {
+        private Random random;
+
+        #region 单例
+        private static UnitData instance;
+        private readonly static object objLock = new object();
+        public static UnitData Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new UnitData();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        public UnitData()
+        {
+            random = new Random();
+        }
+        #endregion
+
+        /// <summary>
+        /// 基础数据初始化
+        /// </summary>
+        public void Init()
+        {
+            InitKADM();
+            InitSYDM();
+            InitMZDM();
+            InitBMDM();
+            InitZDYDM();
+            InitCZYDM();
+            InitGJDQDM();
+            InitRYLBDM();
+            InitZJLBDM();
+            InitQZZLDM();
+            InitSJXZDM();
+            InitWFWGCLJGDM();
+        }
+
+        /// <summary>
+        /// 50%的随机率
+        /// </summary>
+        public bool FLAG()
+        {
+            bool[] flags = new bool[] { false, true, false, true, false, true }; 
+            return flags[random.Next(0, flags.Length)];
+        }
+
+        /// <summary>
+        /// 是否违法违规
+        /// </summary>
+        public bool SFWFWG()
+        {
+            bool[] flags = new bool[] { false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false };
+            return flags[random.Next(0, flags.Length)];
+        }
+
+        /// <summary>
+        /// 随机字符串
+        /// </summary>
+        /// <param name="strarray">数据源</param>
+        /// <returns></returns>
+        public string STR(string[] strarray)
+        {
+            if (strarray == null || strarray.Length <= 0) return "";
+            return strarray[random.Next(0, strarray.Length)];
+        }
+
+        /// <summary>
+        /// 随机对象
+        /// </summary>
+        /// <param name="objarray">数据源</param>
+        /// <returns></returns>
+        public object OBJECT(object[] objarray)
+        {
+            if (objarray == null || objarray.Length <= 0) return 0;
+            return objarray[random.Next(0, objarray.Length)];
+        }
+
+        /// <summary>
+        /// 随机数字
+        /// </summary>
+        /// <param name="numarray">数据源</param>
+        /// <returns></returns>
+        public int NUM(int[] numarray)
+        {
+            if (numarray == null || numarray.Length <= 0) return 0;
+            return numarray[random.Next(0, numarray.Length)];
+        }
+
+        /// <summary>
+        /// 随机数字(数字区间)
+        /// </summary>
+        /// <param name="num1">区间开始</param>
+        /// <param name="num2">区间结束</param>
+        /// <returns></returns>
+        public int NUM(int num1, int num2)
+        {
+            if (num2 <= num1) return 0;
+            List<int> numlst = new List<int>();
+            for (int i = num1; i < num2; i++)
+            {
+                numlst.Add(i);
+            }
+            if (numlst == null || numlst.Count <= 0) return 0;
+            return numlst[random.Next(0, numlst.Count)];
+        }
+
+        #region 出入标志
+        private string[] crbzs = new string[] { "1", "2" };
+        /// <summary>
+        /// 出入标志
+        /// </summary>
+        /// <returns></returns>
+        public string CRBZ
+        {
+            get
+            {
+                return crbzs[random.Next(0, crbzs.Length)];
+            }
+        }
+        #endregion
+
+        #region 航班号
+        private string[] hbhs = new string[] {
+            "C/Z3084",  "Z/Z3086",   "G/Z3088",  "H/Z3080",  "C/Z3093",  "Z/Z3095",   "G/Z3097",  "H/Z3089",
+            "C/Z3085",  "Z/Z3087",   "G/Z3089",  "H/Z3081",  "C/Z3094",  "Z/Z3096",   "G/Z3098",  "H/Z3090",
+            "C/Z3086",  "Z/Z3088",   "G/Z3090",  "H/Z3082",  "C/Z3095",  "Z/Z3097",   "G/Z3099",  "H/Z3091",
+            "C/Z3087",  "Z/Z3089",   "G/Z3091",  "H/Z3083",  "C/Z3096",  "Z/Z3098",   "G/Z3100",  "H/Z3092",
+            "C/Z3088",  "Z/Z3090",   "G/Z3092",  "H/Z3084",  "C/Z3097",  "Z/Z3099",   "G/Z3101",  "H/Z3093",
+            "C/Z3089",  "Z/Z3091",   "G/Z3093",  "H/Z3085",  "C/Z3098",  "Z/Z3100",   "G/Z3102",  "H/Z3094",
+            "C/Z3090",  "Z/Z3092",   "G/Z3094",  "H/Z3086",  "C/Z3099",  "Z/Z3101",   "G/Z3103",  "H/Z3095",
+            "C/Z3091",  "Z/Z3093",   "G/Z3095",  "H/Z3087",  "C/Z3100",  "Z/Z3102",   "G/Z3104",  "H/Z3096",
+            "C/Z3092",  "Z/Z3094",   "G/Z3096",  "H/Z3088",  "C/Z3101",  "Z/Z3103",   "G/Z3105",  "H/Z3097"};
+        /// <summary>
+        /// 航班号
+        /// </summary>
+        /// <returns></returns>
+        public string HBH
+        {
+            get
+            {
+                return hbhs[random.Next(0, hbhs.Length)];
+            }
+        }
+        #endregion
+
+        #region 姓名
+        private string[] xs = new string[] { "赵", "钱", "孙", "李", "周", "吴", "郑", "王", "冯", "陈", "褚", "卫", "蒋", "沈", "韩", "杨", "朱", "秦", "尤", "许", "何", "吕", "施", "张", "孔", "曹", "严", "华", "金", "魏", "陶", "姜", "戚", "谢", "邹", "喻", "柏", "水", "窦", "章", "云", "苏", "潘", "葛", "奚", "范", "彭", "郎", "鲁", "韦", "昌", "马", "苗", "凤", "花", "方", "俞", "任", "袁", "柳", "酆", "鲍", "史", "唐", "费", "廉", "岑", "薛", "雷", "贺", "倪", "汤" };
+        private string[] ms = new string[] { "观博", "欣竹", "欣阳", "刚军", "扬阳", "靖阳", "熙阳", "嘉萱", "铭阳", "飞", "雨荨", "文博", "诗含", "诗若", "辰海", "晓雨", "展鸣", "晓春", "洪文", "默", "轩杰", "金海", "俊杰", "展旭", "建烁", "婧琪", "婧涵", "诗晴", "传浩", "怡萍", "诗涵", "雅婷", "雅涵", "萍", "晓萍", "兴飞", "小平", "建龙", "宇谟", "子辰", "辰", "湍灵", "骅株", "春莲", "娟敏", "智涵", "欣妍", "慧妍", "雅静", "月婷", "雨婷", "芸馨", "韵涵", "涵韵", "雨欣", "馨蕾", "静媛", "子涵", "雨泽", "静蕾", "茛淯", "珑沧", "芮娟", "梓萱", "轶诚", "嘉文", "晓朋", "一凡", "昊楠", "浩楠", "瑞君", "佳宁", "雨杨", "昊然", "浩然", "滕浩", "雨菡", "海一", "晨宸", "之政", "晨菲", "修闻", "宁夫", "轩", "春菲", "佳涵", "耀宇", "耀雨", "翠", "鑫雨", "涵熙", "继欣", "菲", "兰月", "兰欣", "岚欣", "懿明", "淑菲", "荣凯", "海瑶", "涵雅", "晨曦", "麟炜", "茜", "子萱", "玥菲", "雯菲", "云涵", "靖雯", "馨怡", "江", "运浩", "飞飞", "强", "国馨", "国鑫", "雅雯", "炳君", "海宇", "海林", "瑾瑜", "成龙", "嘉麟", "芸惜", "芸希", "瀚曦", "晏", "鑫龙", "嘉懿", "永琴", "贝馨", "润芝", "润龙", "浩龙", "焱涵", "芙", "敖菲", "子君", "少兹", "子晨", "辰曦", "云曦", "梓恒", "晏畅", "晏郡", "洛瑜", "朔瑜", "晃郡", "展彰", "展荣", "展郡", "展瑜", "朔诰", "洛荣", "紫涵", "蕾", "津", "轩旗", "津诰", "津郡", "津荣", "津畅", "津飒", "津彰", "津瑜", "桀诰", "晃荣", "轩语", "桀瑔", "晃瑜", "晃", "荣泽", "小强", "晏诰", "桀畅", "悦", "桀荣", "桀彰", "宸赫", "桀郡", "桀瑜", "晋", "嘉铭", "永", "子伦", "学友", "业昆", "新沅", "宇铭" };
+        /// <summary>
+        /// 姓名
+        /// </summary>
+        /// <returns></returns>
+        public string XM
+        {
+            get
+            {
+                return xs[random.Next(0, xs.Length)] + ms[random.Next(0, ms.Length)];
+            }
+        }
+        #endregion
+
+        #region 国籍地区代码
+        private List<string> gjdqdms = new List<string>();
+        private void InitGJDQDM()
+        {
+            string sqlstr = "SELECT GJDQ3 FROM qgtg.BJ_YW_T_GJDQDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => gjdqdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 国籍地区代码
+        /// </summary>
+        /// <returns></returns>
+        public string GJDQDM
+        {
+            get
+            {
+                if (gjdqdms.Count <= 0) return "";
+                return gjdqdms[random.Next(0, gjdqdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 人员类别代码
+        private List<string> rjlkdms = new List<string>();
+        private List<string> cjlkdms = new List<string>();
+        private List<string> rjygdms = new List<string>();
+        private List<string> cjygdms = new List<string>();
+        private void InitRYLBDM()
+        {
+            string sqlstr1 = "SELECT RYLBDM FROM qgtg.BJ_YW_T_RYLBDM WHERE SYBJ='1' AND RYLBDM LIKE '1%'";
+            List<Dictionary<string, object>> datalst1 = OrcalUtil.Select(sqlstr1);
+            datalst1.ForEach(p => rjlkdms.Add(p.FirstOrDefault().Value.ToString()));
+
+            string sqlstr2 = "SELECT RYLBDM FROM qgtg.BJ_YW_T_RYLBDM WHERE SYBJ='1' AND RYLBDM LIKE '2%'";
+            List<Dictionary<string, object>> datalst2 = OrcalUtil.Select(sqlstr2);
+            datalst2.ForEach(p => cjlkdms.Add(p.FirstOrDefault().Value.ToString()));
+
+            string sqlstr3 = "SELECT RYLBDM FROM qgtg.BJ_YW_T_RYLBDM WHERE SYBJ='1' AND RYLBDM LIKE '3%'";
+            List<Dictionary<string, object>> datalst3 = OrcalUtil.Select(sqlstr3);
+            datalst3.ForEach(p => rjygdms.Add(p.FirstOrDefault().Value.ToString()));
+
+            string sqlstr4 = "SELECT RYLBDM FROM qgtg.BJ_YW_T_RYLBDM WHERE SYBJ='1' AND RYLBDM LIKE '4%'";
+            List<Dictionary<string, object>> datalst4 = OrcalUtil.Select(sqlstr4);
+            datalst4.ForEach(p => cjygdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 入境旅客代码
+        /// </summary>
+        /// <returns></returns>
+        public string RJLKDM
+        {
+            get
+            {
+                if (rjlkdms.Count <= 0) return "";
+                return rjlkdms[random.Next(0, rjlkdms.Count)];
+            }
+        }
+        /// <summary>
+        /// 出境旅客代码
+        /// </summary>
+        /// <returns></returns>
+        public string CJLKDM
+        {
+            get
+            {
+                if (cjlkdms.Count <= 0) return "";
+                return cjlkdms[random.Next(0, cjlkdms.Count)];
+            }
+        }
+        /// <summary>
+        /// 入境员工代码
+        /// </summary>
+        /// <returns></returns>
+        public string RJYGDM
+        {
+            get
+            {
+                if (rjygdms.Count <= 0) return "";
+                return rjygdms[random.Next(0, rjygdms.Count)];
+            }
+        }
+        /// <summary>
+        /// 出境员工代码
+        /// </summary>
+        /// <returns></returns>
+        public string CJYGDM
+        {
+            get
+            {
+                if (cjygdms.Count <= 0) return "";
+                return cjygdms[random.Next(0, cjygdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 证件类别代码
+        private List<string> zjlbdms = new List<string>();
+        private void InitZJLBDM()
+        {
+            string sqlstr = "SELECT ZJLBDM FROM qgtg.BJ_YW_T_ZJLBDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => zjlbdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 证件类别代码
+        /// </summary>
+        /// <returns></returns>
+        public string ZJLBDM
+        {
+            get
+            {
+                if (zjlbdms.Count <= 0) return "";
+                return zjlbdms[random.Next(0, zjlbdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 签证种类代码
+        private List<string> qzzldms = new List<string>();
+        private void InitQZZLDM()
+        {
+            string sqlstr = "SELECT QZZLDM FROM qgtg.BJ_YW_T_QZZLDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => qzzldms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 签证种类代码
+        /// </summary>
+        /// <returns></returns>
+        public string QZZLDM
+        {
+            get
+            {
+                if (qzzldms.Count <= 0) return "";
+                return qzzldms[random.Next(0, qzzldms.Count)];
+            }
+        }
+        #endregion
+
+        #region 自定义代码
+        private List<string> zdydms = new List<string>();
+        private void InitZDYDM()
+        {
+            string sqlstr = "SELECT ZDYDM FROM qgtg.BJ_YW_T_ZDYDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => zdydms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 自定义代码
+        /// </summary>
+        /// <returns></returns>
+        public string ZDYDM
+        {
+            get
+            {
+                if (zdydms.Count <= 0) return "";
+                return zdydms[random.Next(0, zdydms.Count)];
+            }
+        }
+        #endregion
+
+        #region 事由代码
+        private List<string> sydms = new List<string>();
+        private void InitSYDM()
+        {
+            string sqlstr = "SELECT CRJSYDM FROM qgtg.BJ_YW_T_CRJSYDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => sydms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 事由代码
+        /// </summary>
+        /// <returns></returns>
+        public string SYDM
+        {
+            get
+            {
+                if (sydms.Count <= 0) return "";
+                return sydms[random.Next(0, sydms.Count)];
+            }
+        }
+        #endregion
+
+        #region 事件性质代码
+        private List<string> sjxzms = new List<string>();
+        private void InitSJXZDM()
+        {
+            string sqlstr = "SELECT SJXZDM FROM qgtg.BJ_YW_T_SJXZDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => sjxzms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 事件性质代码
+        /// </summary>
+        /// <returns></returns>
+        public string SJXZDM
+        {
+            get
+            {
+                if (sjxzms.Count <= 0) return "";
+                return sjxzms[random.Next(0, sjxzms.Count)];
+            }
+        }
+        #endregion
+
+        #region 违法违规处理结果代码
+        private List<string> wfwgcljgdms = new List<string>();
+        private void InitWFWGCLJGDM()
+        {
+            string sqlstr = "SELECT CLJGDM FROM qgtg.BJ_YW_T_WFWGCLJGDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => wfwgcljgdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 违法违规处理结果代码
+        /// </summary>
+        /// <returns></returns>
+        public string WFWGCLJGDM
+        {
+            get
+            {
+                if (wfwgcljgdms.Count <= 0) return "";
+                return wfwgcljgdms[random.Next(0, wfwgcljgdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 口岸代码
+        private List<string> kadms = new List<string>();
+        private void InitKADM()
+        {
+            string sqlstr = "SELECT KADM FROM qgtg.BJ_YW_T_ALLKADM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => kadms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+
+        /// <summary>
+        /// 口岸代码
+        /// </summary>
+        /// <returns></returns>
+        public string KADM
+        {
+            get
+            {
+                if (kadms.Count <= 0) return "";
+                return kadms[random.Next(0, kadms.Count)];
+            }
+        }
+        #endregion
+
+        #region 通道号
+        public string[] rjtdhs = new string[] { "1201", "1202", "1203", "1204", "1205", "1206", "1207" };
+        public string[] cjtdhs = new string[] { "2201", "2202", "2203", "2204", "2205", "2206", "2207" };
+        /// <summary>
+        /// 入境通道号
+        /// </summary>
+        /// <returns></returns>
+        public string RJTDH
+        {
+            get
+            {
+                if (rjtdhs.Length <= 0) return "";
+                return rjtdhs[random.Next(0, rjtdhs.Length)];
+            }
+        }
+        /// <summary>
+        /// 出境通道号
+        /// </summary>
+        /// <returns></returns>
+        public string CJTDH
+        {
+            get
+            {
+                if (cjtdhs.Length <= 0) return "";
+                return cjtdhs[random.Next(0, cjtdhs.Length)];
+            }
+        }
+        #endregion
+
+        #region 民族代码
+        private List<string> mzdms = new List<string>();
+        private void InitMZDM()
+        {
+            string sqlstr = "SELECT MZDM FROM qgtg.BJ_YW_T_MZDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => mzdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 民族代码
+        /// </summary>
+        /// <returns></returns>
+        public string MZDM
+        {
+            get
+            {
+                if (mzdms.Count <= 0) return "";
+                return mzdms[random.Next(0, mzdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 部门代码
+        private List<string> bmdms = new List<string>();
+        private void InitBMDM()
+        {
+            string sqlstr = "SELECT BMDM FROM qgtg.BJ_YW_T_BMDM WHERE SYBJ='1'";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => bmdms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+        /// <summary>
+        /// 部门代码
+        /// </summary>
+        /// <returns></returns>
+        public string BMDM
+        {
+            get
+            {
+                if (bmdms.Count <= 0) return "";
+                return bmdms[random.Next(0, bmdms.Count)];
+            }
+        }
+        #endregion
+
+        #region 操作员代码
+        private List<string> czydms = new List<string>();
+        private void InitCZYDM()
+        {
+            string sqlstr = "SELECT CZYDM FROM qgtg.BJ_YW_T_CZYJH";
+            List<Dictionary<string, object>> datalst = OrcalUtil.Select(sqlstr);
+            datalst.ForEach(p => czydms.Add(p.FirstOrDefault().Value.ToString()));
+        }
+
+        /// <summary>
+        /// 上台操作员列表
+        /// </summary>
+        public List<string> STCZYS = new List<string>();
+        /// <summary>
+        /// 下台操作员(随机)
+        /// </summary>
+        /// <returns></returns>
+        public string XTCZY
+        {
+            get
+            {
+                #region 差集交集并集
+                //List<string> cjczys = czydms.Except(STCZYS).ToList();//取差集
+                //List<string> jjczys = czydms.Intersect(STCZYS).ToList();//取焦集
+                //bool isIntersected = czydms.Intersect(czydms).Count() > 0;//是否有交集
+                //List<string> bjczys = czydms;
+                //czydms.AddRange(STCZYS);//取焦集
+                #endregion
+                List<string> czys = czydms.Except(STCZYS).ToList();//取差集
+                if (czys.Count <= 0) return "";
+                return czys[random.Next(0, czys.Count)];
+            }
+        }
+        /// <summary>
+        /// 操作员代码
+        /// </summary>
+        public string CZYDM
+        {
+            get
+            {
+                if (czydms.Count <= 0) return "";
+                return czydms[random.Next(0, czydms.Count)];
+            }
+        }
+        #endregion
+    }
+}

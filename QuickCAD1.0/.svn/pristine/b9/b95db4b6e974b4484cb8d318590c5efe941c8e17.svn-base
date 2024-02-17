@@ -1,0 +1,129 @@
+﻿using Max.BaseKit;
+using IsolatorOrigin.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using IsolatorOrigin.Storage;
+using IsolatorOrigin.Storage.Entities;
+
+namespace IsolatorOrigin.Controllers
+{
+    /// <summary>
+    /// 定时任务控制器
+    /// </summary>
+    [Authorize]
+    public class CroJobController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Detail()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="condition"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<CronJobEntity> PagingSearch(int page = 1, int limit = 10, string condition = "")
+        {
+            var rd = new ResultPaging<CronJobEntity>();
+
+            var tlst = DataMocker.Instance.CronJobEntity_Lst;
+            #region 搜索
+            if (!string.IsNullOrEmpty(condition))
+            {
+                tlst = tlst.FindAll(p => p.Id.Contains(condition) || p.JobDes.Contains(condition) || p.CronDes.Contains(condition)).ToList();
+            }
+            #endregion
+
+            var lst = tlst.Skip((page - 1) * limit).Take(limit).ToList();
+            rd.Count = tlst.Count;
+            rd.Data = lst;
+            return rd;
+        }
+
+        /// <summary>
+        /// 新增
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Add(CronJobEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增失败，参数为空" });
+            try
+            {
+                DataMocker.Instance.CronJobEntity_Lst.Add(obj);
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "新增成功" });
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"新增失败，{ex.Message}");
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"新增失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 修改
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Update(CronJobEntity obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改失败，参数为空" });
+            try
+            {
+                var tobj = DataMocker.Instance.CronJobEntity_Lst.Find(p => p.Id.Equals(obj.Id));
+                if (tobj != null)
+                {
+                    DataMocker.Instance.CronJobEntity_Lst.Remove(tobj);
+                    DataMocker.Instance.CronJobEntity_Lst.Add(obj);
+                }
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "修改成功" });
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"修改失败，{ex.Message}");
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = $"修改失败，{ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Delete(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            var idArr = ids.Split(',').ToList();
+            int count = 0;
+            idArr?.ForEach(i =>
+            {
+                var obj = DataMocker.Instance.CronJobEntity_Lst.Find(p => i.Equals(p.Id));
+                if (obj != null)
+                {
+                    DataMocker.Instance.CronJobEntity_Lst.Remove(obj);
+                    count++;
+                }
+            });
+            if (count > 0)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除成功", Data = null });
+            }
+            else
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除失败", Data = null });
+            }
+        }
+    }
+}

@@ -1,0 +1,102 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Security.Claims;
+using WebApplication1.Models;
+using System.ComponentModel.DataAnnotations;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// 资源数据库控制器
+    /// </summary>
+    [Authorize]
+    public class SourceDbController : Controller
+    {
+        private readonly ILogger<SourceDbController> _logger;
+
+        public SourceDbController(ILogger<SourceDbController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Add()
+        {
+            return View();
+        }
+
+        public IActionResult Edit()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public PagingResult<SourceDb> PagingSearch(int page = 1, int limit = 10, string state = "")
+        {
+            var rd = new PagingResult<SourceDb>();
+            rd.Count = 35;
+            rd.Data = new List<SourceDb>();
+            for (int i = 0; i < 10; i++)
+            {
+                rd.Data.Add(new SourceDb()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Cddm = "001",
+                    ConnStr = "sjdkjksuyufs",
+                    Concurrency = 10,
+                    DbType = "ORACLE"
+                });
+            }
+            return rd;
+        }
+    }
+
+    /// <summary>
+    /// 源头数据库
+    /// </summary>
+    public class SourceDb
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 场地代码(用于区分数据来源)
+        /// </summary>
+        public string Cddm { get; set; }
+        /// <summary>
+        /// 数据库类型
+        /// </summary>
+        public string DbType { get; set; }
+        /// <summary>
+        /// 连接字符串
+        /// </summary>
+        public string ConnStr { get; set; }
+        /// <summary>
+        /// 最大并行连接数
+        /// </summary>
+        public int Concurrency { get; set; } = 1;
+        /// <summary>
+        /// 驱动扩展配置
+        /// </summary>
+        public string DriverEx { get; set; }
+        /// <summary>
+        /// 数据库描述
+        /// </summary>
+        public string DbDescribe { get; set; }
+    }
+}

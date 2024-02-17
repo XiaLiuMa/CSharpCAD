@@ -1,0 +1,114 @@
+﻿//using System;
+//using System.Data;
+//using Max.BaseKit;
+//using Microsoft.Data.Sqlite;
+//using System.Collections.Generic;
+
+//namespace Max.DbTool.Imp
+//{
+//    /// <summary>
+//    /// 提供Sqlite数据库操作实现【Microsoft.Data.Sqlite驱动】，此驱动支持ARM系统
+//    /// </summary>
+//    public class SqliteOperate : ISqlOperate
+//    {
+//        public DbConfig Config { get; set; }
+//        private static readonly object obj_lock = new object();
+//        public bool Execute(string sqlstr)
+//        {
+//            lock (obj_lock)
+//            {
+//                try
+//                {
+//                    using (SqliteConnection conn = new SqliteConnection(Config.ConnStr))
+//                    {
+//                        conn.Open();
+//                        sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                        using (var cmd = conn.CreateCommand())
+//                        {
+//                            cmd.CommandText = sqlstr;
+//                            cmd.ExecuteNonQuery();
+//                            return true;
+//                        }
+//                    }
+//                }
+//                catch (Exception ex)
+//                {
+//                    NLogger.Warn($"Sqlite执行的Execute异常:{ex.Message},语句:{sqlstr}");
+//                    return false;
+//                }
+//            }
+//        }
+//        public DataTable Query(string sqlstr)
+//        {
+//            lock (obj_lock)
+//            {
+//                DataTable dt = new DataTable();
+//                try
+//                {
+//                    using (SqliteConnection conn = new SqliteConnection(Config.ConnStr))
+//                    {
+//                        conn.Open();
+//                        sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                        using (var cmd = conn.CreateCommand())
+//                        {
+//                            cmd.CommandText = sqlstr;
+//                            using (var reader = cmd.ExecuteReader())
+//                            {
+//                                DataTable schemaTable = reader.GetSchemaTable();
+//                                try
+//                                {
+//                                    foreach (DataRow dr in schemaTable.Rows)
+//                                    {
+//                                        DataColumn dc = new DataColumn();
+//                                        dc.DataType = dr[0].GetType();
+//                                        dc.ColumnName = dr[0].ToString();
+//                                        dt.Columns.Add(dc);
+//                                    }
+
+//                                    while (reader.Read())
+//                                    {
+//                                        DataRow row = dt.NewRow();
+//                                        //填充一行数据
+//                                        for (int i = 0; i < schemaTable.Rows.Count; i++)
+//                                        {
+//                                            row[i] = reader[i].ToString();
+
+//                                        }
+//                                        dt.Rows.Add(row);
+//                                        row = null;
+//                                    }
+//                                    reader.Close();
+//                                    schemaTable = null;
+//                                }
+//                                catch (Exception ex)
+//                                {
+//                                    throw new Exception(ex.Message);
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                catch (Exception ex)
+//                {
+//                    NLogger.Warn($"Sqlite执行的Query异常:{ex.Message},语句:{sqlstr}");
+//                }
+//                return dt;
+//            }
+//        }
+
+//        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        {
+//            throw new NotImplementedException();
+//        }
+
+//        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+//        {
+//            throw new NotImplementedException();
+//        }
+
+//        public void Dispose()
+//        {
+//            SqlOperateManger.I.Still(Config, this);
+//        }
+//    }
+//}

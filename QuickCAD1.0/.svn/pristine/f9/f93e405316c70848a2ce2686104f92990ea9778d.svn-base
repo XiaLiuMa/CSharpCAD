@@ -1,0 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DbModel>
+  <ip>127.0.0.1</ip>
+  <port>27017</port>
+  <name>gqks_xj</name>
+  <user>root</user>
+  <pwd>123456</pwd>
+  <tabs>
+    crjry,
+    tj_crjry
+  </tabs>
+</DbModel>

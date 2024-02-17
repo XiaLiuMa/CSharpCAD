@@ -1,0 +1,317 @@
+﻿using MsDataSimulator.Views;
+using MsDataSimulator.Views.UserPanels;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Timers;
+
+namespace MsDataSimulator.Jobs
+{
+    /// <summary>
+    /// 出入境人员Job
+    /// </summary>
+    public class CrjryJob : IDisposable
+    {
+        /// <summary>
+        /// 执行完成事件
+        /// </summary>
+        public Action RunEndEvent = () => { };
+        /// <summary>
+        /// 启动CrjryJob
+        /// </summary>
+        /// <param name="jtgjbs">交通工具标识</param>
+        /// <param name="crbz">出入标志</param>
+        /// <param name="lksl">旅客数量</param>
+        /// <param name="ygsl">员工数量</param>
+        /// <returns></returns>
+        public async Task Run(string jtgjbs, string crbz, int lksl, int ygsl)
+        {
+            await Task.Run(() =>
+            {
+                #region 通道选择
+                TdPanel[] kqtds = null;//对应crbz下开启的通道列表
+                if (crbz.Equals("1"))
+                {
+                    kqtds = MainForm.Instance.rjtdPanels.Where(p => p.isOpen = true).ToArray();
+                }
+                else if (crbz.Equals("2"))
+                {
+                    kqtds = MainForm.Instance.cjtdPanels.Where(p => p.isOpen = true).ToArray();
+                }
+                if (kqtds == null || kqtds.Length <= 0) return;
+                #endregion
+
+                for (int i = 0; i < lksl; i++)
+                {
+                    string rylbdm = crbz.Equals("1") ? UnitData.Instance.RJLKDM : UnitData.Instance.CJLKDM;//人员类别代码
+                    InsertCrjry(jtgjbs, crbz, rylbdm, (TdPanel)UnitData.Instance.OBJECT(kqtds));
+                }
+                for (int i = 0; i < ygsl; i++)
+                {
+                    string rylbdm = crbz.Equals("1") ? UnitData.Instance.RJYGDM : UnitData.Instance.CJYGDM;//人员类别代码
+                    InsertCrjry(jtgjbs, crbz, rylbdm, (TdPanel)UnitData.Instance.OBJECT(kqtds));
+                }
+            });
+        }
+
+        /// <summary>
+        /// 插入出入境人员
+        /// </summary>
+        /// <param name="jtgjbs">交通工具标识</param>
+        /// <param name="crbz">出入标志</param>
+        /// <param name="rylbdm">人员列别代码</param>
+        /// <param name="td">选择的通道</param>
+        private void InsertCrjry(string jtgjbs, string crbz, string rylbdm, TdPanel td)
+        {
+            DateTime dt = DateTime.Now;
+            string kadm = MainForm.Instance.kadm;//口岸代码
+            int csrq = UnitData.Instance.NUM(0, 60);//出生日期
+            string gjdqdm = UnitData.Instance.GJDQDM;    //国籍地区代码
+            string zjlbdm = UnitData.Instance.ZJLBDM;    //证件类别代码
+            string xbdm = UnitData.Instance.STR(new string[] { "1", "2" });//性别代码
+            string lsh = UnitData.Instance.NUM(101, 999).ToString();//流水号
+            string wybs = $"{kadm}{td.MTdh}{dt.ToString("MMddHHmmssfff")}{lsh}";//唯一标识
+            #region 插入出入境人员
+            Dictionary<string, object> dic = new Dictionary<string, object>();
+            dic.Add("RYLBDM", rylbdm);//人员类别代码
+            dic.Add("XM", UnitData.Instance.XM);//姓名
+            dic.Add("GJDQDM", gjdqdm);//国家或地区代码
+            dic.Add("XBDM", xbdm);//性别代码
+            dic.Add("CSRQ", dt.AddYears(-csrq).ToString("yyyyMMdd"));//出生日期
+            dic.Add("ZJLBDM", zjlbdm);//证件类别代码
+            dic.Add("ZJHM", zjlbdm + DateTime.Now.ToString("ddHHmmss"));//证件号码
+            dic.Add("QZZLDM", UnitData.Instance.QZZLDM);//签证种类代码
+            dic.Add("CRRQ", dt.ToString("yyyyMMdd"));//出入日期
+            dic.Add("CRSJ", dt.ToString("HHmmss"));//出入时间
+            dic.Add("CRRQSJ", dt.ToString("yyyyMMddHHmmss"));//出入日期时间
+            dic.Add("CRKADM", kadm);//出入口岸代码
+            dic.Add("JTFSDM", "2");//交通方式(1船舶,2飞机,3火车,4汽车,5徒步,9汽车和徒步)
+            dic.Add("JTGJBS", jtgjbs);//交通工具标识(航次)
+            dic.Add("QWGJDQDM", gjdqdm);//前往国家或地区代码
+            dic.Add("FZD", gjdqdm);//发证地（国内：行政区划；国外：国家地区）
+            dic.Add("CRJSYDM", UnitData.Instance.SYDM);//出境理由代码
+            dic.Add("CZY", td.czydm);//检查员号
+            dic.Add("TDH", td.MTdh);//通道号
+            dic.Add("NBTH", "");//内部团号（1位团体类型+5位组团单位+10位日期时间+4位通道号+1位标识位）
+            dic.Add("LXTH", "");//旅行团号
+            dic.Add("CCXMBZ", "无");//超长姓名备注
+            dic.Add("YNZSM", "无");//疑难字说明
+            dic.Add("D2ZH", zjlbdm + DateTime.Now.ToString("ddHHmmss"));//第二证号
+            dic.Add("D2ZLDM", zjlbdm);//第二证类
+            dic.Add("D2CSRQ", dt.AddYears(-csrq).ToString("yyyyMMdd"));//第二出生日期
+            dic.Add("D2XM", UnitData.Instance.XM);//第二姓名
+            dic.Add("RI", dt.ToString("dd"));//日
+            dic.Add("XMPY", "");//姓名拼音
+            dic.Add("JTXM", "");//简体姓名
+            dic.Add("BMDM", td.bmdm);//部门代码（当前部门）
+            dic.Add("WYBS", wybs);//唯一标识（口岸代码 +通道号+出入时间+3位流水号）
+            dic.Add("MZDM", UnitData.Instance.MZDM);//民族代码
+            dic.Add("ZDYDM", UnitData.Instance.ZDYDM);//自定义代码
+            dic.Add("ZZTDBJ", (string)td.Tag);//自助通道标记（1：自助通道，0：非自助通道）
+            dic.Add("HTBLBJ", "0");//后台补录标记（0非后台补录；1后台补录）
+            dic.Add("CRBZ", crbz);//出入标志
+            dic.Add("BGCZY", "");//变更操作员(记录疑难字处理人)
+            dic.Add("BGCZSJ", "");//变更操作时间（记录疑难字处理时间）
+            dic.Add("QZH", "");//签证号
+            dic.Add("TLQ", "");//停留期
+
+            TdBody body = new TdBody()
+            {
+                tabname = "CRJRY",
+                data = dic
+            };
+            td.tdblock.Add(body);//统一给到阻塞队列去入库
+            #endregion
+
+            bool sfwfwg = UnitData.Instance.SFWFWG();//是否违法违规
+            if (sfwfwg) InsertChwfwgry(dic, td);
+
+            if (crbz.Equals("1"))//入境
+            {
+                string iswfwg = sfwfwg ? "1" : "0";//是否违法违规
+                if (UnitData.Instance.FLAG()) InsertLsrjxkdj(dic, td, iswfwg);
+            }
+        }
+
+        /// <summary>
+        /// 插入违法违规人员
+        /// </summary>
+        /// <param name="ydic">出入境人员字典</param>
+        /// <param name="td">通道面板</param>
+        private void InsertChwfwgry(Dictionary<string, object> ydic, TdPanel td)
+        {
+            DateTime dt = DateTime.Now;
+            string kadm = DicValue(ydic["CRKADM"]);//口岸代码
+            string tdh = DicValue(ydic["TDH"]);//通道号
+            string lsh = UnitData.Instance.NUM(101, 999).ToString();//流水号
+            string sjbh = $"{kadm}{tdh}{dt.ToString("MMddHHmmssfff")}{lsh}";//事件编号
+            Dictionary<string, object> dic = new Dictionary<string, object>();
+            dic.Add("SJBH", sjbh);//唯一标识（口岸代码 +通道号+出入时间+3位流水号）
+            dic.Add("GLSJBH", DicValue(ydic["WYBS"]));//关联事件编号（口岸 +通道号+出入时间+流水号）
+            dic.Add("XM", DicValue(ydic["XM"]));//人员姓名
+            dic.Add("RYLBDM", DicValue(ydic["RYLBDM"]));//人员类型
+            dic.Add("GJDQDM", DicValue(ydic["GJDQDM"]));//国家地区
+            dic.Add("XBDM", DicValue(ydic["XBDM"]));//性别
+            dic.Add("CSRQ", DicValue(ydic["CSRQ"]));//出生日期
+            dic.Add("ZJLBDM", "");//证件类型
+            dic.Add("ZJHM", "");//证件号码
+            dic.Add("QZZLDM", "");//签证种类
+            dic.Add("D2ZH", "");//第二证号
+            dic.Add("D2ZJLBDM", "");//第二证类
+            dic.Add("D2CSRQ", "");//第二出生日期
+            dic.Add("D2XM", "");//第二姓名
+            dic.Add("FZD", "");//发证地（国内：行政区划；国外：国家地区）
+            dic.Add("QFGJDQDM", "");//遣返国家或地区
+            dic.Add("QFYYDM", "");//遣返原因
+            dic.Add("CJKADM", "");//出境口岸
+            dic.Add("CJSJ", "");//出境时间
+            dic.Add("CRKADM", DicValue(ydic["CRKADM"]));//出入口岸
+            dic.Add("JTFSDM", DicValue(ydic["JTFSDM"]));//交通方式
+            dic.Add("JTGJBS", "");//交通工具标识(航次)
+            dic.Add("QWLZG", "");//前往国家地区/来自国家地区
+            dic.Add("SFMDD", "");//始发地/目的地
+            dic.Add("CRJSYDM", "");//出入境理由
+            dic.Add("TDH", tdh);//通道号
+            dic.Add("NBTH", "");//内部团号（1位团体类型+5位组团单位+10位日期时间+4位通道号+1位标识位）
+            dic.Add("LXTH", "");//旅行团号
+            dic.Add("CDDM", "");//场地代码
+            dic.Add("CCLBMDM", "");//曾处理部门
+            dic.Add("CKBZ", "");//查控标志 1:已查控
+            dic.Add("YCTJLY", "");//异常提交理由代码
+            dic.Add("SJLBDM", "");//事件类别代码（以逗号间隔：**，**）
+            dic.Add("SJXZDM", UnitData.Instance.SJXZDM);//事件性质代码
+            dic.Add("JCYMS", "");//检查员描述
+            dic.Add("SJMS", "");//事件描述
+            dic.Add("SJZT", "");//事件主题
+            dic.Add("GWZL", "");//公文种类
+            dic.Add("CCXMBZ", "");//超长姓名备注
+            dic.Add("YNZSM", "");//疑难字说明
+            dic.Add("LRBZ", "");//录入标志 1：后台录入
+            dic.Add("SPR", "");//审批人
+            dic.Add("SPJB", "");//审批级别
+            dic.Add("LZKCKSJBH", "");//临重控常控事件编号
+            dic.Add("JPR", "");//解屏人
+            dic.Add("JPSJ", "");//解屏时间
+            dic.Add("CHR", DicValue(ydic["CZY"]));//查获人
+            dic.Add("CHBMDM", DicValue(ydic["BMDM"]));//发现部门代码
+            dic.Add("CHSJ", dt.ToString("yyyyMMddHHmmss"));//查获时间
+            dic.Add("LRR", DicValue(ydic["CZY"]));//录入人
+            dic.Add("LRSJ", dt.ToString("yyyyMMddHHmmss"));//录入时间
+            dic.Add("XZZD", "");//限制字段
+            dic.Add("JCBZ", "1");//检查标志（0预检，1正检）
+            dic.Add("CRJBZ", "1");//出入境标志（0出入港；1出入境）
+            dic.Add("ZLLY", "");//资料来源（团体、船舶预检）
+            dic.Add("CLBZ", "");//事件处理标志：1:前台报警处理，2:后台报警处理 ，3:预查控处理，4:纯查控处理，5:限定区域处理
+            dic.Add("KGRXX", "");//看管人信息：看管人帐号+姓名、看管时间（多个）
+            dic.Add("MZDM", "");//民族代码
+            dic.Add("ZDYDM", "");//自定义代码
+            dic.Add("HTBLBJ", "");//后台补录标记（0非后台补录；1后台补录）
+            dic.Add("CRBZ", DicValue(ydic["CRBZ"]));//出入标志
+            dic.Add("ZZTDBJ", "");//自助通道标记（1：自助通道验放，0：非自助通道验放）
+            dic.Add("QRSJXZDM", "");//确定事件性质
+            dic.Add("CLJGDM", UnitData.Instance.WFWGCLJGDM);//处理结果代码(逗号分隔)
+            dic.Add("MSJE", 20000);//没收金额
+            dic.Add("FKJE", 10000);// 罚款金额
+            dic.Add("GDBZ", "");//备注(归档后)
+            dic.Add("JLTS", "");//拘留天数
+            dic.Add("QRSJ", "");//确认时间(统计取此字段)
+            dic.Add("ZFBJ", "0");//作废标志 0:不作废、1：作废
+            dic.Add("ZFYY", "");//作废原因
+            dic.Add("JLCRJBZ", "");//记录是否进出入境库 1：进、0 ：不进
+            dic.Add("QRSJLBDM", "");//确认事件类别代码
+            dic.Add("RKSJ", string.Empty);//入库时间
+            dic.Add("GZDWMC", "");//持证人工作单位名称
+            dic.Add("QZH", "");//签证号
+            dic.Add("TLQ", "");//停留期
+
+            TdBody body = new TdBody()
+            {
+                tabname = "CHWFWGRY",
+                data = dic
+            };
+            td.tdblock.Add(body);//统一给到阻塞队列去入库
+        }
+
+        /// <summary>
+        /// 插入临时入境许可人员登记
+        /// </summary>
+        /// <param name="ydic">入境人员字典</param>
+        /// <param name="td">通道面板</param>
+        /// <param name="iswfwg">是否违法违规0为否1为是</param>
+        private void InsertLsrjxkdj(Dictionary<string, object> ydic, TdPanel td, string iswfwg)
+        {
+            DateTime dt = DateTime.Now;
+            #region 出入境交通工具历史数据GJMQ_LSRJXK_RY_RYDJ
+            Dictionary<string, object> dic = new Dictionary<string, object>();
+            dic.Add("WYBS", DicValue(ydic["WYBS"]));//唯一标识(35位)
+            dic.Add("XM", DicValue(ydic["XM"]));//姓名
+            dic.Add("GJDQDM", DicValue(ydic["GJDQDM"]));//国家或地区代码
+            dic.Add("XBDM", DicValue(ydic["XBDM"]));//性别代码
+            dic.Add("CSRQ", DicValue(ydic["CSRQ"]));//出生日期
+            dic.Add("ZJLBDM", DicValue(ydic["ZJLBDM"]));//证件类别代码
+            dic.Add("ZJHM", DicValue(ydic["ZJHM"]));//证件号码
+            dic.Add("QFRQSJ", dt.ToString("yyyyMMddHHmmss"));//签发日期时间
+            dic.Add("QFKADM", MainForm.Instance.kadm);//签发口岸代码
+            dic.Add("JTFSDM", DicValue(ydic["JTFSDM"]));//交通方式代码
+            dic.Add("RJHB", DicValue(ydic["JTGJBS"]));//入境航班
+            dic.Add("RJSJ", DicValue(ydic["CRRQSJ"]));//入境时间
+            dic.Add("LHMD", DicValue(ydic["CRJSYDM"]));//来华目的
+            dic.Add("CJKADM", UnitData.Instance.KADM);//出境口岸代码
+            dic.Add("CJJTFSDM", DicValue(ydic["JTFSDM"]));//出境交通方式代码
+            dic.Add("CJHB", UnitData.Instance.HBH);//出境航班
+            dic.Add("CJSJ", dt.AddHours(3).ToString("yyyyMMddHHmmss"));//出境时间
+            dic.Add("SQRJQZZL", DicValue(ydic["QZZLDM"]));//申请入境签证种类
+            dic.Add("CZY", DicValue(ydic["CZY"]));//操作员号
+            dic.Add("TDH", DicValue(ydic["TDH"]));//通道号
+            dic.Add("YNZSM", DicValue(ydic["YNZSM"]));//疑难字说明
+            dic.Add("D2ZH", DicValue(ydic["D2ZH"]));//第二证号
+            dic.Add("D2ZLDM", DicValue(ydic["D2ZLDM"]));//第二证类
+            dic.Add("D2CSRQ", DicValue(ydic["D2CSRQ"]));//第二出生日期
+            dic.Add("D2XM", DicValue(ydic["D2XM"]));//第二姓名
+            dic.Add("BMDM", DicValue(ydic["BMDM"]));//部门代码（当前部门）
+            dic.Add("ZDYDM", DicValue(ydic["ZDYDM"]));//自定义代码
+            dic.Add("BZ","备注信息");//备注
+            dic.Add("IS_WFWG",iswfwg);//是否存在违法违规
+            dic.Add("ILLEGAL",$"违法违规状态:{iswfwg}");//境内违法违规行为登记
+            dic.Add("IS_YQJL", iswfwg);//是否存在逾期居留/出限定区域的行为
+            dic.Add("GETOUT", $"逾期居留状态:{iswfwg}");//逾期居留/出限定区域的行为登记
+            string sfqf = UnitData.Instance.STR(new string[] { "1", "2" });
+            dic.Add("IS_ALLOW", sfqf);//是否签发临时入境许可（1-是，2-否）
+            dic.Add("ALLOW_VISA_SORT", UnitData.Instance.QZZLDM);//决定予以签发的签证种类
+            dic.Add("NOT_ALLOW_REASON","12");//决定不予签发的原因
+            dic.Add("IS_BIRTH_POINT", iswfwg);//是否重点年龄段
+            dic.Add("IS_ADDRESS_POINT", iswfwg);//是否自2014年起有在重点国家停留
+            dic.Add("ZP1", "");//资料页照片
+            dic.Add("ZP2", "");//资料页证件照片
+            dic.Add("ZP3", "");//现场照片
+            dic.Add("ZP4", "");//申请照片
+            dic.Add("ZP5", "");//申请照片2
+            dic.Add("ZW1", "");//指纹1
+            dic.Add("ZW2", "");//指纹2
+            #endregion
+
+            TdBody body = new TdBody()
+            {
+                tabname = "LSRJXKDJ",
+                data = dic
+            };
+            td.tdblock.Add(body);//统一给到阻塞队列去入库
+        }
+
+        private string DicValue(object obj)
+        {
+            if (obj.GetType().Equals(typeof(System.DBNull))) return "";
+            return (string)obj;
+        }
+
+        /// <summary>
+        /// 销毁
+        /// </summary>
+        public void Dispose()
+        {
+            GC.SuppressFinalize(this);
+        }
+    }
+}

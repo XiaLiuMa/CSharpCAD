@@ -1,0 +1,12 @@
+[Unit]
+Description=(服务名称，如：DataSyncSource.service)
+After=network.target
+
+[Service]
+WorkingDirectory=(程序根目录，如：/root/maxvision/DataSyncSource)
+ExecStart=(程序执行文件地址，如：/root/maxvision/DataSyncSource/DataSyncSource)
+ExecReload=/bin/kill -s HUP $MAINPID
+ExecStop= ps -ef | grep doctor-pc-0.0.1| grep -v grep |awk '{print $2}' | xargs sudo kill -9
+
+[Install]
+WantedBy=multi-user.target

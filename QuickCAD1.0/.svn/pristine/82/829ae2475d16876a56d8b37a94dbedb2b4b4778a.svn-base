@@ -1,0 +1,46 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorTarget.Storage.Entities
+{
+    [Table("ConsumeTask")]
+    /// <summary>
+    /// 消费任务实体
+    /// </summary>
+    public class ConsumeTaskEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 任务名称(请配置表名)
+        /// </summary>
+        public string TaskName { get; set; }
+        /// <summary>
+        /// 任务描述(请配置表注释)
+        /// </summary>
+        public string TaskDes { get; set; }
+        /// <summary>
+        /// 表主键(请配置表主键，或者可操作数据库的条件字段)
+        /// </summary>
+        public string Keys { get; set; }
+        /// <summary>
+        /// 图片存储类型(默认为0--无图片，不处理)
+        /// 1:图片数据直接入数据库
+        /// 2:base64字符串入数据库
+        /// 3:图片存minio再将url入数据库
+        /// 4:图片上传ftp再将url入数据库--待实现
+        /// 5:图片存本地服务再将url入数据库--待实现
+        /// </summary>
+        public int ImgType { get; set; }
+        /// <summary>
+        /// 图片存储服务Id
+        /// </summary>
+        public string ImgServiceId { get; set; }
+        /// <summary>
+        /// 服务标识集(多个用,隔开)
+        /// </summary>
+        public string ServiceIds { get; set; }
+    }
+}

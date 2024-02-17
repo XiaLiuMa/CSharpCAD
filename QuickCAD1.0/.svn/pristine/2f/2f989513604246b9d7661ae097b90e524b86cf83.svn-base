@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>D:\03公司相关\03边检项目\01隔离器产品\source\source1.2.1\02源头端\IsolatorOrigin\../../publish/linux64/IsolatorOrigin/</_PublishTargetUrl>
+    <History>True|2024-01-22T00:46:50.9283186Z;True|2024-01-22T08:46:13.6533341+08:00;True|2024-01-19T09:36:58.4712076+08:00;True|2024-01-11T23:20:11.2419755+08:00;True|2024-01-11T22:33:26.3846532+08:00;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

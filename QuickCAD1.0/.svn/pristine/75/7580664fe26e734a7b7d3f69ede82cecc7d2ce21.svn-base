@@ -1,0 +1,630 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<!-- 首页 -->
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字看板</title>
+    <link rel="stylesheet" href="~/kashboard/css/base.css">
+    <link rel="stylesheet" href="~/kashboard/css/index.css">
+</head>
+
+<body>
+    <div class="page-content index-page" style="width: 100%;height: 865px;margin-top:40px;">
+        <iframe frameborder="0" id="mapId" style="width: 100%; height: 865px; border-radius: 2px;" src="@ViewBag.Map2dUrl">
+        </iframe>
+        <div class="page-left">
+            <div class="mh-box">
+            </div>
+            <div class="bjxx-box">
+                <div class="global-title">报警信息</div>
+                <div class="bjxx-nr-box">
+                    <div class="nr-line">
+                        <div class="xx-item">
+                            <div class="img-box rl-icon">
+                            </div>
+                            <div class="text-box">
+                                <div class="text1">人脸</div>
+                                <div class="text2" id="FaceCount">0</div>
+                            </div>
+                        </div>
+                        <div class="xx-item">
+                            <div class="img-box hxdq-icon">
+                            </div>
+                            <div class="text-box">
+                                <div class="text1">化学毒气</div>
+                                <div class="text2" id="HxdqCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="nr-line">
+                        <div class="xx-item">
+                            <div class="img-box xllj-icon"></div>
+                            <div class="text-box">
+                                <div class="text1">行李拦截</div>
+                                <div class="text2" id="HlljCount">0</div>
+                            </div>
+                        </div>
+                        <div class="xx-item">
+                            <div class="img-box swyz-icon"></div>
+                            <div class="text-box">
+                                <div class="text1">生物因子</div>
+                                <div class="text2" id="SwyzCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="sbyc-box">
+                        <div class="img-box sbyc-icon"></div>
+                        <div class="text-box">
+                            <div class="text1">设备异常</div>
+                            <div class="text2" id="SbycCount">0</div>
+                        </div>
+
+                    </div>
+                    <div class="bj-bottom">
+                        <div class="bj-b-item hw-item">
+                            <div class="bj-r-box">
+                                <div class="hw-img">
+                                    <div class="hw-icon"></div>
+                                </div>
+                                <div class="hw-text">红外报警</div>
+                            </div>
+                            <div class="bj-l-box">
+                                <div class="cj-item">
+                                    <div class="cj-text">
+                                        <div class="cj-icon"></div>出境
+                                    </div>
+                                    <div class="cj-num" id="CjHwCount">0</div>
+                                </div>
+                                <div class="rj-item">
+                                    <div class="rj-text">
+                                        <div class="rj-icon"></div>入境
+                                    </div>
+                                    <div class="rj-num" id="RjHwCount">0</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bj-b-item hfs-item">
+                            <div class="bj-r-box">
+                                <div class="hw-img">
+                                    <div class="hfs-icon"></div>
+                                </div>
+                                <div class="hw-text">核辐射</div>
+                            </div>
+                            <div class="bj-l-box">
+                                <div class="cj-item">
+                                    <div class="cj-text">
+                                        <div class="cj-icon"></div>出境
+                                    </div>
+                                    <div class="cj-num" id="CjHfsCount">0</div>
+                                </div>
+                                <div class="rj-item">
+                                    <div class="rj-text">
+                                        <div class="rj-icon"></div>入境
+                                    </div>
+                                    <div class="rj-num" id="RjHfsCount">0</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="fg-line"></div>
+            <div class="ssbj-box">
+                <div class="global-title">实时报警消息列表</div>
+
+                <marquee scrollAmount="3" behavior="scroll" scrolldelay="10" loop="-1" direction="up" height="300" onmouseover='this.stop();' onmouseout='this.start()'>
+                    <div class="ssbj-nr" id="realWarnDataList">
+
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+                        <div class="ssbj-line">
+                            <div class="ssbj-icon"></div>
+                            <div class="ssbj-text">您有一条微小气候报警，请查看</div>
+                            <div class="ssbj-time">12:26:32</div>
+                        </div>
+
+                    </div>
+                </marquee>
+                @*<div class="ssbj-line">
+                <div class="ssbj-icon"></div>
+                <div class="ssbj-text">实时报警消息实时报警消息实时报警消息</div>
+                <div class="ssbj-time">12:26:32</div>
+                </div>
+                <div class="ssbj-line">
+                <div class="ssbj-icon"></div>
+                <div class="ssbj-text">实时报警消息实时报警消息实时报警消息</div>
+                <div class="ssbj-time">12:26:32</div>
+                </div>*@
+
+            </div>
+        </div>
+        <div class="mapbj-box" id="mapBoxRealData">
+            @*<div class="mapbj-item">
+            <div class="mapbj-img-box">
+            <img src="/kashboard/img/photo111.jpg" alt="" class="mapbj-img">
+            </div>
+            <div class="mapbj-text">人脸报警</div>
+            </div>
+            *@
+        </div>
+        <div class="bottom-tab">
+            <div class="tab-bg">
+                <a asp-area="" asp-action="Index" asp-controller="KashBoard" class="tab-item page-tab-active tab-ywts1"> <span class="tab-icon ts1-icon"></span>风险监控</a>
+                <a asp-area="" asp-action="Index" asp-controller="Ywts" class="tab-item"><span class="tab-icon ts2-icon"></span>业务态势</a>
+                <a asp-area="" asp-action="Index" asp-controller="DigtalMapV1" class="tab-item"><span class="tab-icon zyjk-icon"></span>资源监控</a>
+            </div>
+        </div>
+    </div>
+    <div class="showWarn" id="showRealWarnInfo">
+        <div class="layui-form-item" id="divShowImg"></div>
+        <div class="divModule">
+            <div class="divModule_div">
+                <p class="divModule_div_p">报警信息</p>
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-top:20px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警类型:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnTypeName" id="View_WarnTypeName"></label>
+                </div>
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-top:20px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警项:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnSubTypeName" id="View_WarnSubTypeName"></label>
+                </div>
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-top:16px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警等级:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnLevel" id="View_WarnLevel"></label>
+                </div>
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-top:16px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警位置:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnCd" id="View_WarnCd"></label>
+
+                </div>
+
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-top:16px;margin-bottom:20px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警设备:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 180px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnSbm" id="View_WarnSbm"></label>
+                    <a href="#" onclick="javascript:asocalateMap(11)">
+                        <i class="iconfont icondingwei" style="color: orange; font-size: 20px; cursor: pointer;"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="layui-inline" style="height: 16px;margin-bottom:20px;margin-top:16px;">
+                <label class="layui-form-label" style=" width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; ">报警时间:</label>
+                <div class="layui-input-block" style="min-height: 16px; line-height: 16px;">
+                    <label class="layui-form-label" style="text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; " name="View_WarnDate" id="View_WarnDate"></label>
+                </div>
+            </div>
+        </div>
+        <div class="divModule" style="margin-top:20px;padding-bottom:20px;" id="divModelDetails">
+        </div>
+
+        <div class="divModule" style="margin-top:20px;">
+            <div class="divModule_div">
+                <p class="divModule_div_p">应急预案文件</p>
+            </div>
+            <div style="padding: 20px;" id="divEmergencyFile">
+                @*<p>没有配置应急预案</p>*@
+                @*<ul>
+                <li style="margin-bottom:10px;">
+                <span style="color:white;">法律法规</span>
+                <span style="color:white;margin-left:20px;">黑名单处理流程</span>
+                <span style="color:orange;margin-left:20px;cursor:pointer;">下载</span>
+                </li>
+                <li style="margin-bottom:10px;">
+                <span style="color:white;">法律法规</span>
+                <span style="color:white;margin-left:20px;">黑名单处理流程</span>
+                <span style="color:orange;margin-left:20px;cursor:pointer;">下载</span>
+                </li>
+                </ul>*@
+            </div>
+        </div>
+        <div class="divModule" style="margin-top:20px;">
+            <div class="divModule_div">
+                <p class="divModule_div_p">应急联系人</p>
+            </div>
+            <div style="padding: 20px;" id="divEmergencyPersons">
+                @*<ul>
+                <li style="margin-bottom:10px;">
+                <span style="color:white;">肖小明</span>
+                <span style="color:white;margin-left:20px;">旅检一科</span>
+                <span style="color:white;margin-left:20px;">16864563364</span>
+                </li>
+                <li style="margin-bottom:10px;">
+                <span style="color:white;">肖小明</span>
+                <span style="color:white;margin-left:20px;">旅检一科</span>
+                <span style="color:white;margin-left:20px;">16864563364</span>
+                </li>
+                </ul>*@
+            </div>
+        </div>
+    </div>
+
+    @section Scripts{
+        <script>
+            layui.config({
+                base: '../LayUI/layui2.6.5/' //静态资源所在路径
+            }).extend({
+                //index: '/lib/index' //主入口模块
+            }).use(['table', 'laydate'], function () {
+                var $ = layui.$
+                    , form = layui.form
+                    , table = layui.table
+                    , laydate = layui.laydate;
+
+                //获取最新的报警记录数据
+                var lastRealData = null;
+
+                getLastWarnDataList();
+
+                getDpWarnAnalysizData();
+
+
+                //定时执行任务
+                setInterval(function () {
+                    getDpWarnAnalysizData();
+                }, 10000);
+
+                //获取最新的报警数据
+                function getLastWarnDataList() {
+                    $.ajax({
+                        type: "GET",
+                        url: "/RealWarn/GetLastNRealWarnList",
+                        cache: false,
+                        data: {},
+                        dataType: "json",
+                        success: function (res) {
+                            if (res.code == 0) {
+                                if (res.data != null && res.data.length > 0) {
+                                    lastRealData = res.data;
+                                    updateData(lastRealData);
+                                }
+                            }
+                        },
+                        error: function (err) {
+                            if (err.status == 401) {
+                                parent.location.href = "/home/login"
+                            }
+                        }
+                    });
+                }
+                //获取左侧报警统计数据
+                function getDpWarnAnalysizData() {
+                    $.ajax({
+                        type: "GET",
+                        url: "/KashBoard/GetDpWarnAnalysizData",
+                        cache: false,
+                        data: { timeType: "day" },
+                        dataType: "json",
+                        success: function (res) {
+                            if (res.code == 0) {
+                                if (res.data != null) {
+                                    $("#FaceCount").html(res.data.faceCount);
+                                    $("#HxdqCount").html(res.data.hxdqCount);
+                                    $("#HlljCount").html(res.data.hlljCount);
+                                    $("#SwyzCount").html(res.data.swyzCount);
+                                    $("#SbycCount").html(res.data.sbycCount);
+                                    $("#RjHwCount").html(res.data.rjHwCount);
+                                    $("#CjHwCount").html(res.data.cjHwCount);
+                                    $("#RjHfsCount").html(res.data.rjHfsCount);
+                                    $("#CjHfsCount").html(res.data.cjHfsCount);
+                                }
+                            }
+                        },
+                        error: function (err) {
+                            if (err.status == 401) {
+                                parent.location.href = "/home/login"
+                            }
+                        }
+                    });
+                }
+
+
+                function updateData(data) {
+                    var realHtmlData = "";
+                    var mapBoxRealData = "";
+                    for (var i = 0; i < data.length; i++) {
+                        var item = data[i];
+                        //左侧的滚动效果
+                        realHtmlData += "<div class='ssbj-line' onclick='viewWarnDetail(" + item.id + ")'>";
+                        realHtmlData += "<div class='ssbj-icon'></div>";
+                        realHtmlData += " <div class='ssbj-text'>" + item.warnDesc + "</div>";
+                        realHtmlData += " <div class='ssbj-time'>" + layui.util.toDateString(item.warnDate, 'HH:mm:ss') + "</div>";
+                        realHtmlData += "</div>";
+                        //地图上面的弹出效果
+                        mapBoxRealData += " <div class='mapbj-item' onclick='viewWarnDetail(" + item.id + ")'>";
+                        mapBoxRealData += "<div class='mapbj-img-box'>";
+                        if (item.warnTypeNo == '1') {
+                            mapBoxRealData += " <img src='../WarnDefaultImage/hfsbj_new.png' alt='' class='mapbj-img'>";
+                        } else if (item.warnTypeNo == '2') {
+                            mapBoxRealData += " <img src='../WarnDefaultImage/wxqh_new.png' alt='' class='mapbj-img'>";
+                        } else if (item.warnTypeNo == '3') {
+                            mapBoxRealData += " <img src='../WarnDefaultImage/swyz_new.png' alt='' class='mapbj-img'>";
+                        } else if (item.warnTypeNo == '4') {
+                            mapBoxRealData += " <img src='../WarnDefaultImage/hxdq_new.png' alt='' class='mapbj-img'>";
+                        } else {
+                            mapBoxRealData += " <img src='" + item.warnImage + "' onerror='this.src=\"../WarnDefaultImage/no_img.png\"' alt='' class='mapbj-img'>";
+                        }
+
+                        mapBoxRealData += "</div>";
+                        mapBoxRealData += "<div class='mapbj-text'>" + item.warnSubTypeName + "</div>";
+                        mapBoxRealData += "</div>";
+                    }
+
+                    $("#realWarnDataList").empty();
+                    $("#realWarnDataList").append(realHtmlData);
+                    $("#mapBoxRealData").empty();
+                    $("#mapBoxRealData").append(mapBoxRealData);
+                }
+
+                //查看报警详情
+                window.viewWarnDetail = function (kid) {
+                    $.ajax({
+                        type: 'GET', //你要请求的api的URL
+                        url: "/RealWarn/GetWarnDetails", //是否使用缓存
+                        cache: false,
+                        dataType: "json",
+                        data: { kid: kid },
+                        success: function (res) {    //函数参数 "data" 为请求成功服务端返回的数据
+                            if (res.code == 0) {
+                                $("#View_WarnTypeName").html(res.data.warnTypeName);
+                                $("#View_WarnSubTypeName").html(res.data.warnSubTypeName);
+                                $("#View_WarnLevel").html(res.data.warnLevel);
+                                $("#View_WarnCd").html(res.data.warnCd);
+                                $("#View_WarnSbm").html(res.data.warnSbm);
+                                $("#View_WarnDate").html(layui.util.toDateString(res.data.warnDate, 'yyyy-MM-dd HH:mm:ss'));
+
+                                //加载应急文件和应急联系人
+                                $("#divEmergencyFile").empty();
+                                var emercyFilesHtmlStr = "";
+                                if (res.data.emercyFiles != null && res.data.emercyFiles.length > 0) {
+                                    emercyFilesHtmlStr += "<ul>";
+                                    res.data.emercyFiles.forEach(function (item, index) {
+                                        emercyFilesHtmlStr += "<li style='margin-bottom: 10px;'>";
+                                        emercyFilesHtmlStr += "<span style='color: white;'>" + item.fileType + "</span>";
+                                        emercyFilesHtmlStr += "<span style='color: white; margin-left: 20px;'>" + item.fileName + "</span>";
+                                        emercyFilesHtmlStr += "<span style='color: orange; margin-left: 20px;cursor:pointer; ' onclick='downloadFile(" + item.fileId + ")'>下载</span>";
+                                    });
+                                    emercyFilesHtmlStr += "</ul>";
+                                } else {
+                                    emercyFilesHtmlStr += "<p>没有配置应急预案文件</p>";
+                                }
+                                $("#divEmergencyFile").append(emercyFilesHtmlStr);
+                                //应急联系人
+                                $("#divEmergencyPersons").empty();
+                                var emercyPersonsHtmlStr = "";
+                                if (res.data.emercyPersons != null && res.data.emercyPersons.length > 0) {
+                                    emercyPersonsHtmlStr += "<ul>";
+                                    res.data.emercyPersons.forEach(function (item, index) {
+                                        emercyPersonsHtmlStr += "<li style='margin-bottom: 10px;'>";
+                                        emercyPersonsHtmlStr += "<span style='color: white;'>" + item.name + "</span>";
+                                        emercyPersonsHtmlStr += "<span style='color: white; margin-left: 20px;'>" + item.orgName + "</span>";
+                                        emercyPersonsHtmlStr += "<span style='color: white; margin-left: 20px;'>" + item.phone + "</span>";
+                                    });
+                                    emercyPersonsHtmlStr += "</ul>";
+                                } else {
+                                    emercyPersonsHtmlStr += "<p>没有配置应急联系人</p>";
+                                }
+                                $("#divEmergencyPersons").append(emercyPersonsHtmlStr);
+
+                                $("#divModelDetails").empty();
+                                for (var i = 0; i < res.data.dicWarnDetails.length; i++) {
+                                    if (res.data.dicWarnDetails[i].name == "Title") {
+                                        //$("#DialogTitle").html(res.data.dicWarnDetails[i].value);
+                                        var titleHtml = "";
+                                        titleHtml += "<div class='divModule_div'>";
+                                        titleHtml += "<span style='opacity: 1; transform: rotate(90deg); background: rgba(255, 146, 0, 0.8); box-shadow: 0px 1px 3px 0px rgba(104, 207, 194, 1);'></span>";
+                                        titleHtml += "<p class='divModule_div_p' id='DialogTitle'>" + res.data.dicWarnDetails[i].value + "</p>";
+                                        titleHtml += "</div>";
+                                        $("#divModelDetails").append(titleHtml);
+                                    }
+                                }
+                                for (var i = 0; i < res.data.dicWarnDetails.length; i++) {
+                                    var getResultName = res.data.dicWarnDetails[i].name;
+                                    var getResultValue = res.data.dicWarnDetails[i].value;
+                                    var isImg = res.data.dicWarnDetails[i].isImg;
+                                    if (getResultName != "Title" && isImg == '0') {
+                                        var contentHtml = "";
+                                        //if (i == res.data.dicWarnDetails.length - 1) {
+                                        //    contentHtml += "<div class='layui-inline' style='height: 16px; margin-top: 20px;'>";
+                                        //} else {
+                                        contentHtml += "<div class='layui-inline' style='height: 16px; margin-top: 10px;margin-bottom:10px;'>";
+                                        //}
+
+                                        contentHtml += "<label class='layui-form-label' style='width: 130px; color: #727B8F; padding: 0px; line-height: 16px; height: 16px; '>" + getResultName + ":</label>";
+                                        contentHtml += "<div class='layui-input-block' style='min-height: 16px; line-height: 16px;'>";
+                                        contentHtml += "<label class='layui-form-label' style='text-align: left; width: 200px; color: white; padding: 0px 0px 0px 20px; height: 16px; line-height: 16px; font-size: 16px; '>" + getResultValue + "</label>";
+                                        contentHtml += "</div>";
+                                        contentHtml += "</div>";
+                                        $("#divModelDetails").append(contentHtml);
+                                    }
+                                }
+                                //编辑数据
+                                var dialogWidth = '860px';
+                                var dialogHeight = '820px';
+                                if (res.data.warnTypeNo == 1 || res.data.warnTypeNo == 2 || res.data.warnTypeNo == 3 || res.data.warnTypeNo == 4) {
+                                    $("#divModelDetails").show();
+                                    $("#divShowImg").hide();
+                                    //核生化微
+                                    dialogHeight = '820px';
+                                }
+                                else if (res.data.warnTypeNo == 6 || res.data.warnTypeNo == 9 || res.data.warnTypeNo == 11 || res.data.warnTypeNo == 5) {
+                                    //重点旅客，黑名单，卫检通道红外测温，红外测温设备
+                                    $("#divShowImg").empty();
+                                    if (res.data.dicWarnDetails.length > 0) {
+                                        $("#divModelDetails").show();
+                                    } else {
+                                        $("#divModelDetails").hide();
+                                    }
+                                    $("#divShowImg").show();
+                                    if (res.data.warnTypeNo == 5 || res.data.warnTypeNo == 9) {
+                                        //卫检通道红外&红外设备测温
+                                        dialogHeight = '820px';
+                                    } else if (res.data.warnTypeNo == 6) {
+                                        //黑名单旅客
+                                        dialogHeight = '820px';
+                                    } else if (res.data.warnTypeNo == 11) {
+                                        //重点旅客
+                                        dialogHeight = '820px';
+                                    }
+                                    //重点旅客报警
+                                    var imgHmtl = "";
+                                    imgHmtl += '<div style="float:left;width:50%;padding-right:5px;">';
+                                    imgHmtl += '<img src="' + res.data.warnImage + '" id="xlwgImg" class="DialogImg" onerror="this.src=\'../WarnDefaultImage/no_img.png\'" />';
+                                    imgHmtl += '<p style="text-align: center; color: white;font-size:14px;margin-top:10px;">(抓拍图片)</p>';
+                                    imgHmtl += '</div>';
+
+                                    imgHmtl += '<div style="float:left;width:50%;padding-left:5px;">';
+                                    imgHmtl += '<img src="' + res.data.warnAsocalateImage + '" id="xgImg" class="DialogImg" onerror="this.src=\'../WarnDefaultImage/no_img.png\'" />';
+                                    imgHmtl += '<p style="text-align: center; color: white;font-size:14px;margin-top:10px;">(比对图片)</p>';
+                                    imgHmtl += '</div>';
+
+                                    $("#divShowImg").append(imgHmtl);
+                                }
+                                else if (res.data.warnTypeNo == 7 || res.data.warnTypeNo == 8 || res.data.warnTypeNo == 10) {
+                                    //高风险行李和低风险行李
+                                    dialogHeight = '820px';
+                                    $("#divShowImg").empty();
+                                    $("#divShowImg").show();
+                                    for (var i = 0; i < res.data.dicWarnDetails.length; i++) {
+                                        var getResultName = res.data.dicWarnDetails[i].name;
+                                        var getResultValue = res.data.dicWarnDetails[i].value;
+                                        var isImg = res.data.dicWarnDetails[i].isImg;
+                                        var imgHmtl = "";
+                                        if (isImg == '1') {
+                                            imgHmtl += '<div style="float:left;width:50%;padding-right:5px;">';
+                                            imgHmtl += '<img src="' + getResultValue + '" id="xlwgImg" class="DialogImg" onerror="this.src=\'../WarnDefaultImage/no_img.png\'" />';
+                                            imgHmtl += '<p style="text-align: center; color: white;font-size:14px;margin-top:5px;margin-bottom:5px;">(' + getResultName + ')</p>';
+                                            imgHmtl += '</div>';
+                                        }
+                                        $("#divShowImg").append(imgHmtl);
+                                    }
+
+                                }
+                                layer.open({
+                                    type: 1  //0（信息框，默认）1（页面层）2（iframe层）3（加载层）4（tips层）
+                                    , title: "报警记录详情"
+                                    , content: $("#showRealWarnInfo")
+                                    , scrollbar: true
+                                    , maxHeight: 820
+                                    , area: [dialogWidth, dialogHeight]
+                                    , btn: ['取消', '确定']
+                                    , success: function (layero) { }
+                                    , yes: function (index, layero) { layer.close(index); }
+                                    , btn2: function (index) {
+                                        return true;
+                                    }
+                                });
+                            }
+                        },
+                        error: function (err) {
+                            if (err.status == 401) {
+                                parent.location.href = "/home/login";
+                            }
+                        }
+                    });
+                }
+
+                window.downloadFile = function (kid) {
+                    $.ajax({
+                        type: 'GET', //你要请求的api的URL
+                        url: "/EmergencyDoc/IsDownFile", //是否使用缓存
+                        cache: false, //数据类型，这里我用的是json
+                        dataType: "json",
+                        //必要的时候需要用JSON.stringify() 将JSON对象转换成字符串
+                        data: { id: kid },
+                        success: function (res) {    //函数参数 "data" 为请求成功服务端返回的数据
+                            if (res.code == 0) {
+                                window.location.href = "/EmergencyDoc/DownFile?id=" + obj.id;
+                            } else {
+                                layer.msg("文件不存在或下载失败");
+                            }
+                        },
+                        error: function (err) {
+                            if (err.status == 401) {
+                                parent.location.href = "/home/login";
+                            }
+                        }
+                    });
+                }
+
+                window.asocalateMap = function (deviceId) {
+                    alert("联动电子地图设备");
+                }
+                //创建一个websocket
+                var ws = new WebSocket('ws://192.168.72.68:8092/alarm');
+
+                ws.onopen = function () {
+                    console.log("连接成功");
+                };
+                ws.onerror = function () {
+                    console.log("连接错误");
+                };
+                ws.onmessage = function (evt) {
+                    console.log('收取消息：' + evt.data + '');
+                    lastRealData.unshift(JSON.parse(evt.data));
+                    if (lastRealData.length > 8) {
+                        lastRealData.pop();
+                    }
+                    updateData(lastRealData);
+                };
+                ws.onclose = function () {
+                    console.log('连接关闭');
+                }
+            });
+        </script>
+    }
+</body>
+</html>

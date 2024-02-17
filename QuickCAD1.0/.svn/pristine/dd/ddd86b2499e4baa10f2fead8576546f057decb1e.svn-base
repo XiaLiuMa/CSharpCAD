@@ -1,0 +1,245 @@
+﻿using IsolatorOrigin.Storage;
+using Max.BaseKit.Customs;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// 定制化数据库缓存
+    /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class CustomDbCacher<T>
+    {
+        /// <summary>
+        /// 实体缓存列表
+        /// </summary>
+        public CustomConcurrentList<T> EntityList { get; private set; }
+        public CustomDbCacher()
+        {
+            EntityList = new CustomConcurrentList<T>();
+
+            #region 初始化时，将数据库加载到缓存
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                var lst = operate.QueryByCondition<T>(); //新增到数据库
+                lst?.ForEach(p => EntityList.Add(p));
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 新增一个对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public bool Add(T obj)
+        {
+            if (obj == null) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.Insert(obj); //新增到数据库
+            }
+            if (flag)
+            {
+                if (!EntityList.Contains(obj))
+                {
+                    EntityList.Add(obj); //新增到缓存
+                }
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 批量新增对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objs"></param>
+        /// <returns></returns>
+        public bool BatchAdd(List<T> objs)
+        {
+            if (objs == null || objs.Count <= 0) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.BatchInsert(objs); //新增到数据库
+            }
+
+            if (flag)
+            {
+                objs?.ForEach(obj =>
+                {
+                    if (!EntityList.Contains(obj))
+                    {
+                        EntityList.Add(obj); //新增到缓存
+                    }
+                });
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 移除一个对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public bool Remove(T obj)
+        {
+            if (obj == null) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.Delete(obj); //从数据库中删除
+            }
+            if (flag)
+            {
+                if (EntityList.Contains(obj))
+                {
+                    EntityList.Remove(obj); //从缓存中删除
+                }
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 批量移除对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="objs"></param>
+        /// <returns></returns>
+        public bool BatchRemove(List<T> objs)
+        {
+            if (objs == null || objs.Count <= 0) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.BatchDelete(objs); //从数据库中删除
+            }
+
+            if (flag)
+            {
+                objs?.ForEach(obj =>
+                {
+                    if (EntityList.Contains(obj))
+                    {
+                        EntityList.Remove(obj); //从缓存中删除
+                    }
+                });
+            }
+
+            return flag;
+        }
+
+        /// <summary>
+        /// 根据条件移除
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <param name="filter">用于查找缓存中的数据进行修改的条件表达式</param>
+        /// <returns></returns>
+        public bool RemoveWherre(Func<T, bool> filter)
+        {
+            if (filter == null) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.DeleteByCondition(filter); //从数据库中删除
+            }
+            if (flag)
+            {
+                var objs = EntityList.Where(filter);
+                objs?.ForEach(obj =>
+                {
+                    if (EntityList.Contains(obj))
+                    {
+                        EntityList.Remove(obj); //从缓存中删除
+                    }
+                });
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 修改一个对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <param name="filter">用于查找缓存中的数据进行修改的条件表达式</param>
+        /// <returns></returns>
+        public bool Updata(T obj, Func<T, bool> filter)
+        {
+            if (obj == null) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.Update(obj); //修改数据库数据
+            }
+            if (flag)
+            {
+                var tobj = EntityList.Find(filter);
+                EntityList.Remove(tobj); //先从缓存中移除
+                EntityList.Add(obj); //再插入缓存
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 批量修改对象
+        /// 【注意：增加了缓存和数据库同步逻辑，非数据库实体请不要用该函数】
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <param name="filter">用于查找缓存中的数据进行修改的条件表达式</param>
+        /// <returns></returns>
+        public bool BatchUpdate(List<T> objs, Func<T, bool> filter)
+        {
+            if (objs == null || objs.Count <= 0) return false;
+            bool flag = default;
+            using (var operate = DbConfiger.I.GetAppDbOperate())
+            {
+                flag = operate.BatchUpdate(objs); //修改数据库数据
+            }
+
+            if (flag)
+            {
+                var tobjs = EntityList.Where(filter);
+                tobjs?.ForEach(p => { EntityList.Add(p); }); //先从缓存中移除
+                objs?.ForEach(p => { EntityList.Add(p); });  //再插入缓存
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 查询一个对象
+        /// </summary>
+        /// <param name="filter">用于查找缓存中的数据进行修改的条件表达式</param>
+        /// <returns></returns>
+        public T Find(Func<T, bool> filter)
+        {
+            if (filter == null) return default;
+            return EntityList.Find(filter);
+        }
+
+        /// <summary>
+        /// 查询多个对象，不传表达式标识查询全部
+        /// </summary>
+        /// <param name="filter">用于查找缓存中的数据进行修改的条件表达式，非必填</param>
+        /// <returns></returns>
+        public List<T> Where(Func<T, bool> filter = null)
+        {
+            if (filter == null)
+            {
+                return EntityList.ToList();
+            }
+            else
+            {
+                return EntityList.Where(filter);
+            }
+        }
+    }
+}

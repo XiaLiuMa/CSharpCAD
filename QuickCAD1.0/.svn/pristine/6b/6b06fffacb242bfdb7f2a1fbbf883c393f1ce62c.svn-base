@@ -1,0 +1,64 @@
+﻿using Max.DbToolkit.SqlExtend.Mod;
+using System;
+
+namespace GaCharSet.Config.Entities
+{
+    /// <summary>
+    /// 网络摄像头表
+    /// </summary>
+    public class CamInfo : BaseEntity
+    {
+        public Int64 Id { get; set; }
+        /// <summary>
+        /// 设备型号【目前支持"海康","海康扩展","宇视"3种型号】
+        /// </summary>
+        public string SBXH { get; set; }
+        /// <summary>
+        /// 设备名称
+        /// </summary>
+        public string SBMC { get; set; }
+        /// <summary>
+        /// 设备IP地址
+        /// </summary>
+        public string IP { get; set; }
+        /// <summary>
+        /// 设备端口号
+        /// </summary>
+        public string PORT { get; set; }
+        /// <summary>
+        /// 设备通道号
+        /// </summary>
+        public string CHANNEL { get; set; }
+        /// <summary>
+        /// 设备用户名
+        /// </summary>
+        public string USER_NAME { get; set; }
+        /// <summary>
+        /// 设备密码
+        /// </summary>
+        public string USER_PWD { get; set; }
+        /// <summary>
+        /// 坐标ID
+        /// </summary>
+        public string ZBID { get; set; }
+        /// <summary>
+        /// 通道号
+        /// </summary>
+        public string MSTDH { get; set; }
+
+        public override string[] GetKeyValues()
+        {
+            return new string[] { "Id" };
+        }
+
+        public override string[] GetDataBaseAuto()
+        {
+            return new string[] { "Id" };
+        }
+
+        public override string GetTableName()
+        {
+            return "CamInfo";
+        }
+    }
+}

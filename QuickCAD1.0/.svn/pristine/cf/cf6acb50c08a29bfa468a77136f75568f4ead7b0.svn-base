@@ -1,0 +1,317 @@
+﻿
+namespace DataSyncVerificationApp
+{
+    partial class MainForm
+    {
+        /// <summary>
+        ///  Required designer variable.
+        /// </summary>
+        private System.ComponentModel.IContainer components = null;
+
+        /// <summary>
+        ///  Clean up any resources being used.
+        /// </summary>
+        /// <param name="disposing">true if managed resources should be disposed; otherwise, false.</param>
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && (components != null))
+            {
+                components.Dispose();
+            }
+            base.Dispose(disposing);
+        }
+
+        #region Windows Form Designer generated code
+
+        /// <summary>
+        ///  Required method for Designer support - do not modify
+        ///  the contents of this method with the code editor.
+        /// </summary>
+        private void InitializeComponent()
+        {
+            this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
+            this.tbDic1 = new System.Windows.Forms.TextBox();
+            this.btSelectDic1 = new System.Windows.Forms.Button();
+            this.tbCMD = new System.Windows.Forms.TextBox();
+            this.tbStime = new System.Windows.Forms.TextBox();
+            this.tbEtime = new System.Windows.Forms.TextBox();
+            this.tbItime = new System.Windows.Forms.TextBox();
+            this.rtFileSelectResult = new System.Windows.Forms.RichTextBox();
+            this.tbCflx = new System.Windows.Forms.TextBox();
+            this.btSelectFiles = new System.Windows.Forms.Button();
+            this.rtDataSelectResult = new System.Windows.Forms.RichTextBox();
+            this.tbFileSelectResult = new System.Windows.Forms.TextBox();
+            this.cbBackup = new System.Windows.Forms.CheckBox();
+            this.btSelectDic2 = new System.Windows.Forms.Button();
+            this.tbDic2 = new System.Windows.Forms.TextBox();
+            this.tbFiledName = new System.Windows.Forms.TextBox();
+            this.tbDataSelectResult = new System.Windows.Forms.TextBox();
+            this.btSelectDatas = new System.Windows.Forms.Button();
+            this.tbFiledValue = new System.Windows.Forms.TextBox();
+            this.tbTip = new System.Windows.Forms.TextBox();
+            this.label1 = new System.Windows.Forms.Label();
+            this.label2 = new System.Windows.Forms.Label();
+            this.cbToSqlStr = new System.Windows.Forms.CheckBox();
+            this.SuspendLayout();
+            // 
+            // tbDic1
+            // 
+            this.tbDic1.Location = new System.Drawing.Point(6, 41);
+            this.tbDic1.Name = "tbDic1";
+            this.tbDic1.PlaceholderText = "D:\\Temp\\SyncPath";
+            this.tbDic1.ReadOnly = true;
+            this.tbDic1.Size = new System.Drawing.Size(434, 23);
+            this.tbDic1.TabIndex = 0;
+            // 
+            // btSelectDic1
+            // 
+            this.btSelectDic1.Location = new System.Drawing.Point(446, 41);
+            this.btSelectDic1.Name = "btSelectDic1";
+            this.btSelectDic1.Size = new System.Drawing.Size(84, 23);
+            this.btSelectDic1.TabIndex = 1;
+            this.btSelectDic1.Text = "选择文件夹";
+            this.btSelectDic1.UseVisualStyleBackColor = true;
+            this.btSelectDic1.Click += new System.EventHandler(this.btSelectDic1_Click);
+            // 
+            // tbCMD
+            // 
+            this.tbCMD.Location = new System.Drawing.Point(6, 70);
+            this.tbCMD.Name = "tbCMD";
+            this.tbCMD.PlaceholderText = "命令码";
+            this.tbCMD.Size = new System.Drawing.Size(86, 23);
+            this.tbCMD.TabIndex = 2;
+            // 
+            // tbStime
+            // 
+            this.tbStime.Location = new System.Drawing.Point(192, 70);
+            this.tbStime.Name = "tbStime";
+            this.tbStime.PlaceholderText = "查询开始时间";
+            this.tbStime.Size = new System.Drawing.Size(121, 23);
+            this.tbStime.TabIndex = 3;
+            // 
+            // tbEtime
+            // 
+            this.tbEtime.Location = new System.Drawing.Point(319, 70);
+            this.tbEtime.Name = "tbEtime";
+            this.tbEtime.PlaceholderText = "查询结束时间";
+            this.tbEtime.Size = new System.Drawing.Size(121, 23);
+            this.tbEtime.TabIndex = 4;
+            // 
+            // tbItime
+            // 
+            this.tbItime.Location = new System.Drawing.Point(446, 70);
+            this.tbItime.Name = "tbItime";
+            this.tbItime.PlaceholderText = "文件生成时间";
+            this.tbItime.Size = new System.Drawing.Size(121, 23);
+            this.tbItime.TabIndex = 5;
+            // 
+            // rtFileSelectResult
+            // 
+            this.rtFileSelectResult.Location = new System.Drawing.Point(6, 156);
+            this.rtFileSelectResult.Name = "rtFileSelectResult";
+            this.rtFileSelectResult.Size = new System.Drawing.Size(583, 572);
+            this.rtFileSelectResult.TabIndex = 6;
+            this.rtFileSelectResult.Text = "";
+            // 
+            // tbCflx
+            // 
+            this.tbCflx.Location = new System.Drawing.Point(100, 70);
+            this.tbCflx.Name = "tbCflx";
+            this.tbCflx.PlaceholderText = "触发类型";
+            this.tbCflx.Size = new System.Drawing.Size(86, 23);
+            this.tbCflx.TabIndex = 7;
+            // 
+            // btSelectFiles
+            // 
+            this.btSelectFiles.Location = new System.Drawing.Point(439, 98);
+            this.btSelectFiles.Name = "btSelectFiles";
+            this.btSelectFiles.Size = new System.Drawing.Size(128, 23);
+            this.btSelectFiles.TabIndex = 8;
+            this.btSelectFiles.Text = "查找符合条件的文件";
+            this.btSelectFiles.UseVisualStyleBackColor = true;
+            this.btSelectFiles.Click += new System.EventHandler(this.btSelectFiles_Click);
+            // 
+            // rtDataSelectResult
+            // 
+            this.rtDataSelectResult.Location = new System.Drawing.Point(599, 98);
+            this.rtDataSelectResult.Name = "rtDataSelectResult";
+            this.rtDataSelectResult.Size = new System.Drawing.Size(583, 630);
+            this.rtDataSelectResult.TabIndex = 9;
+            this.rtDataSelectResult.Text = "";
+            // 
+            // tbFileSelectResult
+            // 
+            this.tbFileSelectResult.Location = new System.Drawing.Point(6, 127);
+            this.tbFileSelectResult.Name = "tbFileSelectResult";
+            this.tbFileSelectResult.PlaceholderText = "文件搜索结果";
+            this.tbFileSelectResult.ReadOnly = true;
+            this.tbFileSelectResult.Size = new System.Drawing.Size(567, 23);
+            this.tbFileSelectResult.TabIndex = 10;
+            // 
+            // cbBackup
+            // 
+            this.cbBackup.AutoSize = true;
+            this.cbBackup.Location = new System.Drawing.Point(6, 100);
+            this.cbBackup.Name = "cbBackup";
+            this.cbBackup.Size = new System.Drawing.Size(51, 21);
+            this.cbBackup.TabIndex = 11;
+            this.cbBackup.Text = "拷贝";
+            this.cbBackup.UseVisualStyleBackColor = true;
+            // 
+            // btSelectDic2
+            // 
+            this.btSelectDic2.Location = new System.Drawing.Point(349, 98);
+            this.btSelectDic2.Name = "btSelectDic2";
+            this.btSelectDic2.Size = new System.Drawing.Size(84, 23);
+            this.btSelectDic2.TabIndex = 13;
+            this.btSelectDic2.Text = "选择文件夹";
+            this.btSelectDic2.UseVisualStyleBackColor = true;
+            this.btSelectDic2.Click += new System.EventHandler(this.btSelectDic2_Click);
+            // 
+            // tbDic2
+            // 
+            this.tbDic2.Location = new System.Drawing.Point(55, 98);
+            this.tbDic2.Name = "tbDic2";
+            this.tbDic2.PlaceholderText = "D:\\Temp\\BackupPath";
+            this.tbDic2.ReadOnly = true;
+            this.tbDic2.Size = new System.Drawing.Size(288, 23);
+            this.tbDic2.TabIndex = 12;
+            // 
+            // tbFiledName
+            // 
+            this.tbFiledName.Location = new System.Drawing.Point(615, 40);
+            this.tbFiledName.Name = "tbFiledName";
+            this.tbFiledName.PlaceholderText = "字段名称";
+            this.tbFiledName.Size = new System.Drawing.Size(101, 23);
+            this.tbFiledName.TabIndex = 14;
+            // 
+            // tbDataSelectResult
+            // 
+            this.tbDataSelectResult.Location = new System.Drawing.Point(615, 69);
+            this.tbDataSelectResult.Name = "tbDataSelectResult";
+            this.tbDataSelectResult.PlaceholderText = "数据搜索结果";
+            this.tbDataSelectResult.ReadOnly = true;
+            this.tbDataSelectResult.Size = new System.Drawing.Size(567, 23);
+            this.tbDataSelectResult.TabIndex = 15;
+            // 
+            // btSelectDatas
+            // 
+            this.btSelectDatas.Location = new System.Drawing.Point(1051, 40);
+            this.btSelectDatas.Name = "btSelectDatas";
+            this.btSelectDatas.Size = new System.Drawing.Size(128, 23);
+            this.btSelectDatas.TabIndex = 16;
+            this.btSelectDatas.Text = "查找符合条件的数据";
+            this.btSelectDatas.UseVisualStyleBackColor = true;
+            this.btSelectDatas.Click += new System.EventHandler(this.btSelectDatas_Click);
+            // 
+            // tbFiledValue
+            // 
+            this.tbFiledValue.Location = new System.Drawing.Point(722, 41);
+            this.tbFiledValue.Name = "tbFiledValue";
+            this.tbFiledValue.PlaceholderText = "字段的值";
+            this.tbFiledValue.Size = new System.Drawing.Size(189, 23);
+            this.tbFiledValue.TabIndex = 17;
+            // 
+            // tbTip
+            // 
+            this.tbTip.BackColor = System.Drawing.Color.DarkGray;
+            this.tbTip.Location = new System.Drawing.Point(6, 734);
+            this.tbTip.Name = "tbTip";
+            this.tbTip.PlaceholderText = "提示信息";
+            this.tbTip.ReadOnly = true;
+            this.tbTip.Size = new System.Drawing.Size(1173, 23);
+            this.tbTip.TabIndex = 18;
+            this.tbTip.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            // 
+            // label1
+            // 
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(6, 12);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(276, 17);
+            this.label1.TabIndex = 19;
+            this.label1.Text = "1、查询文件：均为模糊查询；多命令码时用\',\'隔开";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(599, 9);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(435, 17);
+            this.label2.TabIndex = 20;
+            this.label2.Text = "2、查询数据：模糊查询；值为空查询所有的值；值不为空查询包含指定值的文件";
+            // 
+            // cbToSqlStr
+            // 
+            this.cbToSqlStr.AutoSize = true;
+            this.cbToSqlStr.Location = new System.Drawing.Point(917, 41);
+            this.cbToSqlStr.Name = "cbToSqlStr";
+            this.cbToSqlStr.Size = new System.Drawing.Size(116, 21);
+            this.cbToSqlStr.TabIndex = 21;
+            this.cbToSqlStr.Text = "数据转sql字符串";
+            this.cbToSqlStr.UseVisualStyleBackColor = true;
+            // 
+            // MainForm
+            // 
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
+            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.ClientSize = new System.Drawing.Size(1186, 760);
+            this.Controls.Add(this.cbToSqlStr);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.label1);
+            this.Controls.Add(this.tbTip);
+            this.Controls.Add(this.tbFiledValue);
+            this.Controls.Add(this.btSelectDatas);
+            this.Controls.Add(this.tbDataSelectResult);
+            this.Controls.Add(this.tbFiledName);
+            this.Controls.Add(this.btSelectDic2);
+            this.Controls.Add(this.tbDic2);
+            this.Controls.Add(this.cbBackup);
+            this.Controls.Add(this.tbFileSelectResult);
+            this.Controls.Add(this.rtDataSelectResult);
+            this.Controls.Add(this.btSelectFiles);
+            this.Controls.Add(this.tbCflx);
+            this.Controls.Add(this.rtFileSelectResult);
+            this.Controls.Add(this.tbItime);
+            this.Controls.Add(this.tbEtime);
+            this.Controls.Add(this.tbStime);
+            this.Controls.Add(this.tbCMD);
+            this.Controls.Add(this.btSelectDic1);
+            this.Controls.Add(this.tbDic1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+            this.Name = "MainForm";
+            this.Text = "数据同步核查工具";
+            this.ResumeLayout(false);
+            this.PerformLayout();
+
+        }
+
+        #endregion
+
+        private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
+        private System.Windows.Forms.TextBox tbDic1;
+        private System.Windows.Forms.Button btSelectDic1;
+        private System.Windows.Forms.TextBox tbCMD;
+        private System.Windows.Forms.TextBox tbStime;
+        private System.Windows.Forms.TextBox tbEtime;
+        private System.Windows.Forms.TextBox tbItime;
+        private System.Windows.Forms.RichTextBox rtFileSelectResult;
+        private System.Windows.Forms.TextBox tbCflx;
+        private System.Windows.Forms.Button btSelectFiles;
+        private System.Windows.Forms.RichTextBox rtDataSelectResult;
+        private System.Windows.Forms.TextBox tbFileSelectResult;
+        private System.Windows.Forms.CheckBox cbBackup;
+        private System.Windows.Forms.Button btSelectDic2;
+        private System.Windows.Forms.TextBox tbDic2;
+        private System.Windows.Forms.TextBox tbFiledName;
+        private System.Windows.Forms.TextBox tbDataSelectResult;
+        private System.Windows.Forms.Button btSelectDatas;
+        private System.Windows.Forms.TextBox tbFiledValue;
+        private System.Windows.Forms.TextBox tbTip;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.CheckBox cbToSqlStr;
+    }
+}
+

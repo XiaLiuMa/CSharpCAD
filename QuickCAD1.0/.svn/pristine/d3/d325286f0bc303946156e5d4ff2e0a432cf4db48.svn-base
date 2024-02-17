@@ -1,0 +1,92 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using DataSyncTarget.Config;
+using Max.ISolator;
+using System;
+using System.Linq;
+using System.Text;
+using DataSyncTarget.Config.Entities;
+using Max.ISolator.Core;
+using Max.ISolator.KafkaPkg;
+using Max.BaseKit.Exts;
+
+namespace DataSyncTarget.UseData.Services
+{
+    /// <summary>
+    /// Kafka发布服务:命令码"K&*"
+    /// </summary>
+    public class KafkaService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <param name="tTask"></param>
+        /// <param name="kafka"></param>
+        public void ConsumeData(IsolatorData idata, TargetTask tTask, KafkaPdr kafka)
+        {
+            try
+            {
+                var lll =  kafka.Convert<KafkaProducerCfg>();
+                KafkaManager.Instance.Publich(lll, JsonUtil.ObjectToStr(idata));
+
+
+                //idata.Rwmc = DbCmdManger.Instance.SelectTnameForCmd(idata.Cmd);//告知Kafka入哪个表
+                //string idsStr = JsonUtil.ObjectToStr(idata);
+                //byte[] bytes = Encoding.UTF8.GetBytes(idsStr);
+
+                //#region 数据不大于kafka最大消息大小直接发布，大于kafka最大消息大小需要分开发
+                //if (bytes.Length <= kafka.MaxSize * 1024 * 1024)
+                //{
+                //    KafkaManager.Instance.PublichData(idsStr);//发布到kafka
+                //}
+                //else
+                //{
+                //    #region 备选方案(kafka接收数据过大时用)
+                //    int cs_count = (bytes.Length % (KafkaManager.Instance.maxsize * 1024 * 1024) == 0) ? (bytes.Length / (KafkaManager.Instance.maxsize * 1024 * 1024)) : (bytes.Length / (KafkaManager.Instance.maxsize * 1024 * 1024)) + 1;
+                //    int ts_count = idata.Lst.Count / cs_count;//每次发送的条数
+
+                //    for (int i = 0; i < cs_count; i++)//分多次发送
+                //    {
+                //        try
+                //        {
+                //            var lst = idata.Lst.Skip(i * ts_count).Take(ts_count).ToList();
+                //            if (lst == null || lst.Count <= 0) continue;
+                //            IsolatorData tempdata = new IsolatorData()
+                //            {
+                //                Cmd = idata.Cmd,
+                //                Rwmc = idata.Rwmc,
+                //                Cflx = idata.Cflx,
+                //                Czlx = idata.Czlx,
+                //                Lst = lst
+                //            };
+                //            string idsStr1 = JsonUtil.ObjectToStr(tempdata);
+                //            byte[] bytes1 = Encoding.UTF8.GetBytes(idsStr1);
+
+                //            #region 利用递归拆分发送批次
+                //            if (bytes1.Length <= KafkaManager.Instance.maxsize * 1024 * 1024)
+                //            {
+                //                KafkaManager.Instance.PublichData(idsStr1);//发布到kafka
+                //            }
+                //            else
+                //            {
+                //                ConsumeData(tempdata);
+                //            }
+                //            #endregion
+                //        }
+                //        catch (Exception ex)
+                //        {
+                //            NLogger.Error($"数据分页成给Kafka异常>>{ex.Message}");
+                //        }
+                //    }
+                //    #endregion
+                //}
+                //#endregion
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"KafkaService消费{idata.Cmd}异常{ex.Message}。");
+            }
+        }
+    }
+}

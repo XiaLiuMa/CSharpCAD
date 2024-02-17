@@ -1,0 +1,30 @@
+﻿using Max.TcpKit.Core;
+using System;
+
+namespace TcpServerSimulator
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("Hello World!");
+            server = new MaxTcpServer("127.0.0.1", 8007);
+            server.OnReceived += Server_OnReceived;
+            server.StartAsync();
+            while (true) Console.ReadKey();
+        }
+
+        private static MaxTcpServer server;
+
+        private static void Server_OnReceived(string arg1, byte[] arg2)
+        {
+            foreach (var item in server.Sessions)
+            {
+                if (!item.Key.Equals(arg1))
+                {
+                    server.SendAsync(item.Key, arg2);
+                }
+            }
+        }
+    }
+}

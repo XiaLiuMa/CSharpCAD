@@ -1,0 +1,397 @@
+﻿using Max.BaseKit;
+using Max.DbTool;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Max.BaseKit.Exts;
+using Max.BaseKit.Utils;
+using System.Data;
+using IsolatorTarget.Storage.Entities;
+using IsolatorTarget.Storage;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 数据库入库服务
+    /// </summary>
+    public class DatabaseService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="task">消费任务</param>
+        /// <param name="serviceId">服务标识</param>
+        public void ConsumeData(IsolatorData idata, ConsumeTaskEntity task, string serviceId)
+        {
+            var db = ConfigCacher.I.UseDb_Lst?.Find(p => serviceId.Equals(p.Id));
+            if (db != null) 
+            {
+                return;
+            }
+
+            try
+            {
+                
+                using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                {
+                    switch (idata.Czlx)
+                    {
+                        case "D"://删除
+                            //flag = DeleteData(idata, dbcmd, sqllst);
+                            break;
+                        case "R"://覆盖更新--有就修改，没有就新增
+                            //flag = UpdateData(idata, dbcmd, sqllst);
+                            break;
+                        case "DR"://先删除，再覆盖更新
+                            //flag = RefreshData(idata, dbcmd, sqllst);
+                            break;
+                        default: break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"DatabaseService处理隔离器数据异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// D-删除数据
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <param name="dbcmd"></param>
+        /// <param name="sqllst"></param>
+        /// <returns></returns>
+        private bool DeleteData(IsolatorData idata, ConsumeTaskEntity dbcmd, List<IDbOperate> sqllst)
+        {
+            List<bool> flags = new List<bool>();
+            //TODO:待处理
+            //foreach (var sql in sqllst)
+            //{
+            //    try
+            //    {
+            //        for (int i = 0; i < 5; i++)
+            //        {
+            //            bool flag = default;
+            //            if (sql is MongoOperate)//mongo操作
+            //            {
+            //                MongoOperate mongo = sql as MongoOperate;
+            //                flag = mongo.DeleteManay(dbcmd.Tname, Structural(idata.Lst, dbcmd.MJson));
+            //            }
+            //            if (sql is OracleOperate) //oracle操作
+            //            {
+            //                OracleOperate oracle = sql as OracleOperate;
+            //                flag = oracle.BatchDelete(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst);
+            //            }
+            //            else if (sql is MysqlOperate)
+            //            {
+            //                MysqlOperate mysql = sql as MysqlOperate;
+            //                flag = mysql.BatchDelete(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst);
+            //            }
+            //            else if (sql is GbaseOperate)
+            //            {
+            //                GbaseOperate gbase = sql as GbaseOperate;
+            //                flag = gbase.BatchDelete(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst);
+            //            }
+            //            else
+            //            {
+            //                flag = SqlUtil.BatchDelete(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst, sql);
+            //            }
+            //            flags.Add(flag);
+            //            if (flag) break;
+            //            Thread.Sleep(200);
+            //            string sbms = (i != 4) ? "，尝试重新删除。" : "。";
+            //            if (i != 4)
+            //            {
+            //                NLogger.Warn($"DatabaseService>>{idata.Cmd},{idata.Rwmc}删除失败{sbms}");
+            //            }
+            //            else
+            //            {
+            //                NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}删除失败{sbms}");
+            //            }
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}执行删除异常：{ex.Message}");
+            //    }
+            //    finally
+            //    {
+            //        GaDbManger.Instance.StillISqlOperater(dbcmd?.DbId, sql);//归还数据库操作对象
+            //    }
+            //}
+            var rflag = flags.Contains(true) ? true : false;
+            return rflag;
+        }
+
+        /// <summary>
+        /// U-覆盖数据
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <param name="dbcmd"></param>
+        /// <param name="sqllst"></param>
+        /// <returns></returns>
+        private bool UpdateData(IsolatorData idata, ConsumeTaskEntity dbcmd, List<IDbOperate> sqllst)
+        {
+            List<bool> flags = new List<bool>();
+            //TODO:待处理
+            //foreach (var sql in sqllst)
+            //{
+            //    if (sql == null) continue;
+            //    try
+            //    {
+            //        for (int i = 0; i < 5; i++)
+            //        {
+            //            bool flag = default;
+            //            if (sql is MongoOperate) //mongo操作
+            //            {
+            //                MongoOperate mongo = sql as MongoOperate;
+            //                flag = mongo.UpdateManay(dbcmd.Tname, Structural(idata.Lst, dbcmd.MJson));
+            //            }
+            //            else if (sql is OracleOperate)//oracle操作
+            //            {
+            //                OracleOperate oracle = sql as OracleOperate;
+            //                flag = oracle.BatchCover(dbcmd.Tname, idata.Lst, dbcmd.Keys.Split(','));
+            //            }
+            //            else if (sql is MysqlOperate)
+            //            {
+            //                MysqlOperate mysql = sql as MysqlOperate;
+            //                flag = mysql.BatchCover(dbcmd.Tname, idata.Lst);
+            //            }
+            //            else if (sql is GbaseOperate)
+            //            {
+            //                GbaseOperate gbase = sql as GbaseOperate;
+            //                flag = gbase.BatchCover(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst);
+            //            }
+            //            else
+            //            {
+            //                flag = SqlUtil.BatchUpdate(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst, sql);
+            //            }
+            //            flags.Add(flag);
+            //            if (flag) break;
+            //            Thread.Sleep(200);
+            //            string sbms = (i != 4) ? "，尝试重新修改。" : "。";
+            //            if (i != 4)
+            //            {
+            //                NLogger.Warn($"DatabaseService>>{idata.Cmd},{idata.Rwmc}修改失败{sbms}");
+            //            }
+            //            else
+            //            {
+            //                NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}修改失败{sbms}");
+            //            }
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}执行修改异常：{ex.Message}");
+            //    }
+            //    finally
+            //    {
+            //        GaDbManger.Instance.StillISqlOperater(dbcmd?.DbId, sql);//归还数据库操作对象
+            //    }
+            //}
+            var rflag = flags.Contains(true) ? true : false;
+            return rflag;
+        }
+
+        /// <summary>
+        /// R-更新(先删除再覆盖)
+        /// </summary>
+        /// <param name="idata"></param>
+        /// <param name="dbcmd"></param>
+        /// <param name="sqllst"></param>
+        /// <returns></returns>
+        private bool RefreshData(IsolatorData idata, ConsumeTaskEntity dbcmd, List<IDbOperate> sqllst)
+        {
+            List<bool> flags1 = new List<bool>();
+            List<bool> flags2 = new List<bool>();
+            //TODO:待处理
+            //foreach (var sql in sqllst)
+            //{
+            //    try
+            //    {
+            //        for (int i = 0; i < 5; i++)
+            //        {
+            //            bool flag = default;
+            //            if (sql is MongoOperate) //mongo操作
+            //            {
+            //                MongoOperate mongo = sql as MongoOperate;
+            //                flag = mongo.DeleteByTime(dbcmd.Tname, dbcmd.Bgyj, idata.Lst);
+            //            }
+            //            else
+            //            {
+            //                flag = SqlUtil.DeleteByTime(dbcmd.Tname, dbcmd.Bgyj, idata.Lst, sql);
+            //            }
+            //            flags1.Add(flag);
+            //            if (flag) break;
+            //            Thread.Sleep(200);
+            //            string sbms = (i != 4) ? "，尝试重新更新(删除)。" : "。";
+            //            if (i != 4)
+            //            {
+            //                NLogger.Warn($"DatabaseService>>{idata.Cmd},{idata.Rwmc}更新(删除)失败{sbms}");
+            //            }
+            //            else
+            //            {
+            //                NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}更新(删除)失败{sbms}");
+            //            }
+            //        }
+
+            //        for (int i = 0; i < 5; i++)
+            //        {
+            //            bool flag = default;
+            //            if (sql is MongoOperate) //mongo操作
+            //            {
+            //                MongoOperate mongo = sql as MongoOperate;
+            //                flag = mongo.UpdateManay(dbcmd.Tname, Structural(idata.Lst, dbcmd.MJson));
+            //            }
+            //            if (sql is OracleOperate) //oracle操作
+            //            {
+            //                OracleOperate oracle = sql as OracleOperate;
+            //                flag = oracle.BatchCover(dbcmd.Tname, idata.Lst, dbcmd.Keys.Split(','));
+            //            }
+            //            else if (sql is MysqlOperate)
+            //            {
+            //                MysqlOperate mysql = sql as MysqlOperate;
+            //                flag = mysql.BatchCover(dbcmd.Tname, idata.Lst);
+            //            }
+            //            else if (sql is GbaseOperate)
+            //            {
+            //                GbaseOperate gbase = sql as GbaseOperate;
+            //                flag = gbase.BatchCover(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst);
+            //            }
+            //            else
+            //            {
+            //                flag = SqlUtil.BatchUpdate(dbcmd.Tname, dbcmd.Keys.Split(','), idata.Lst, sql);
+            //            }
+            //            flags2.Add(flag);
+            //            if (flag) break;
+            //            Thread.Sleep(200);
+            //            string sbms = (i != 4) ? "，尝试重新更新(修改)。" : "。";
+            //            if (i != 4)
+            //            {
+            //                NLogger.Warn($"DatabaseService>>{idata.Cmd},{idata.Rwmc}更新(修改)失败{sbms}");
+            //            }
+            //            else
+            //            {
+            //                NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}更新(修改)失败{sbms}");
+            //            }
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        NLogger.Error($"DatabaseService>>{idata.Cmd},{idata.Rwmc}执行更新异常：{ex.Message}");
+            //    }
+            //    finally
+            //    {
+            //        GaDbManger.Instance.StillISqlOperater(dbcmd?.DbId, sql);//归还数据库操作对象
+            //    }
+            //}
+            var rflag = flags1.Contains(true) && flags2.Contains(true) ? true : false;
+            return rflag;
+        }
+
+        /// <summary>
+        /// 结构化json数据【新方案：支持'+', '-', '*', '/', '(', ')'运算】
+        /// </summary>
+        /// <param name="dataLst">原数据集</param>
+        /// <param name="mJson">结构化json配置--{"Map":{"A1":"T1","A2.B1":"T1+T2","A2.B2":"T1-T2"},"Format":{"A1":"","A2":{"B1":0,"B2":0}}}</param>
+        /// <returns></returns>
+        private List<Dictionary<string, object>> Structural(List<Dictionary<string, object>> dataLst, string mJson)
+        {
+            if (string.IsNullOrEmpty(mJson)) return dataLst;
+            var xLst = new List<Dictionary<string, object>>();//新数据
+            #region 结构化成json新数据
+            try
+            {
+                JObject mJson_jobj = JObject.Parse(mJson);//mJson配置的JObject格式
+                string mapJson = JsonConvert.SerializeObject(mJson_jobj["Map"]);//映射json--{"A1":"T1","A2.B1":"T1+T2","A2.B2":"T1-T2"}
+                string formatJson = JsonConvert.SerializeObject(mJson_jobj["Format"]);//格式json--{"A1":"","A2":{"B1":0,"B2":0}}
+                if (string.IsNullOrEmpty(mapJson) || string.IsNullOrEmpty(formatJson)) return dataLst;
+                var map_dic = JsonConvert.DeserializeObject<Dictionary<string, string>>(mapJson);//映射字典
+                foreach (var y_dic in dataLst)
+                {
+                    try
+                    {
+                        JObject y_jobj = JObject.Parse(JsonConvert.SerializeObject(y_dic));//原数据JObject格式
+                        JObject x_jobj = JObject.Parse(formatJson);//新数据JObject格式
+                        foreach (var map_item in map_dic)
+                        {
+                            try
+                            {
+                                JToken tVal_jobj = default;//要替换的值
+                                if (map_item.Value.JudgeInclusion(false, '&', '+', '-', '*', '/', '(', ')'))
+                                {
+                                    if (map_item.Value.JudgeInclusion(false, '&'))
+                                    {
+                                        #region 字段拼接逻辑
+                                        string[] tVals = map_item.Value.Split('&');//如："T1&T2&T3"-->["T1","T2","T3"]
+                                        string montage_val = string.Empty;//拼接结果
+                                        for (int i = 0; i < tVals.Length; i++)
+                                        {
+                                            montage_val += $"{y_jobj[tVals[i]]}";
+                                        }
+                                        tVal_jobj = montage_val;
+                                        #endregion
+                                    }
+                                    else
+                                    {
+                                        #region 字段运算逻辑
+                                        List<string> tVals = map_item.Value.Split('+', '-', '*', '/', '(', ')').ToList();//如："T1-(T2+T3)"-->["T1","T2","T3"]
+                                        string[] tValAry = tVals.Where((x, i) => !string.IsNullOrEmpty(x) && tVals.FindIndex(z => z == x) == i).ToArray();//去空+去重
+                                        Array.Reverse(tValAry);//根据字符串长度排序（解决长字段名包含短字段名导致的替换问题）
+                                        string count_expression = map_item.Value;//字符串计算表达式；如："200-(30+20)+5/30"
+                                        for (int i = 0; i < tValAry.Length; i++)
+                                        {
+                                            count_expression = count_expression.Replace($"{tValAry[i]}", $"{y_jobj[tValAry[i]]}");
+                                        }
+                                        object obnj = CalcUtil.CalcByDataTable(count_expression);
+                                        if (typeof(double).Equals(obnj.GetType())) tVal_jobj = (double)obnj;
+                                        else if (typeof(float).Equals(obnj.GetType())) tVal_jobj = (float)obnj;
+                                        else tVal_jobj = (int)obnj;
+                                        //tVal_jobj = typeof(double).Equals(obnj.GetType()) ? (double)obnj : typeof(float).Equals(obnj.GetType()) ? (float)obnj : (int)obnj;
+                                        #endregion
+                                    }
+                                }
+                                else //无拼接或简单运算逻辑
+                                {
+                                    tVal_jobj = y_jobj[map_item.Value];
+                                }
+
+                                string[] treeVals = map_item.Key.Split('.');//如：["A2","B1"]
+                                if (treeVals?.Length <= 0) continue;
+                                switch (treeVals?.Length)
+                                {
+                                    case 1: x_jobj[treeVals[0]] = tVal_jobj; break;
+                                    case 2: x_jobj[treeVals[0]][treeVals[1]] = tVal_jobj; break;
+                                    case 3: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]] = tVal_jobj; break;
+                                    case 4: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]] = tVal_jobj; break;
+                                    case 5: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]] = tVal_jobj; break;
+                                    case 6: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]] = tVal_jobj; break;
+                                    case 7: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]][treeVals[6]] = tVal_jobj; break;
+                                    case 8: x_jobj[treeVals[0]][treeVals[1]][treeVals[2]][treeVals[3]][treeVals[4]][treeVals[5]][treeVals[6]][treeVals[7]] = tVal_jobj; break;
+                                    default: NLogger.Warn($"Structural结构化Json步骤3异常，不支持9层和9层以上的结构"); break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                NLogger.Warn($"Structural结构化Json步骤3异常：{ex.ToString()}");
+                            }
+                        }
+                        xLst.Add(x_jobj.ToObject<Dictionary<string, object>>());
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Warn($"Structural结构化Json步骤2异常：{ex.ToString()}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"Structural结构化Json步骤1异常：{ex.ToString()}");
+            }
+            #endregion
+            return xLst;
+        }
+    }
+}

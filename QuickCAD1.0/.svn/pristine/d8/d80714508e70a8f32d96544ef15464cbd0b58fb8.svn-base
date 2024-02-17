@@ -1,0 +1,406 @@
+﻿using IsolatorOrigin.Storage;
+using IsolatorOrigin.Storage.Entities;
+using Max.BaseKit;
+using Max.BaseKit.Exts;
+using Max.BaseKit.Utils;
+using System.Globalization;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// LIS数据业务工具
+    /// </summary>
+    public class LisYwHelper
+    {
+        #region 单例
+        private static LisYwHelper i;
+        private readonly static object objLock = new object();
+        public static LisYwHelper I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new LisYwHelper();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        private System.Timers.Timer timer;
+
+        public LisYwHelper()
+        {
+            timer = new System.Timers.Timer(1 * 60 * 1000);
+            timer.Elapsed += (p1, p2) => ScanLisUpdateCache();
+            timer.Start();
+        }
+
+        /// <summary>
+        /// 扫描历史变更缓存
+        /// SQL示例："SELECT a.WYBS,a.MZDM,b.WYBS AS LIS_WYBS,b.CRRQSJ AS LIS_CRRQSJ FROM BJ_YW_T_CRJRY a LEFT JOIN BJ_YW_T_CRJRYLIS b ON b.WYBS = a.WYBS WHERE a.WYBS IN ('111')"
+        /// </summary>
+        public void ScanLisUpdateCache()
+        {
+            var lisUpdates = ConfigCacher.I.GetLisUpdateCache();
+            lisUpdates?.ForEach(lis =>
+            {
+                if (string.IsNullOrEmpty(lis.Keys)) return;
+
+                string cmd = lis.Id.Split("_")?[0];//命令码
+                var task = ConfigCacher.I.ProduceTaskCacher.Find(p => p.TaskState && p.Cmd.Equals(cmd));
+                if (task == null) return;
+
+                string dbid = lis.Id.Split("_")?[1];//数据库Id
+                var db = ConfigCacher.I.UseDbCacher.Find(p => p.Id.Equals(dbid));
+                if (db == null) return;
+
+                var keyLsts = Limit(lis.Keys.Split(',').ToList(), 999);//分页：每页最大999条，解决sql种in不能大于1000的问题
+                string in_sqlStr = string.Empty;
+                keyLsts?.ForEach(keyLst =>
+                {
+                    string in_sqlStr_p1 = string.Empty;
+                    keyLst?.ForEach(key =>
+                    {
+                        in_sqlStr_p1 += $"'{key}',";
+                    });
+                    in_sqlStr = $"{task.BgYjFiled} IN ({in_sqlStr_p1.TrimEnd(",")}) OR ";
+                });
+
+                string sqlstr = task.SqlStr;//sql语句
+                sqlstr = string.Format(sqlstr, $" AND ({in_sqlStr.TrimEnd("OR")})");
+                List<Dictionary<string, object>> datalst = default;
+                using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                {
+                    datalst = dbOperate?.QuerySql(sqlstr);
+                }
+                if (datalst == null || datalst.Count <= 0) return;
+
+                ExecuteLisDataHandle(task, db, 0, "", "", datalst);
+            });
+        }
+
+        /// <summary>
+        /// 执行历史数据处理
+        /// </summary>
+        /// <param name="task"></param>
+        /// <param name="db"></param>
+        /// <param name="cfbs"></param>
+        /// <param name="stime"></param>
+        /// <param name="etime"></param>
+        /// <param name="datalst"></param>
+        public void ExecuteLisDataHandle(ProduceTaskEntity task, UseDbEntity db, int cfbs, string stime, string etime, List<Dictionary<string, object>> datalst)
+        {
+            var deleteLst = new List<Dictionary<string, object>>(); //需要删除的数据集
+            var updateLst = new List<Dictionary<string, object>>(); //需要修改的数据集
+            var noUpdateKeys = new List<string>();//需要修改但是还未入库的主键集(放入缓存处理)
+            var updateKeys = new List<string>();//确认可以修改的主键集
+            var lisTimes = new List<string>(); //历史表时间集
+            var ywTimes = new List<string>(); //业务表时间集
+            datalst.ForEach(dic =>
+            {
+                try
+                {
+                    var tdic = new Dictionary<string, object>(dic);
+                    dic.TryGetValue("BGYY", out var bgyy);//变更原因
+                    if ("D".Equals((string)bgyy))
+                    {
+                        tdic.TryGetValue("LIS_WYBS", out var wybs);
+                        if (tdic.ContainsKey("WYBS"))
+                        {
+                            tdic["WYBS"] = (string)wybs;
+                        }
+                        tdic.Remove("LIS_WYBS");
+                        tdic.Remove("LIS_CRRQSJ");
+                        tdic.Remove("BGYY");
+                        deleteLst.Add(tdic);
+                    }
+                    else if ("U".Equals((string)bgyy))
+                    {
+                        dic.TryGetValue("WYBS", out var wybs);
+                        if (!string.IsNullOrEmpty((string)wybs))
+                        {
+                            tdic.Remove("LIS_WYBS");
+                            tdic.Remove("LIS_CRRQSJ");
+                            tdic.Remove("BGYY");
+                            updateLst.Add(tdic);
+                            updateKeys.Add((string)wybs);
+                        }
+                        else //说明数据还在修改，还未入业务表
+                        {
+                            dic.TryGetValue("LIS_WYBS", out var lis_wybs);
+                            if (!string.IsNullOrEmpty((string)lis_wybs))
+                            {
+                                if (!noUpdateKeys.Contains((string)lis_wybs))
+                                    noUpdateKeys.Add((string)lis_wybs);
+                            }
+                        }
+                    }
+
+                    dic.TryGetValue("LIS_CRRQSJ", out var liscrrqsj);//历史表中的出入日期时间
+                    string time1 = liscrrqsj?.ToString();
+                    if (!string.IsNullOrEmpty(time1) && !lisTimes.Contains(time1))
+                    {
+                        lisTimes.Add(time1);
+                    }
+                    dic.TryGetValue("CRRQSJ", out var crrqsj);//业务表中的出入日期时间
+                    string time2 = crrqsj?.ToString();
+                    if (!string.IsNullOrEmpty(time2) && !ywTimes.Contains(time2))
+                    {
+                        ywTimes.Add(time2);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"ExecuteLisDataHandle》异常，异常信息：{ex.Message}");
+                }
+            });
+
+            var glCmds = task.RelatedTasks?.Split(",").ToList();//关联任务命令码集
+            if (glCmds == null || glCmds.Count <= 0) return;
+            #region 1、关联业务表变更逻辑
+            var ywGlTask = ConfigCacher.I.ProduceTaskCacher.Where(p => p.TaskState && glCmds.Contains(p.Cmd) && ("CCG".Equals(p.TaskType) || "CDK".Equals(p.TaskType)));
+            ywGlTask?.ForEach(ywTask =>
+            {
+                ExecuteYwUpdate(ywTask, db, cfbs, stime, etime, deleteLst, true);
+                ExecuteYwUpdate(ywTask, db, cfbs, stime, etime, updateLst, false);
+            });
+            #endregion
+
+            #region 2、关联统计表变更逻辑
+            var tjGlTask = ConfigCacher.I.ProduceTaskCacher.Where(p => p.TaskState && glCmds.Contains(p.Cmd) && ("TCG".Equals(p.TaskType) || "TDK".Equals(p.TaskType)));
+            tjGlTask?.ForEach(tjTask =>
+            {
+                ExecuteTjUpdate(tjTask, db, cfbs, lisTimes, true);
+                ExecuteTjUpdate(tjTask, db, cfbs, ywTimes, false);
+            });
+            #endregion
+
+            #region 3、从缓存中删除已处理的主键，同时，变更但是还未入业务表的主键放入缓存
+            var keysStr = ConfigCacher.I.GetLisUpdateCache($"{task.Cmd}_{db.Id}")?.FirstOrDefault()?.Keys;
+            var tKeys = string.IsNullOrEmpty(keysStr) ? new List<string>() : keysStr.Split(',').ToList();
+            updateKeys?.ForEach(key => //处理了的主键
+            {
+                if (tKeys.Contains(key)) tKeys.Remove(key);
+            });
+            noUpdateKeys?.ForEach(key => //未处理的主键
+            {
+                if (!tKeys.Contains(key)) tKeys.Add(key);
+            });
+
+            string keyStr = string.Empty;
+            tKeys?.ForEach(key =>
+            {
+                keyStr += $"{key},";
+            });
+
+            if (string.IsNullOrEmpty(keyStr))
+            {
+                ConfigCacher.I.SetLisUpdateCache($"{task.Cmd}_{db.Id}", keyStr.TrimEnd(","));
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 执行业务数据变更
+        /// </summary>
+        /// <param name="ywTask"></param>
+        /// <param name="db"></param>
+        /// <param name="cfbs"></param>
+        /// <param name="stime"></param>
+        /// <param name="etime"></param>
+        /// <param name="datalst"></param>
+        /// <param name="isDelete"></param>
+        private void ExecuteYwUpdate(ProduceTaskEntity ywTask, UseDbEntity db, int cfbs, string stime, string etime, List<Dictionary<string, object>> datalst, bool isDelete = false)
+        {
+            if (datalst == null || datalst.Count <= 0) return;
+            if (isDelete)
+            {
+                string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                JobKernel.SyncData(ywTask.Cmd, ywTask.TaskName, db.Cddm, cfbs, "D", stime, etime, ywTask.Isolators, ywTask.PriorityLevel, nowStr, datalst);
+            }
+            else
+            {
+                string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                JobKernel.SyncData(ywTask.Cmd, ywTask.TaskName, db.Cddm, cfbs, "U", stime, etime, ywTask.Isolators, ywTask.PriorityLevel, nowStr, datalst);
+            }
+        }
+
+        /// <summary>
+        /// 执行统计数据变更
+        /// SQL示例："SELECT substr(CRRQSJ, 0,4) AS TJRQ,count( WYBS ) AS TJRS FROM BJ_YW_T_CRJRYDK WHERE CRRQSJ >= '20200101000000' AND CRRQSJ <= '20240120000000' And (substr(CRRQSJ, 0,4) IN ('2020','2021') OR substr(CRRQSJ, 0,4) IN ('2022','2023','2024')) GROUP BY substr(CRRQSJ, 0,4)"
+        /// </summary>
+        /// <param name="ywTask"></param>
+        /// <param name="db"></param>
+        /// <param name="cfbs"></param>
+        /// <param name="times">时间集(装16位时间)</param>
+        /// <param name="isDelete"></param>
+        private void ExecuteTjUpdate(ProduceTaskEntity ywTask, UseDbEntity db, int cfbs, List<string> times, bool isDelete = false)
+        {
+            var htimes = new List<string>();//小时集(装10位时间)
+            var dtimes = new List<string>();//天集(装8位时间)
+            var mtimes = new List<string>();//月集(装6位时间)
+            var ytimes = new List<string>();//年集(装4位时间)
+            times?.ForEach(time =>
+            {
+                string htime = time?.ToString().Substring(0, 10);
+                if (!string.IsNullOrEmpty(htime) && !htimes.Contains(htime)) htimes.Add(htime);
+                string dtime = time?.ToString().Substring(0, 8);
+                if (!string.IsNullOrEmpty(dtime) && !dtimes.Contains(dtime)) dtimes.Add(dtime);
+                string mtime = time?.ToString().Substring(0, 6);
+                if (!string.IsNullOrEmpty(mtime) && !mtimes.Contains(mtime)) mtimes.Add(mtime);
+                string ytime = time?.ToString().Substring(0, 4);
+                if (!string.IsNullOrEmpty(ytime) && !ytimes.Contains(ytime)) ytimes.Add(ytime);
+            });
+
+            if (times.Count <= 0) return;
+            times = times.OrderBy(p => p).ToList();//按时间排序，方便取开始时间和结束时间，提高统计效率
+            string stime = times.FirstOrDefault();//开始时间
+            string etime = times.LastOrDefault();//结束时间
+            var cutTypes = ywTask.CutType.Split(",").ToList();//切片类型集
+            cutTypes?.ForEach(cutType =>
+            {
+                var dlTimeLst = new List<string>();//要删除的时间集
+                var timeLsts = new List<List<string>>();//用于装分页后的时间集
+                switch (cutType)
+                {
+                    case "H": //小时统计
+                        {
+                            stime = TimeUtil.GetStartTime("H", DateTime.ParseExact(stime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            etime = TimeUtil.GetEndTime("H", DateTime.ParseExact(etime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            if (isDelete)
+                            {
+                                dlTimeLst = htimes;
+                            }
+                            else
+                            {
+                                timeLsts = Limit(htimes, 999); //分页：每页最大999条，解决sql种in不能大于1000的问题
+                            }
+                        }
+                        break;
+                    case "D": //日统计
+                        {
+                            stime = TimeUtil.GetStartTime("D", DateTime.ParseExact(stime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            etime = TimeUtil.GetEndTime("D", DateTime.ParseExact(etime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            if (isDelete)
+                            {
+                                dlTimeLst = dtimes;
+                            }
+                            else
+                            {
+                                timeLsts = Limit(dtimes, 999); //分页：每页最大999条，解决sql种in不能大于1000的问题
+                            }
+                        }
+                        break;
+                    case "M": //月统计
+                        {
+                            stime = TimeUtil.GetStartTime("M", DateTime.ParseExact(stime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            etime = TimeUtil.GetEndTime("M", DateTime.ParseExact(etime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            if (isDelete)
+                            {
+                                dlTimeLst = mtimes;
+                            }
+                            else
+                            {
+                                timeLsts = Limit(mtimes, 999); //分页：每页最大999条，解决sql种in不能大于1000的问题
+                            }
+                        }
+                        break;
+                    case "Y": //年统计
+                        {
+                            stime = TimeUtil.GetStartTime("Y", DateTime.ParseExact(stime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            etime = TimeUtil.GetEndTime("Y", DateTime.ParseExact(etime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture));
+                            if (isDelete)
+                            {
+                                dlTimeLst = ytimes;
+                            }
+                            else
+                            {
+                                timeLsts = Limit(ytimes, 999); //年分页：每页最大999条，解决sql种in不能大于1000的问题
+                            }
+                        }
+                        break;
+                    default: break;
+                }
+
+                if (isDelete)
+                {
+                    if (dlTimeLst == null || dlTimeLst.Count <= 0) return;
+
+                    var tdatalst = new List<Dictionary<string, object>>();
+                    dlTimeLst?.ForEach(time =>
+                    {
+                        var dic = new Dictionary<string, object>();
+                        dic.TryAdd("TJSJ", time);
+                        tdatalst.Add(dic);
+                    });
+
+                    string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                    JobKernel.SyncData(ywTask.Cmd, ywTask.TaskName, db.Cddm, cfbs, "TD", stime, etime, ywTask.Isolators, ywTask.PriorityLevel, nowStr, tdatalst);
+                }
+                else
+                {
+                    if (timeLsts == null || timeLsts.Count <= 0) return;
+
+                    string in_sqlStr = string.Empty; //in条件语句
+                    timeLsts?.ForEach(timeLst =>
+                    {
+                        string in_sqlStr_p1 = string.Empty;
+                        timeLst?.ForEach(time =>
+                        {
+                            in_sqlStr_p1 += $"'{time}',";
+                        });
+                        in_sqlStr = $"SUBSTR({ywTask.BgYjFiled}, 0,{cutType.LxToNum()}) IN ({in_sqlStr_p1.TrimEnd(",")}) OR ";
+                    });
+
+                    if (string.IsNullOrEmpty(in_sqlStr)) return;
+
+                    string sqlstr = ywTask.BgSqlStr;//sql语句
+                    sqlstr = string.Format(sqlstr, cutType.LxToNum(), stime, etime, $" AND ({in_sqlStr.TrimEnd("OR")})"); //[维度数字，开始时间，结束时间，IN条件]
+                    List<Dictionary<string, object>> tdatalst = default;
+                    using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                    {
+                        tdatalst = dbOperate?.QuerySql(sqlstr);
+                    }
+                    if (tdatalst == null || tdatalst.Count <= 0) return;
+
+                    string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                    JobKernel.SyncData(ywTask.Cmd, ywTask.TaskName, db.Cddm, cfbs, "R", stime, etime, ywTask.Isolators, ywTask.PriorityLevel, nowStr, tdatalst);
+                }
+            });
+        }
+
+        /// <summary>
+        /// 根据指定条分页
+        /// </summary>
+        /// <param name="lst"></param>
+        /// <param name="count">每页条数，默认900</param>
+        /// <returns></returns>
+        private List<List<string>> Limit(List<string> lst, int count = 100)
+        {
+            var rlst = new List<List<string>>();
+            int num = lst.Count % count == 0 ? lst.Count / count : lst.Count / count + 1;//页数
+            for (int i = 0; i < num; i++)
+            {
+                try
+                {
+                    int tnum = (lst.Count - ((i + 1) * count)) >= 0 ? count : lst.Count - (i * count);//条数
+                    List<string> tlst = lst.Skip(i * count).Take(tnum).ToList();
+                    rlst.Add(tlst);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"数据分页异常>>{ex.Message}");
+                }
+            }
+            return rlst;
+        }
+    }
+}

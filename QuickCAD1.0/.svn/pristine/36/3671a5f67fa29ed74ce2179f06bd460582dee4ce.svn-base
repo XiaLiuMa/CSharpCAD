@@ -1,0 +1,360 @@
+﻿using SetCharLib.HikVision;
+using SetCharLib.Mod;
+using System.Runtime.InteropServices;
+using System.Threading;
+using Max.BaseKit;
+using Max.BaseKit.Utils;
+
+namespace SetCharLib.SetCharacter
+{
+    /// <summary>
+    /// 海康系列字符叠加
+    /// </summary>
+    public class HikSetCharacter : WLSetCharacter
+    {
+        #region 构造函数
+        public HikSetCharacter(WLZFDJDYGX dygx)
+            : base(dygx)
+        {
+            if (!HikNetSdk.IsInitSdk)
+            {
+                HikNetSdk.NET_DVR_Init();
+                HikNetSdk.IsInitSdk = true;
+
+                System.Console.WriteLine("成功初始化海康设备！");
+            }
+            if (!bLogin)
+            {
+                Login();
+            }
+        } 
+        #endregion
+
+        #region 登陆设备
+        /// <summary>
+        /// 登陆设备
+        /// </summary>
+        /// <returns></returns>
+        public bool Login()
+        {
+            lock (HikNetSdk.dctLogins)
+            {
+                string key = wlzfdjdygx.WLSB.IPADDRESS + "," + wlzfdjdygx.WLSB.PORT;
+                if (!HikNetSdk.dctLogins.TryGetValue(key, out m_login))
+                {
+                    HikNetSdk.NET_DVR_DEVICEINFO_V30 m_deviceInfo = new HikNetSdk.NET_DVR_DEVICEINFO_V30();      //获取设备信息的结构体
+                    if (wlzfdjdygx != null && !bLogin)
+                    {
+                        m_login = HikNetSdk.NET_DVR_Login_V30(wlzfdjdygx.WLSB.IPADDRESS, (ushort)wlzfdjdygx.WLSB.PORT, wlzfdjdygx.WLSB.USER_NAME, wlzfdjdygx.WLSB.USER_PWD, ref m_deviceInfo);
+                        if (m_login == -1)
+                        {
+                            uint error = HikNetSdk.NET_DVR_GetLastError();
+                            NLogger.Error($"设备登录失败，IP为：{this.wlzfdjdygx.WLSB.IPADDRESS}，错误号为：{error}");
+                            System.Console.WriteLine($"设备登录失败，IP为：{this.wlzfdjdygx.WLSB.IPADDRESS}，错误号为：{error}");
+                            return false;
+                        }
+                        bLogin = true;
+                        HikNetSdk.dctLogins.Add(key, m_login);
+
+                        System.Console.WriteLine("海康设备登录成功！");
+                        return true;
+                    }
+                    return false;
+                }
+                else
+                {
+                    if (m_login == -1)
+                    {
+                        //还没登录完就尝试等待
+                        Thread.Sleep(500);
+                        m_login = HikNetSdk.dctLogins[key];
+                    }
+                    bLogin = true;
+                    return true;
+                } 
+            }
+        } 
+        #endregion
+
+        #region 清除字符叠加旅客信息
+        /// <summary>
+        /// 清除字符叠加旅客信息
+        /// </summary>
+        /// <returns></returns>
+        public override bool ClearLKXX(string zjhm)
+        {
+            if (bLogin)
+            {
+                HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString;
+
+                m_ShowString = new HikNetSdk.NET_DVR_SHOWSTRING_V30();
+                uint uiBufferSize = (uint)Marshal.SizeOf(m_ShowString);
+                m_ShowString.uiSize = uiBufferSize;
+
+                byte[] m_byShowString = StructUtil.StructToBytes(m_ShowString);
+
+                uint uiReturn = 0;
+                bool bGetConfig = HikNetSdk.NET_DVR_GetDVRConfig(m_login, 1030, wlzfdjdygx.WLSB.CHANNEL, m_byShowString, uiBufferSize, ref uiReturn);
+
+                if (bGetConfig)
+                {
+                    m_ShowString = (HikNetSdk.NET_DVR_SHOWSTRING_V30)StructUtil.BytesToStruct(m_byShowString, m_ShowString.GetType());
+                }
+
+                if (m_ShowString.struStringInfo == null)
+                    return false;
+                m_ShowString.struStringInfo[1].usShowString = 1;
+                m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[1].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[1].strString = "";
+                m_ShowString.struStringInfo[2].usShowString = 1;
+                m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[2].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[2].strString = "";
+                m_ShowString.struStringInfo[3].usShowString = 1;
+                m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[3].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[3].strString = "";
+                if (!HikNetSdk.NET_DVR_SetDVRConfig(m_login, HikNetSdk.NET_DVR_SET_SHOWSTRING_V30, wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+                {
+                    uint error = HikNetSdk.NET_DVR_GetLastError();
+                    NLogger.Error($"字符清空失败，错误号为：{error}");
+                    return false;
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        } 
+        #endregion
+
+        #region 清除字符叠加所有信息
+        /// <summary>
+        /// 清除字符叠加所有信息
+        /// </summary>
+        /// <returns></returns>
+        public override bool ClearAll()
+        {
+            if (bLogin)
+            {
+                HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString;
+                m_ShowString = new HikNetSdk.NET_DVR_SHOWSTRING_V30();
+                uint uiBufferSize = (uint)Marshal.SizeOf(m_ShowString);
+                m_ShowString.uiSize = uiBufferSize;
+                m_ShowString.struStringInfo = new HikNetSdk.NET_DVR_SHOWSTRINGINFO[8];
+                m_ShowString.struStringInfo[0].usShowString = 1;
+                m_ShowString.struStringInfo[0].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[0].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[0].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[0].strString = "";
+                m_ShowString.struStringInfo[1].usShowString = 1;
+                m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[1].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[1].strString = "";
+                m_ShowString.struStringInfo[2].usShowString = 1;
+                m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[2].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[2].strString = "";
+                m_ShowString.struStringInfo[3].usShowString = 1;
+                m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)0;
+                m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)0;
+                m_ShowString.struStringInfo[3].usStringSize = (ushort)0;
+                m_ShowString.struStringInfo[3].strString = "";
+                if (!HikNetSdk.NET_DVR_SetDVRConfig(m_login, HikNetSdk.NET_DVR_SET_SHOWSTRING_V30, wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+                {
+                    uint error = HikNetSdk.NET_DVR_GetLastError();
+                    NLogger.Error($"字符清空失败，错误号为：{error}");
+                    return false;
+                }
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        } 
+        #endregion
+
+        #region 设置字符叠加信息
+        /// <summary>
+        /// 设置字符叠加信息
+        /// </summary>
+        /// <param name="djmsg"></param>
+        /// <returns></returns>
+        public override bool SetCharacter(DjMessage djmsg)
+        {
+            if (wlzfdjdygx == null)
+                return false;
+
+            if (!bLogin)
+            {
+                return false;
+            }
+
+            HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString;      //需要显示的字符结构体
+
+            m_ShowString = new HikNetSdk.NET_DVR_SHOWSTRING_V30();
+            uint uiBufferSize = (uint)Marshal.SizeOf(m_ShowString);
+            m_ShowString.uiSize = uiBufferSize;
+            m_ShowString.struStringInfo = new HikNetSdk.NET_DVR_SHOWSTRINGINFO[8];
+
+            #region 叠加第1行(Czybm+Czydm+Czyxm)
+            string strCmd = string.Empty;
+            strCmd += string.IsNullOrEmpty(djmsg.Czybm) ? "" : $"{djmsg.Czybm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czydm) ? "" : $" {djmsg.Czydm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czyxm) ? "" : $" {djmsg.Czyxm}";
+
+            m_ShowString.struStringInfo[0].usShowString = 1;
+            m_ShowString.struStringInfo[0].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line1X;
+            m_ShowString.struStringInfo[0].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line1Y;
+            m_ShowString.struStringInfo[0].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd).Length;          
+            m_ShowString.struStringInfo[0].strString = strCmd;
+            #endregion
+
+            #region 叠加第2行(Lkxm+Lkzjhm)
+            string strCmd1 = string.Empty;
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkxm) ? "" : $"{djmsg.Lkxm}";
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkzjhm) ? "" : $" {djmsg.Lkzjhm}";
+
+            m_ShowString.struStringInfo[1].usShowString = 1;
+            m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line2X;
+            m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line2Y;
+            m_ShowString.struStringInfo[1].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd1).Length;         
+            m_ShowString.struStringInfo[1].strString = strCmd1;
+            #endregion
+
+            #region 叠加第3行(Jtgj+CSRQ)
+            string strCmd2 = string.Empty;
+            strCmd2 += string.IsNullOrEmpty(djmsg.Lkgj) ? "" : $"{djmsg.Lkgj}";
+            strCmd2 += string.IsNullOrEmpty(djmsg.CSRQ) ? "" : $" {djmsg.CSRQ}";
+
+            m_ShowString.struStringInfo[2].usShowString = 1;
+            m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line3X;
+            m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line3Y;
+            m_ShowString.struStringInfo[2].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd2).Length;         
+            m_ShowString.struStringInfo[2].strString = strCmd2;
+            #endregion
+
+            #region 叠加第4行(Jtgj+Lkpjxx)
+            string strCmd3 = string.Empty;
+            strCmd3 += string.IsNullOrEmpty(djmsg.Jtgj) ? "" : $"{djmsg.Jtgj}";
+            strCmd3 += string.IsNullOrEmpty(djmsg.Lkpjxx) ? "" : $" {djmsg.Lkpjxx}";
+
+            m_ShowString.struStringInfo[3].usShowString = 1;
+            m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line4X;
+            m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line4Y;
+            m_ShowString.struStringInfo[3].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd3).Length;
+            m_ShowString.struStringInfo[3].strString = strCmd3;
+            #endregion
+
+            #region 废弃
+            ////1.叠加操作员部门信息
+            //if (djmsg.Czybm != null || djmsg.Czybm != "0")
+            //{
+            //    m_ShowString.struStringInfo[0].usShowString = 1;
+            //    m_ShowString.struStringInfo[0].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.CZYBM_DJZB_X;
+            //    m_ShowString.struStringInfo[0].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.CZYBM_DJZB_Y;
+            //    m_ShowString.struStringInfo[0].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Czybm).Length;
+            //    m_ShowString.struStringInfo[0].strString = djmsg.Czybm;
+            //}
+            ////2.叠加操作员代码信息
+            //if (djmsg.Czydm != null || djmsg.Czydm != "0")
+            //{
+            //    m_ShowString.struStringInfo[1].usShowString = 1;
+            //    m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.CZYDM_DJZB_X;
+            //    m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.CZYDM_DJZB_Y;
+            //    m_ShowString.struStringInfo[1].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Czydm).Length;
+            //    m_ShowString.struStringInfo[1].strString = djmsg.Czydm;
+            //}
+            ////3.叠加操作员姓名信息
+            //if (djmsg.Czyxm != null || djmsg.Czyxm != "0")
+            //{
+            //    m_ShowString.struStringInfo[2].usShowString = 1;
+            //    m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.CZYXM_DJZB_X;
+            //    m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.CZYXM_DJZB_Y;
+            //    m_ShowString.struStringInfo[2].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Czyxm).Length;
+            //    m_ShowString.struStringInfo[2].strString = djmsg.Czyxm;
+            //}
+
+
+            ////4.叠加旅客证件号码信息
+            //if (!string.IsNullOrEmpty(djmsg.Lkzjhm) && djmsg.Lkzjhm != "0")
+            //{
+            //    m_ShowString.struStringInfo[3].usShowString = 1;
+            //    m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.LKZJHM_DJZB_X;
+            //    m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.LKZJHM_DJZB_Y;
+            //    m_ShowString.struStringInfo[3].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Lkzjhm).Length;
+            //    m_ShowString.struStringInfo[3].strString = djmsg.Lkzjhm;
+            //}
+            ////5.叠加旅客姓名信息
+            //if (!string.IsNullOrEmpty(djmsg.Lkxm) && djmsg.Lkxm != "0")
+            //{
+            //    m_ShowString.struStringInfo[4].usShowString = 1;
+            //    m_ShowString.struStringInfo[4].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.LKXM_DJZB_X;
+            //    m_ShowString.struStringInfo[4].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.LKXM_DJZB_Y;
+            //    m_ShowString.struStringInfo[4].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Lkxm).Length;
+            //    m_ShowString.struStringInfo[4].strString = djmsg.Lkxm;
+            //}
+            ////6.叠加旅客评价信息
+            //if (!string.IsNullOrEmpty(djmsg.Lkpjxx) && djmsg.Lkpjxx != "0")
+            //{
+            //    m_ShowString.struStringInfo[5].usShowString = 1;
+            //    m_ShowString.struStringInfo[5].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.LKPJXX_DJZB_X;
+            //    m_ShowString.struStringInfo[5].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.LKPJXX_DJZB_Y;
+            //    m_ShowString.struStringInfo[5].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Lkpjxx).Length;
+            //    m_ShowString.struStringInfo[5].strString = djmsg.Lkpjxx;
+            //}
+            ////7.叠加旅客国籍信息
+            //if (!string.IsNullOrEmpty(djmsg.Lkgj) && djmsg.Lkgj != "0")
+            //{
+            //    m_ShowString.struStringInfo[6].usShowString = 1;
+            //    m_ShowString.struStringInfo[6].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.LKGJ_DJZB_X;
+            //    m_ShowString.struStringInfo[6].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.LKGJ_DJZB_Y;
+            //    m_ShowString.struStringInfo[6].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Lkgj).Length;
+            //    m_ShowString.struStringInfo[6].strString = djmsg.Lkgj;
+            //}
+            ////8.叠加航班信息
+            //if (!string.IsNullOrEmpty(djmsg.Jtgj) && djmsg.Jtgj != "0")
+            //{
+            //    m_ShowString.struStringInfo[7].usShowString = 1;
+            //    m_ShowString.struStringInfo[7].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.JTGJ_DJZB_X;
+            //    m_ShowString.struStringInfo[7].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.JTGJ_DJZB_Y;
+            //    m_ShowString.struStringInfo[7].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(djmsg.Jtgj).Length;
+            //    m_ShowString.struStringInfo[7].strString = djmsg.Jtgj;
+            //} 
+            #endregion
+
+            if (!HikNetSdk.NET_DVR_SetDVRConfig(m_login, HikNetSdk.NET_DVR_SET_SHOWSTRING_V30, wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+            {
+                uint error = HikNetSdk.NET_DVR_GetLastError();
+                NLogger.Error($"字符叠加失败，错误号为：{error}");
+                System.Console.WriteLine($"字符叠加失败，错误号为：{error}");
+            }
+            else
+            {
+                System.Console.WriteLine("字符叠加成功！");
+            }
+
+            return true;
+        } 
+        #endregion
+
+        #region 清空相关信息
+        /// <summary>
+        /// 清空相关信息
+        /// </summary>
+        /// <returns></returns>
+        public override bool Dispose()
+        {
+           return ClearAll();
+        } 
+        #endregion
+    }
+}

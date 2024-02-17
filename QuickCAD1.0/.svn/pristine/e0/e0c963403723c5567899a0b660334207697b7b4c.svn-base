@@ -1,0 +1,49 @@
+﻿namespace IsolatorOrigin.Models
+{
+    /// <summary>
+    /// api接口返回状态类型
+    /// </summary>
+    public enum StatusType
+    {
+        /// <summary>
+        /// 成功
+        /// </summary>
+        Success = 0,
+        /// <summary>
+        /// 失败
+        /// </summary>
+        Failed = -1,
+        /// <summary>
+        /// 参数为空
+        /// </summary>
+        ParameterNull = -2,
+        /// <summary>
+        /// 参数异常
+        /// </summary>
+        ParameterInvalid = -3,
+        /// <summary>
+        /// 系统异常
+        /// </summary>
+        SysException = -4,
+    }
+
+    /// <summary>
+    /// 接口返回数据格式
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class ResultMsg<T>
+    {
+        /// <summary>
+        /// 返回状态码
+        /// </summary>
+        public StatusType Code { get; set; }
+        /// <summary>
+        /// 成功或是失败消息
+        /// </summary>
+        public string? Msg { get; set; }
+        /// <summary>
+        /// 泛型类数据
+        /// </summary>
+        public T? Data { get; set; }
+    }
+}

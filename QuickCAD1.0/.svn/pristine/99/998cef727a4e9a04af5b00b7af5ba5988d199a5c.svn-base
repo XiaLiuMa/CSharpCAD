@@ -1,0 +1,29 @@
+﻿namespace Max.ISolator.SeriaPortPkg
+{
+    /// <summary>
+    /// 串口配置
+    /// </summary>
+    public class SerialPortCfg
+    {
+        /// <summary>
+        /// 端口名称
+        /// </summary>
+        public string PortName { get; set; }
+        /// <summary>
+        /// 波特率
+        /// </summary>
+        public int BaudRate { get; set; }
+        /// <summary>
+        /// 数据位
+        /// </summary>
+        public int DataBit { get; set; }
+        /// <summary>
+        /// 停止位
+        /// </summary>
+        public int StopBit { get; set; }
+        /// <summary>
+        /// 校验位(None,Odd,Even,Mark,Space)
+        /// </summary>
+        public string Parity { get; set; }
+    }
+}

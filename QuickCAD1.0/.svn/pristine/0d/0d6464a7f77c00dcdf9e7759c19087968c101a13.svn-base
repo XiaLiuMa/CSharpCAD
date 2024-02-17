@@ -1,0 +1,232 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Runtime.InteropServices;
+
+namespace SetCharLib.HikVision
+{
+    /// <summary>
+    /// 海康SDK封装
+    /// </summary>
+    public static class HikNetSdk
+    {
+        /// <summary>
+        /// 动态链接库文件
+        /// </summary>
+        private const string HikNetSdkDll = @"Drivers\hikvision\HCNetSDK.dll";
+        //private const string HikNetSdkDll = @"G:\项目源码\隔离器\新疆版本\GaDuan\SetChar\SetCharLib\Drivers\Hik\HCNetSDK.dll";
+
+        //定义DVR设备信息的结构体
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_DVR_DEVICEINFO_V30
+        {
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 48, ArraySubType = UnmanagedType.I1)]     //将全部成员当做48个字节
+            public byte[] sSerialNumber;        //序列号
+            public byte byAlarmInPortNum;       //报警输入个数
+            public byte byAlarmOutPortNum;      //报警输出个数
+            public byte byDiskNum;              //硬盘个数
+            public byte byDVRType;              //设备类型
+            public byte byChanNum;              //设备模拟通道个数
+            public byte byStartChan;            //起始通道号       
+            public byte byAudioChanNum;         //设备语音通道号
+            public byte byIPChanNum;            //设备最大数字通道个数
+            public byte byZeroChanNum;          //零通道编码个数
+            public byte byMainProto;            //主码流传输协议类型
+            public byte bySubProto;             //子码流传输协议类型
+            public byte bySupport;              //位于结果为0的表示不支持，1表示支持 
+            //bySupport & 0x1，表示是否支持智能搜索
+            //bySupport & 0x2，表示是否支持备份
+            //bySupport & 0x4，表示是否支持压缩参数能力获取
+            //bySupport & 0x8, 表示是否支持双网卡
+            //bySupport & 0x10, 表示支持远程SADP
+            //bySupport & 0x20, 表示支持Raid卡功能
+            //bySupport & 0x40, 表示支持IPSAN目录查找
+            //bySupport & 0x80, 表示支持rtp over rtsp 
+
+            public byte bySupport1;             //能力集扩充，位与结果为0表示不支持，1表示支持
+            //bySupport1 & 0x1, 表示是否支持snmp v30
+            //bySupport1 & 0x2, 表示是否支持区分回放和下载
+            //bySupport1 & 0x4, 表示是否支持布防优先级
+            //bySupport1 & 0x8, 表示智能设备是否支持布防时间段扩展
+            //bySupport1 & 0x10,表示是否支持多磁盘数（超过33个）
+            //bySupport1 & 0x20,表示是否支持rtsp over http
+            //bySupport1 & 0x40,表示是否支持延时预览
+            public byte bySupport2;             //能力集扩充，位与结果为0表示不支持，1表示支持
+            //bySupport2 & 0x1, 表示解码器是否支持通过URL取流解码
+            public ushort wDevType;             //设备型号
+            public byte byMultiStream;          //支持的多码流，按位表示，0- 不支持，1- 支持：bit0- 码流3，bit1- 码流4，依次类推
+            //例如：byMultiStream&0x0==1，表示支持码流3 
+            public byte byMultiStreamProto;     //多码流是否支持rtsp协议取流，按位表示，0-不支持，1-支持：bit0- 码流3，bit1- 码流4，依次类推 
+
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 24, ArraySubType = UnmanagedType.I1)]
+            public byte[] byRes2;               //保留
+
+
+        }
+
+             /// <summary>
+        /// 设备初始化函数
+        /// </summary>
+        /// <returns>TRUE表示成功，FALSE表示失败</returns>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_Init();
+
+        public delegate void REALDATACALLBACK(Int32 lRealHandle, UInt32 dwDataType, ref byte pBuffer, UInt32 dwBufSize, IntPtr pUser);
+
+        [DllImport(HikNetSdkDll)]
+        public static extern int NET_DVR_RealPlay_V30(int iUserID, ref NET_DVR_CLIENTINFO lpClientInfo, REALDATACALLBACK fRealDataCallBack_V30, IntPtr pUser, UInt32 bBlocked);
+
+        public struct NET_DVR_CLIENTINFO
+        {
+            public Int32 lChannel;//通道号
+            public Int32 lLinkMode;//最高位(31)为0表示主码流，为1表示子码流，0－30位表示码流连接方式: 0：TCP方式,1：UDP方式,2：多播方式,3 - RTP方式，4-音视频分开(TCP)
+            public IntPtr hPlayWnd;//播放窗口的句柄,为NULL表示不播放图象
+            public string sMultiCastIP;//多播组地址
+        }
+        /// <summary>
+        /// 停止预览
+        /// </summary>
+        /// <param name="iRealHandle"></param>
+        /// <returns></returns>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_StopRealPlay(int iRealHandle);
+        /// <summary>
+        /// 用户注销
+        /// </summary>
+        /// <param name="lUserID"></param>
+        /// <returns></returns>
+           [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_Logout_V30( int  lUserID);
+
+
+        /// <summary>
+        /// BOOL NET_DVR_Cleanup() 
+        /// 功能：释放 SDK 资源 
+        /// 返回值：TRUE 表示成功，FALSE 表示失败。
+        /// </summary>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_Cleanup();
+
+        /// <summary>
+        /// 登陆函数
+        /// </summary>
+        /// <param name="ip">设备IP</param>
+        /// <param name="port">设备端口</param>
+        /// <param name="username">登陆用户名</param>
+        /// <param name="password">登陆密码</param>
+        /// <param name="deviceInfo">设备相关信息</param>
+        /// <returns>返回登陆句柄</returns>
+        [DllImport(HikNetSdkDll)]
+        public static extern int NET_DVR_Login_V30(string ip, ushort port, string username, string password, ref NET_DVR_DEVICEINFO_V30 deviceInfo);
+
+        /// <summary>
+        /// 获取叠加的字符
+        /// </summary>
+        public const uint NET_DVR_GET_SHOWSTRING_V30 = 1030;
+        /// <summary>
+        /// 设置字符叠加
+        /// </summary>
+        public const uint NET_DVR_SET_SHOWSTRING_V30 = 1031;
+
+        /// <summary>
+        /// 字符叠加参数子结构体
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct NET_DVR_SHOWSTRINGINFO
+        {
+            public ushort usShowString;            //预览的图象上是否显示字符：0－不显示，1－显示（显示区域范围为704*576，单个字符的大小为32*32）
+            public ushort usStringSize;            //该行字符的长度，不能大于44个字符 
+            public ushort usShowStringTopLeftX;    //字符显示位置的x坐标 
+            public ushort usShowStringTopRightY;   //字符显示位置的y坐标
+            [MarshalAsAttribute(UnmanagedType.ByValTStr, SizeConst = 44)]
+            public string strString;               //要显示的字符内容
+        }
+
+        /// <summary>
+        /// 字符叠加参数结构体
+        /// </summary>
+        [StructLayout(LayoutKind.Sequential, Pack = 1)]
+        public struct NET_DVR_SHOWSTRING_V30
+        {
+            public uint uiSize;                                    //结构体大小 
+
+            [MarshalAsAttribute(UnmanagedType.ByValArray, SizeConst = 8)]
+            public NET_DVR_SHOWSTRINGINFO[] struStringInfo;        //要显示的字符内容  其中MAX_STRINGNUM_V30 8
+        }
+
+        /// <summary>
+        /// BOOL NET_DVR_GetDVRConfig(LONG lUserID, DWORD dwCommand,LONG lChannel, 
+        /// LPVOID lpOutBuffer,DWORD dwOutBufferSize,LPDWORD lpBytesReturned) 
+        /// 功能：设置硬盘录像机的参数 
+        /// 参数说明
+        /// lUserID：NET_DVR_Login ()的返回值 
+        /// dwCommand：参数类型 
+        /// lChannel：通道号，如果不是通道参数，lChannel 不用,置为-1 即可 
+        /// lpInBuffer：存放输出参数的缓冲区 
+        /// dwInBufferSize：缓冲区的大小 
+        /// 返回值：TRUE 表示成功，FALSE 表示失败。
+        /// </summary>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_SetDVRConfig(int lUserID, uint dwCommand, int lChannel,
+                                                       byte[] lpInBuffer, uint dwInBufferSize);
+
+
+        //图片质量
+        [StructLayoutAttribute(LayoutKind.Sequential)]
+        public struct NET_DVR_JPEGPARA
+        {
+            /*注意：当图像压缩分辨率为VGA时，支持0=CIF, 1=QCIF, 2=D1抓图，
+	        当分辨率为3=UXGA(1600x1200), 4=SVGA(800x600), 5=HD720p(1280x720),6=VGA,7=XVGA, 8=HD900p
+	        仅支持当前分辨率的抓图*/
+            public ushort wPicSize;/* 0=CIF, 1=QCIF, 2=D1 3=UXGA(1600x1200), 4=SVGA(800x600), 5=HD720p(1280x720),6=VGA*/
+            public ushort wPicQuality;/* 图片质量系数 0-最好 1-较好 2-一般 */
+        }
+
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_CaptureJPEGPicture(int lUserID, int lChannel, ref NET_DVR_JPEGPARA lpJpegPara, string sPicFileName);
+
+
+        /// <summary>
+        /// BOOL NET_DVR_GetDVRConfig(LONG lUserID, DWORD dwCommand,LONG lChannel, 
+        /// LPVOID lpOutBuffer,DWORD dwOutBufferSize,LPDWORD lpBytesReturned) 
+        /// 功能：获取硬盘录像机的参数 
+        /// 参数说明
+        /// lUserID：NET_DVR_Login ()的返回值 
+        /// dwCommand：参数类型 
+        /// lChannel：通道号，如果不是通道参数，lChannel 不用,置为-1 即可 
+        /// lpOutBuffer：存放输出参数的缓冲区 
+        /// dwOutBufferSize：缓冲区的大小 
+        /// lpBytesReturned：实际返回的缓冲区大小 
+        /// 返回值：TRUE 表示成功，FALSE 表示失败。
+        /// </summary>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_GetDVRConfig(int lUserID, uint dwCommand, int lChannel,
+                                                       byte[] lpOutBuffer, uint dwOutBufferSize,
+                                                       ref uint lpBytesReturned);
+
+        /// <summary>
+        /// 获取最后一次操作的错误代码
+        /// </summary>
+        /// <returns>返回错误代码号</returns>
+        [DllImport(HikNetSdkDll)]
+        public static extern uint NET_DVR_GetLastError();
+
+        /// <summary>
+        /// 退出登录函数
+        /// </summary>
+        /// <returns>TRUE表示成功，FALSE表示失败，获取错误码调用NET_DVR_GetLastError</returns>
+        [DllImport(HikNetSdkDll)]
+        public static extern bool NET_DVR_Logout(int m_login);
+
+        /// <summary>
+        /// 已登录的设备信息
+        /// </summary>
+        public static Dictionary<string, int> dctLogins = new Dictionary<string, int>();
+
+        /// <summary>
+        /// 是否实例化SDK
+        /// </summary>
+        public static bool IsInitSdk = false;
+    }
+}

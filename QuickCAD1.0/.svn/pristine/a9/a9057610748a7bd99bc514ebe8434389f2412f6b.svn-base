@@ -1,0 +1,198 @@
+﻿//using System;
+//using System.Data;
+//using System.Linq;
+//using Max.BaseKit;
+//using MySql.Data.MySqlClient;
+//using System.Collections.Generic;
+
+//namespace Max.DbTool.Imp
+//{
+//    /// <summary>
+//    /// 提供Mysql数据库操作实现
+//    /// </summary>
+//    public class MysqlOperate : ISqlOperate
+//    {
+//        public DbConfig Config { get; set; }
+
+//        public bool Execute(string sqlstr)
+//        {
+//            try
+//            {
+//                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                using (MySqlConnection connection = new MySqlConnection(Config.ConnStr))
+//                {
+//                    connection.Open();
+//                    using (var cmd = new MySqlCommand(sqlstr, connection))
+//                    {
+//                        cmd.CommandTimeout = 60;
+//                        cmd.ExecuteNonQuery();
+//                        return true;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"Mysql执行的Execute异常:{ex.Message},语句:{sqlstr}");
+//                return false;
+//            }
+//        }
+//        public DataTable Query(string sqlstr)
+//        {
+//            DataTable dt = new DataTable();
+//            try
+//            {
+//                sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                using (MySqlConnection connection = new MySqlConnection(Config.ConnStr))
+//                {
+//                    connection.Open();
+//                    using (var da = new MySqlDataAdapter(sqlstr, connection))
+//                    {
+//                        da.Fill(dt);
+//                        return dt;
+//                    }
+//                }
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"Mysql执行的Query异常:{ex.Message},语句:{sqlstr}");
+//                return dt;
+//            }
+//        }
+
+//        /// <summary>
+//        /// 批量覆盖语句(有就修改，没有就新增)
+//        /// </summary>
+//        /// 【样例： "replace into t (col1,col2,col3) values (@col1,@col2,@col3)";】
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="dlst">数据集</param>
+//        /// <param name="keys">主键字段集</param>
+//        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        {
+//            bool flag = default;
+//            #region ①组装带参数的sql语句
+//            var fieldNames = dlst?.FirstOrDefault()?.Keys?.ToList(); //字段名称集[col1,col2,col3]
+//            if (fieldNames == null || fieldNames.Count <= 0) return false;
+//            string sql_p1 = string.Empty;//sql第1个参数语句"col1,col2,col3"
+//            string sql_p2 = string.Empty;//sql第2个参数语句"@col1,@col2,@col3"
+//            foreach (var item in fieldNames)
+//            {
+//                sql_p1 += $"{item},";
+//                sql_p2 += $"@{item},";
+//            }
+//            string replace_sql = $"REPLACE INTO {tname} ({sql_p1.TrimEnd(',')}) VALUES ({sql_p2.TrimEnd(',')})";//replace语句 
+//            #endregion
+
+//            using (MySqlConnection conn = new MySqlConnection(Config.ConnStr))
+//            {
+//                conn.Open();
+//                using (MySqlTransaction trans = conn.BeginTransaction())
+//                {
+//                    try
+//                    {
+//                        #region ②组装sql语句的参数，并执行sql语句
+//                        foreach (var dic in dlst)
+//                        {
+//                            var parameters = new List<MySqlParameter>();
+//                            foreach (var item in dic)
+//                            {
+//                                object obj = (item.Value == null) ? DBNull.Value : item.Value;
+//                                parameters.Add(new MySqlParameter($"@{item.Key}", obj));
+//                            }
+//                            using (var cmd = new MySqlCommand(replace_sql, conn))
+//                            {
+//                                cmd.Parameters.AddRange(parameters.ToArray());
+//                                int val = cmd.ExecuteNonQuery();
+//                            }
+//                        }
+//                        #endregion
+//                        trans.Commit();
+//                        flag = true;
+//                    }
+//                    catch (Exception ex)
+//                    {
+//                        NLogger.Warn($"Mysql执行的BatchCover异常:{ex.Message}");
+//                        trans.Rollback();
+//                        flag = false;
+//                    }
+//                }
+//            }
+//            return flag;
+//        }
+
+//        /// <summary>
+//        /// 批量删除
+//        /// </summary>
+//        /// 【样例： "DELETE FROM t WHERE col1=@col1";】
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="fileds">删除条件的字段集</param>
+//        /// <param name="dlst">数据集</param>
+//        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+//        {
+//            bool flag = default;
+//            #region ①组装带参数的sql语句
+//            if (fileds == null || fileds.Length <= 0) return false;
+//            string sql_p1 = string.Empty;//sql第1个参数语句"col1=@col1 AND col2=@col2"
+//            foreach (var filed in fileds)
+//            {
+//                sql_p1 += $" AND {filed}=@{filed}";
+//            }
+//            string delete_sql = $"DELETE FROM {tname} WHERE 1=1 {sql_p1} ";//delete语句 
+//            #endregion
+
+//            using (MySqlConnection conn = new MySqlConnection(Config.ConnStr))
+//            {
+//                conn.Open();
+//                using (MySqlTransaction trans = conn.BeginTransaction())
+//                {
+//                    try
+//                    {
+//                        #region ②组装sql语句的参数，并执行sql语句
+//                        foreach (var dic in dlst)
+//                        {
+//                            var parameters = new List<MySqlParameter>();
+//                            foreach (var filed in fileds)
+//                            {
+//                                if (dic.Keys.Contains(filed))
+//                                {
+//                                    parameters.Add(new MySqlParameter($"@{filed}", dic[filed]));
+//                                }
+//                            }
+//                            using (var cmd = new MySqlCommand(delete_sql, conn))
+//                            {
+//                                cmd.Parameters.AddRange(parameters.ToArray());
+//                                int val = cmd.ExecuteNonQuery();
+//                            }
+//                        }
+//                        #endregion
+//                        trans.Commit();
+//                        flag = true;
+//                    }
+//                    catch (Exception ex)
+//                    {
+//                        NLogger.Warn($"Mysql执行的BatchDelete异常:{ex.Message}");
+//                        trans.Rollback();
+//                        flag = false;
+//                    }
+//                }
+//            }
+//            return flag;
+//        }
+
+//        //public bool BatchCover(string tname, string[] keys, List<Dictionary<string, object>> dlst)
+//        //{
+
+//        //}
+
+//        //public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        //{
+//        //    throw new NotImplementedException();
+//        //}
+
+//        public void Dispose()
+//        {
+//            SqlOperateManger.Instance.Still(Config, this);
+//        }
+//    }
+//}

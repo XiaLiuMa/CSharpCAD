@@ -1,0 +1,347 @@
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+
+namespace DataSyncVerificationApp
+{
+    public partial class MainForm : Form
+    {
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        /// <summary>
+        /// 选择文件夹
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btSelectDic1_Click(object sender, EventArgs e)
+        {
+            var dresult = this.folderBrowserDialog1.ShowDialog();
+            if (dresult == DialogResult.OK)
+            {
+                tbDic1.Text = folderBrowserDialog1.SelectedPath;
+            }
+        }
+
+        /// <summary>
+        /// 选择备份文件夹
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btSelectDic2_Click(object sender, EventArgs e)
+        {
+            var dresult = this.folderBrowserDialog1.ShowDialog();
+            if (dresult == DialogResult.OK)
+            {
+                tbDic2.Text = folderBrowserDialog1.SelectedPath;
+            }
+        }
+
+        /// <summary>
+        /// 查找符合条件的文件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btSelectFiles_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                TipMessage("开始查找符合条件的文件。。。", 1);
+                var patterns = new List<string>();
+                string cmdStr = this.tbCMD.Text.Trim();
+                string[] cmds = cmdStr.Split(',').Distinct().ToArray();
+                string cflxStr = this.tbCflx.Text.Trim();
+                if (!string.IsNullOrEmpty(cflxStr)) patterns.Add(cflxStr);
+                string stimeStr = this.tbStime.Text.Trim();
+                if (!string.IsNullOrEmpty(stimeStr)) patterns.Add(stimeStr);
+                string etimeStr = this.tbEtime.Text.Trim();
+                if (!string.IsNullOrEmpty(etimeStr)) patterns.Add(etimeStr);
+                string itimeStr = this.tbItime.Text.Trim();
+                if (!string.IsNullOrEmpty(itimeStr)) patterns.Add(itimeStr);
+                string dic1Str = this.tbDic1.Text.Trim();
+                var files = FindFiles(new DirectoryInfo(dic1Str), cmds, patterns.ToArray());//先通过模糊搜索过滤一遍，可能不准，后面再根据文件命名规则再过滤一次
+                bool backupEnable = this.cbBackup.CanSelect;
+                string dic2Str = this.tbDic2.Text.Trim();
+                bool baclupFlag = (backupEnable && !string.IsNullOrEmpty(dic2Str)) ? true : false;//备份标识
+                var rfilelst = new List<string>();
+                foreach (var item in files)
+                {
+                    bool flag2 = true;
+                    string[] t1strs = item.FullName.Split('@');
+                    if (t1strs?.Length < 3) continue;
+                    if (cmds?.Length > 0)
+                    {
+                        bool flag = true;
+                        foreach (var cmd in cmds)
+                        {
+                            if (!!t1strs[0].Contains(cmd))
+                            {
+                                flag = false;
+                                break;
+                            }
+                        }
+                    }
+                    string[] t2strs = t1strs[2].Split('_');
+                    if (!string.IsNullOrEmpty(cflxStr))
+                    {
+                        if (!t2strs[0].Contains(cflxStr)) flag2 = false;
+                    }
+                    if (!string.IsNullOrEmpty(itimeStr))
+                    {
+                        if (!t2strs[1].Contains(itimeStr)) flag2 = false;
+                    }
+                    if (!string.IsNullOrEmpty(stimeStr))
+                    {
+                        if (!t2strs[2].Contains(stimeStr)) flag2 = false;
+                    }
+                    if (!string.IsNullOrEmpty(etimeStr))
+                    {
+                        if (!t2strs[3].Contains(etimeStr)) flag2 = false;
+                    }
+                    if (flag2)
+                    {
+                        rfilelst.Add(item.FullName);
+                        if (baclupFlag) //拷贝文件
+                        {
+                            string tfname = $"{dic2Str}/{Path.GetFileName(item.FullName)}";
+                            using (FileStream fs = new FileStream(tfname, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                            {
+                                byte[] datas = File.ReadAllBytes(item.FullName);
+                                fs.Write(datas, 0, datas.Length);
+                            }
+                        }
+                    }
+                }
+                this.tbFileSelectResult.Text = $"找到符合条件的文件{rfilelst.Count}个";
+                var tlst = LimitByCount(rfilelst);
+                string tstr1 = string.Empty;
+                foreach (var lst in tlst)
+                {
+                    string tstr2 = string.Empty;
+                    foreach (var item in lst)
+                    {
+                        tstr2 += $"{item},";
+                    }
+                    tstr1 += $"({tstr2.TrimEnd(',')}),";
+                }
+                this.rtFileSelectResult.Text = $"[{tstr1.TrimEnd(',')}]";
+                TipMessage("查找符合条件的文件完成！", 1);
+            }
+            catch (Exception ex)
+            {
+                TipMessage($"查找符合条件的文件异常：{ex.Message}", -1);
+            }
+        }
+
+        /// <summary>
+        /// 查找符合条件的数据
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btSelectDatas_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string filedNameStr = this.tbFiledName.Text.Trim();
+                if (string.IsNullOrEmpty(filedNameStr)) return;
+                TipMessage("开始查找符合条件的数据。。。", 1);
+                string filedValueStr = this.tbFiledValue.Text.Trim();
+                bool sflag = string.IsNullOrEmpty(filedValueStr) ? true : false;//true:查数据，false:查文件
+                string[] filedValues = filedValueStr.Split(',');
+                string strs1 = rtFileSelectResult.Text.Trim();//文件集字符串
+                var dataLst = new List<string>();//数据集
+                var fileLst = new List<string>();//文件集
+                if (!string.IsNullOrEmpty(strs1))
+                {
+                    string[] fnames = strs1.TrimStart('[').TrimEnd(']').Split(',');
+                    foreach (var item in fnames)
+                    {
+                        var titem = item.TrimStart('(').TrimEnd(')');
+                        using (var fsread = new FileStream(titem, FileMode.Open, FileAccess.Read, FileShare.None))
+                        {
+                            List<byte> bytelst = new List<byte>();//数据临时存储
+                            while (true)
+                            {
+                                byte[] buff = new byte[1024 * 1024 * 2];
+                                int r = fsread.Read(buff, 0, buff.Length);//返回实际读取到的字节
+                                bytelst.AddRange(buff.Skip(0).Take(r));
+                                if (r == 0) break;//当字节位0的时候 证明已经读取结束
+                            }
+                            byte[] bytearray = bytelst.ToArray();//数据字节数组
+                            string datastr = Encoding.UTF8.GetString(bytearray);
+                            IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(datastr);
+                            if (idata?.Lst?.Count > 0)
+                            {
+                                foreach (var dic in idata.Lst)
+                                {
+                                    if (dic.Keys.Contains(filedNameStr))//判断是否包含查询的字段
+                                    {
+                                        object tvalue = default;//字段的值
+                                        dic.TryGetValue(filedNameStr, out tvalue);
+                                        if (sflag)//查数据
+                                        {
+                                            if (!dataLst.Contains((string)tvalue)) dataLst.Add((string)tvalue);
+                                        }
+                                        else //查文件
+                                        {
+                                            if (filedValues.Contains((string)tvalue))
+                                            {
+                                                if (!fileLst.Contains(titem)) fileLst.Add(titem);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (sflag)
+                {
+                    this.tbDataSelectResult.Text = $"找到符合条件的数据{dataLst.Count}条";
+                    var tlst = LimitByCount(dataLst);
+                    string tstr1 = string.Empty;
+                    foreach (var lst in tlst)
+                    {
+                        string tstr2 = string.Empty;
+                        foreach (var item in lst)
+                        {
+                            tstr2 += cbToSqlStr.CanSelect ? $"'{item}'," : $"{item},";
+                        }
+                        tstr1 += $"({tstr2.TrimEnd(',')}),";
+                    }
+                    this.rtDataSelectResult.Text = $"[{tstr1.TrimEnd(',')}]";
+                }
+                else
+                {
+                    this.tbDataSelectResult.Text = $"找到符合条件的文件{fileLst.Count}个";
+                    var tlst = LimitByCount(fileLst);
+                    string tstr1 = string.Empty;
+                    foreach (var lst in tlst)
+                    {
+                        string tstr2 = string.Empty;
+                        foreach (var item in lst)
+                        {
+                            tstr2 += $"{item},";
+                        }
+                        tstr1 += $"({tstr2.TrimEnd(',')}),";
+                    }
+                    this.rtDataSelectResult.Text = $"[{tstr1.TrimEnd(',')}]";
+                }
+                TipMessage("查找符合条件的数据完成！", 1);
+            }
+            catch (Exception ex)
+            {
+                TipMessage($"查找符合条件的数据异常：{ex.Message}", -1);
+            }
+        }
+
+        /// <summary>
+        /// 提示内容
+        /// </summary>
+        /// <param name="msg">信息</param>
+        /// <param name="code">提示码(0:空闲,1:忙碌,-1:异常)</param>
+        private void TipMessage(string msg, int code)
+        {
+            this.tbTip.Text = msg;
+            if (code == -1)
+            {
+                this.tbTip.BackColor = Color.Red;
+            }
+            else if (code == 1)
+            {
+                this.tbTip.BackColor = Color.GreenYellow;
+            }
+            else
+            {
+                this.tbTip.BackColor = Color.DarkGray;
+            }
+        }
+
+        /// <summary>
+        /// 查找特定路径下特定后缀名的含有指定字段的文件,并进行排序
+        /// </summary>
+        /// <param name="dirInfo">要查找的目录路径</param>
+        /// <param name="cmds">命令名集</param>
+        /// <param name="pattern">要包含的指定字段，若为""，则表示全部文件(夹)</param>
+        /// <returns>符合条件的文件(夹)名称列表</returns>
+        private List<FileInfo> FindFiles(DirectoryInfo dirInfo, string[] cmds, params string[] pattern)
+        {
+            List<FileInfo> files = new List<FileInfo>();
+            if (!dirInfo.Exists) return files;
+            foreach (var fInfo in dirInfo.EnumerateFiles())
+            {
+                if (cmds?.Length > 0)
+                {
+                    bool flag = true;
+                    foreach (var cmd in cmds)
+                    {
+                        if (!fInfo.Name.Contains(cmd))
+                        {
+                            flag = false;
+                            break;
+                        }
+                        if (pattern?.Length > 0)
+                        {
+                            foreach (var item in pattern)
+                            {
+                                if (!fInfo.Name.Contains(item))
+                                {
+                                    flag = false;
+                                    break;
+                                } 
+                            }
+                        }
+                        if (!flag) break;
+                    }
+                    if (flag) files.Add(fInfo);
+                }
+                else
+                {
+                    bool flag = true;
+                    if (pattern?.Length > 0)
+                    {
+                        foreach (var item in pattern)
+                        {
+                            if (!fInfo.Name.Contains(item))
+                            {
+                                flag = false;
+                                break;
+                            }  
+                        }
+                    }
+                    if (flag) files.Add(fInfo);
+                }
+            }
+            return files;
+        }
+
+        /// <summary>
+        /// 根据最大1000条分页
+        /// </summary>
+        /// <param name="lst"></param>
+        /// <returns></returns>
+        private List<List<T>> LimitByCount<T>(List<T> lst)
+        {
+            var rlst = new List<List<T>>();
+            if (lst?.Count > 0)
+            {
+                int icount = lst.Count;
+                int num = icount % 1000 == 0 ? icount / 1000 : icount / 1000 + 1;//页数
+                for (int i = 0; i < num; i++)   //按最大1000条数据来划分文件
+                {
+                    int tnum = (icount - ((i + 1) * 1000)) >= 0 ? 1000 : icount - (i * 1000);//数据量
+                    rlst.Add(lst.Skip(i * 1000).Take(tnum).ToList());
+                }
+            }
+            return rlst;
+        }
+    }
+}

@@ -1,0 +1,120 @@
+﻿using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.Core.Syncers;
+using IsolatorOrigin.Business.MaxQuartz;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// 业务主导入口
+    /// </summary>
+    public class BusinessLeader
+    {
+        #region 单例
+        private static BusinessLeader i;
+        private readonly static object objLock = new object();
+        public static BusinessLeader I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new BusinessLeader();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 启动
+        /// </summary>
+        public void BootUp()
+        {
+            InitISolator();
+            StartBootUpTask();
+            StartTimeTask();
+        }
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        public void InitISolator()
+        {
+            string path1 = @"D:\IsolatorTest\V1.2.1\IsolatorOrigin\ProduceCachePath";//生产缓存路径
+            string path2 = @"D:\IsolatorTest\V1.2.1\IsolatorOrigin\ProduceBackupPath";//生产备份路径
+            string path3 = @"D:\IsolatorTest\V1.2.1\IsolatorOrigin\ConsumeCachePath";//消费缓存路径
+            string path4 = @"D:\IsolatorTest\V1.2.1\IsolatorOrigin\ConsumeBackupPath";//消费备份路径
+
+            MaxIsolator.I.Init(path3, false, path4, 50, (p) => { });//初始化隔离器工具
+
+            ConfigCacher.I.Gatekeeper_Lst?.ForEach(p => //加入网闸隔离器
+            {
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new GatekeeperIsolator(p.Id, p.SyncPath, p.ScanPath, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+            ConfigCacher.I.SerialPort_Lst?.ForEach(p => //加入串口隔离器
+            {
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialPortIsolator(p.Id, p.PortName, p.BaudRate, p.DataBit, p.StopBit, p.Parity, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+            ConfigCacher.I.SerialServer_Lst?.ForEach(p => //加入串口服务器隔离器
+            {
+                MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialServerIsolator(p.Id, p.ServerIP, p.ServerPort, p.ProduceCachePath, p.IsBackupProduce, p.ProduceBackupPath, p.ProduceChannelSize, p.ItemSize, p.BulkSize, p.IsZip));
+            });
+
+            MaxIsolator.I.BootUp();//启动隔离器
+        }
+
+        /// <summary>
+        /// 启动开机任务
+        /// </summary>
+        private void StartBootUpTask()
+        {
+            var now = DateTime.Now;//当前时间
+            Task.Factory.StartNew(() =>
+            {
+                ConfigCacher.I.ProduceTask_Lst?.ForEach(task =>
+                {
+                    if (!task.TaskState) return;
+                    var dbids = task.Dbs.Split(',').ToList();
+                    dbids?.ForEach(dbid =>
+                    {
+                        var tid = $"{task.Cmd}_{dbid}";//组合id("命令码_数据库标识")
+                        var trt = ConfigCacher.I.TaskRunTime_Lst.Find(t => tid.Equals(t.Id));
+                        ConfigCacher.I.SetTaskRunTime(tid, now.ToString("yyyy-MM-dd HH:mm:ss"));
+                        string stime = trt == null ? now.AddMinutes(-10).ToString("yyyyMMddHHmmss") : trt.RunTime.TimeStrConvert("yyyy-MM-dd HH:mm:ss", "yyyyMMddHHmmss");
+                        string etime = now.ToString("yyyyMMddHHmmss");
+                        var db = ConfigCacher.I.UseDb_Lst.Find(t => dbid.Equals(t.Id));
+                        if (db == null) return;
+                        JobKernel.RunJob(task, db, stime, etime, false);
+                    });
+                });
+            });
+        }
+
+        /// <summary>
+        /// 启动定时任务
+        /// </summary>
+        private void StartTimeTask()
+        {
+            ConfigCacher.I.CronJob_Lst?.ForEach(job =>
+            {
+                DateTime nowTime = DateTime.Now;  //当前时间
+                QuartzManager.StartJobWithCron<QuartzJob>(job.Id, job.CronExpr);//启动定时任务
+            });
+        }
+
+        /// <summary>
+        /// 停止
+        /// </summary>
+        public void ShutDown()
+        {
+
+        }
+    }
+}

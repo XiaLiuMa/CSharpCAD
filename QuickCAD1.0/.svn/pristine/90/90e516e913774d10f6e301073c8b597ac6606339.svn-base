@@ -1,0 +1,209 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using MsDataSimulator.Jobs;
+using System.Collections.Concurrent;
+using MsDataSimulator.Utils;
+using System.Threading;
+
+namespace MsDataSimulator.Views.UserPanels
+{
+    public partial class TdPanel : UserControl
+    {
+        #region 自定义属性
+        private string mTitle = "标题";
+        [Category("外观"), Browsable(true), Description("标题")]
+        public string MTitle
+        {
+            get { return mTitle; }
+            set { mTitle = value; }
+        }
+        private string mTdh = "通道号";
+        [Category("外观"), Browsable(true), Description("通道号")]
+        public string MTdh
+        {
+            get { return mTdh; }
+            set { mTdh = value; }
+        }
+        private string mGzzip = "工作站ip";
+        [Category("外观"), Browsable(true), Description("工作站ip")]
+        public string MGzzip
+        {
+            get { return mGzzip; }
+            set { mGzzip = value; }
+        }
+        #endregion
+
+        /// <summary>
+        /// 操作员代码
+        /// </summary>
+        public string czydm { get; set; }
+        /// <summary>
+        /// 部门代码
+        /// </summary>
+        public string bmdm { get; set; }
+
+        public TdPanel()
+        {
+            InitializeComponent();
+            DealTdBlock().Employ();
+        }
+
+        private void TdPanel_Load(object sender, EventArgs e)
+        {
+            this.labTdh.Text = this.mTitle;
+        }
+
+        /// <summary>
+        /// 通道阻塞队列
+        /// </summary>
+        public BlockingCollection<TdBody> tdblock = new BlockingCollection<TdBody>();
+        /// <summary>
+        /// 处理通道阻塞队列
+        /// </summary>
+        /// <returns></returns>
+        public async Task DealTdBlock()
+        {
+            await Task.Run(() =>
+            {
+                foreach (var item in tdblock.GetConsumingEnumerable())
+                {
+                    InsertTdssjk(item);
+                    Thread.Sleep(1400);//通道每1.4秒钟放行1人次
+                }
+            });
+        }
+
+        /// <summary>
+        /// 文字内容修改事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tBoxBM_TextChanged(object sender, EventArgs e)
+        {
+            this.tBoxMsg.BackColor = Color.FromArgb(UnitData.Instance.NUM(1, 255), UnitData.Instance.NUM(1, 255), UnitData.Instance.NUM(1, 255));
+        }
+
+        public bool isOpen = false;//通道默认关闭
+        /// <summary>
+        /// 通道开关
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void butOnOff_Click(object sender, EventArgs e)
+        {
+            isOpen = !isOpen;
+            this.butOnOff.Text = isOpen ? "关闭" : "打开";
+            this.labTdh.ForeColor = isOpen ? Color.Green : Color.Red;
+            if (isOpen)
+            {
+                bmdm = UnitData.Instance.BMDM;
+                czydm = UnitData.Instance.XTCZY;
+                InsertCzyzczx();
+                UnitData.Instance.STCZYS.Add(czydm);
+            }
+            else
+            {
+                InsertCzyzczx();
+                UnitData.Instance.STCZYS.Remove(czydm);
+                czydm = string.Empty;
+                bmdm = string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// 插入操作员注册注销
+        /// </summary>
+        private void InsertCzyzczx()
+        {
+            if (isOpen) //注册
+            {
+                Dictionary<string, object> dic = new Dictionary<string, object>();
+                dic.Add("CZY", czydm);  //操作员代码
+                dic.Add("ZCSJ", DateTime.Now.ToString("yyyyMMddHHmmss")); //注册时间
+                dic.Add("ZXSJ", ""); //注销时间
+                dic.Add("BMDM", bmdm); //部门代码
+                dic.Add("GZZIP", MGzzip);//工作站IP
+                dic.Add("TDH", MTdh);  //通道号
+                dic.Add("KADM", MainForm.Instance.kadm); //口岸代码
+                OrcalUtil.Insert("BJ_YW_T_CZYZCZX", dic);
+                MainForm.Instance.RefreshTabPanel("CZYZCZX", dic);
+            }
+            else //注销
+            {
+                string sql = $"SELECT * FROM(SELECT * FROM BJ_YW_T_CZYZCZX WHERE ZXSJ IS NULL AND CZY='{czydm}' AND BMDM='{bmdm}' AND GZZIP='{MGzzip}' AND TDH='{MTdh}' AND KADM='{MainForm.Instance.kadm}' ORDER BY ZCSJ) WHERE ROWNUM=1";
+                Dictionary<string, object> dic = OrcalUtil.Select(sql).FirstOrDefault();
+                if (dic != null)
+                {
+                    string zxsj = DateTime.Now.ToString("yyyyMMddHHmmss"); //注销时间
+                    string sql1 = $"UPDATE BJ_YW_T_CZYZCZX SET ZXSJ='{zxsj}' WHERE CZY='{dic["CZY"]}' AND ZCSJ='{dic["ZCSJ"]}' AND BMDM='{dic["BMDM"]}' AND GZZIP='{dic["GZZIP"]}' AND TDH='{dic["TDH"]}' AND KADM='{dic["KADM"]}'";
+                    OrcalUtil.RunSQL(sql1);
+                }
+                MainForm.Instance.RefreshTabPanel("CZYZCZX", dic);
+            }
+        }
+
+        private void InsertTdssjk(TdBody body)
+        {
+            try
+            {
+                if (body.tabname.Equals("CRJJTGJ"))//插入出入境交通工具
+                {
+                    bool flag1 = OrcalUtil.Insert("BJ_YW_T_CRJJTGJ", body.data);
+                    bool flag2 = OrcalUtil.Insert("BJ_YW_T_CRJJTGJDK", body.data);
+                    if (!(flag1 & flag2)) return;
+                    MainForm.Instance.RefreshTdPanel(this, "CRJJTGJ", body.data);
+                    MainForm.Instance.RefreshTabPanel("CRJJTGJ", body.data);
+                }
+                else if (body.tabname.Equals("CRJRY"))//插入出入境人员
+                {
+                    bool flag1 = OrcalUtil.Insert("BJ_YW_T_CRJRY", body.data);
+                    bool flag2 = OrcalUtil.Insert("BJ_YW_T_CRJRYDK", body.data);
+                    if (!(flag1 & flag2)) return;
+                    MainForm.Instance.RefreshTdPanel(this, "CRJRY", body.data);
+                    MainForm.Instance.RefreshTabPanel("CRJRY", body.data);
+                }
+                else if (body.tabname.Equals("CHWFWGJTGJ"))//插入查获违法违规交通工具
+                {
+                    bool flag = OrcalUtil.Insert("BJ_YW_T_CHWFWGJTGJ", body.data);
+                    if (flag) MainForm.Instance.RefreshTabPanel("CHWFWGJTGJ", body.data);
+                }
+                else if (body.tabname.Equals("CHWFWGRY"))//插入查获违法违规人员
+                {
+                    bool flag = OrcalUtil.Insert("BJ_YW_T_CHWFWGRY", body.data);
+                    if (flag) MainForm.Instance.RefreshTabPanel("CHWFWGRY", body.data);
+                }
+                else if (body.tabname.Equals("LSRJXKDJ"))//插入临时入境许可登记
+                {
+                    bool flag = OrcalUtil.Merger("GJMQ_LSRJXK_RY_RYDJ", new string[] { "WYBS" }, body.data);
+                    if (flag) MainForm.Instance.RefreshTabPanel("LSRJXK", body.data);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Td处理实体
+    /// </summary>
+    public class TdBody
+    {
+        /// <summary>
+        /// 表名
+        /// </summary>
+        public string tabname { get; set; }
+        /// <summary>
+        /// 数据
+        /// </summary>
+        public Dictionary<string, object> data { get; set; }
+    }
+}

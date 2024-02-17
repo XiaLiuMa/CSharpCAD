@@ -1,0 +1,154 @@
+﻿using MsDataSimulator.Views;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Timers;
+
+namespace MsDataSimulator.Jobs
+{
+    /// <summary>
+    /// 出入境交通工具历史
+    /// </summary>
+    public class CrjjtgjlisJob
+    {
+        #region 单例
+        private static CrjjtgjlisJob instance;
+        private readonly static object objLock = new object();
+        public static CrjjtgjlisJob Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new CrjjtgjlisJob();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        private Timer timer;    //交通工具定时器
+        /// <summary>
+        /// 启动CrjjtgjlisJob
+        /// </summary>
+        public void Run()
+        {
+            InsertCrjjtgjlis(null, null);//先手动触发第一次
+            timer = new Timer(10 * 60 * 1000);//间隔10分钟触发一次
+            timer.Start();
+            timer.Elapsed += InsertCrjjtgjlis;
+        }
+
+        /// <summary>
+        /// 插入出入境交通工具历史
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void InsertCrjjtgjlis(object sender, ElapsedEventArgs e)
+        {
+            DateTime dt = DateTime.Now;
+            string sgbz = UnitData.Instance.STR(new string[] { "U", "D" });//删改标志
+            int num = Convert.ToInt32(OrcalUtil.Select($"SELECT COUNT(*)  FROM BJ_YW_T_CRJJTGJ").FirstOrDefault().FirstOrDefault().Value);
+            int rownum = UnitData.Instance.NUM(1, num);//随机数
+            string sqlstr = $"SELECT * FROM (select rownum as rn, t.* from BJ_YW_T_CRJJTGJ t where rownum<={num}) WHERE rn={rownum}";
+            Dictionary<string, object> jtgj = OrcalUtil.Select(sqlstr).FirstOrDefault();//取一条随机的出入境交通工具数据
+            if (jtgj == null) return;
+            jtgj.Remove("RN");//移除行号
+            #region 出入境交通工具历史数据
+            Dictionary<string, object> jtgjlis = new Dictionary<string, object>();
+            jtgjlis.Add("JWGJBS", DicValue(jtgj["JWGJBS"]));//境外交通工具标识
+            jtgjlis.Add("JNGJBS", DicValue(jtgj["JNGJBS"]));//境内交通工具标识
+            jtgjlis.Add("QTGJBS", DicValue(jtgj["QTGJBS"]));//其它工具标识
+            jtgjlis.Add("HC", DicValue(jtgj["HC"]));//航次
+            jtgjlis.Add("GJDQDM", DicValue(jtgj["GJDQDM"]));//国家地区代码
+            jtgjlis.Add("JTGJLXDM", DicValue(jtgj["JTGJLXDM"]));//交通工具类型代码
+            jtgjlis.Add("JTGJLBDM", DicValue(jtgj["JTGJLBDM"]));//交通工具类别代码
+            jtgjlis.Add("YGS", DicValue(jtgj["YGS"]));//员工数
+            jtgjlis.Add("ZKRS", DicValue(jtgj["ZKRS"]));//载客人数
+            jtgjlis.Add("CRRQ", DicValue(jtgj["CRRQ"]));//出入日期
+            jtgjlis.Add("CRSJ", DicValue(jtgj["CRSJ"]));//出入时间
+            jtgjlis.Add("CRRQSJ", DicValue(jtgj["CRRQSJ"]));//出入日期时间
+            jtgjlis.Add("CRKADM", DicValue(jtgj["CRKADM"]));//出入口岸
+            jtgjlis.Add("BMDM", DicValue(jtgj["BMDM"]));//部门代码
+            jtgjlis.Add("CZY", DicValue(jtgj["CZY"]));//检查员号
+            jtgjlis.Add("TDH", DicValue(jtgj["TDH"]));//通道号
+            jtgjlis.Add("CCBZ", DicValue(jtgj["CCBZ"]));//抽查标志（0：未抽查、1：已抽查）
+            jtgjlis.Add("CRBZ", DicValue(jtgj["CRBZ"]));//出入标志
+            jtgjlis.Add("RI", DicValue(jtgj["RI"]));//日
+            jtgjlis.Add("YYZ", DicValue(jtgj["YYZ"]));//拥有者
+            jtgjlis.Add("WYBS", DicValue(jtgj["WYBS"]));//唯一标识(口岸代码+通道号+出入时间+流水号）
+            jtgjlis.Add("SFDMDD", DicValue(jtgj["SFDMDD"]));//始发地/目的地
+            jtgjlis.Add("QWGLZG", DicValue(jtgj["QWGLZG"]));//前往国/来自国
+            jtgjlis.Add("YFBZ", DicValue(jtgj["YFBZ"]));//验放标志(1快捷通2备案验放3普通验放4后台补录)
+            jtgjlis.Add("YNZSM", DicValue(jtgj["YNZSM"]));//疑难字说明
+            jtgjlis.Add("BGCZY", UnitData.Instance.CZYDM);//变更操作员
+            jtgjlis.Add("BGCZSJ", dt.ToString("yyyyMMddHHmmss"));//变更操作时间
+            jtgjlis.Add("YBGCZY", DicValue(jtgj["BGCZY"]));//   原变更操作员代码
+            jtgjlis.Add("YBGCZSJ", DicValue(jtgj["BGCZSJ"]));//  原变更时间
+            jtgjlis.Add("BGYY", sgbz);//变更原因（U：修改；D：删除）
+            jtgjlis.Add("BGMS", sgbz);//变更原因描述 
+            #endregion
+
+            bool flag = OrcalUtil.Merger("BJ_YW_T_CRJJTGJLIS", new string[] { "WYBS" }, jtgjlis);
+            if (flag)
+            {
+                MainForm.Instance.RefreshTabPanel("CRJJTGJLIS", jtgjlis);
+            }
+
+            if (sgbz.Equals("D"))//删除
+            {
+                OrcalUtil.RunSQL($"DELETE BJ_YW_T_CRJJTGJ WHERE WYBS='{(string)jtgj["WYBS"]}'");
+                OrcalUtil.RunSQL($"DELETE BJ_YW_T_CRJJTGJDK WHERE WYBS='{(string)jtgj["WYBS"]}'");
+            }
+            else if (sgbz.Equals("U"))//修改
+            {
+                #region 出入境交通工具变更项
+                if (UnitData.Instance.FLAG())
+                {
+                    string gjdqdm = UnitData.Instance.GJDQDM;
+                    jtgj["GJDQDM"] = gjdqdm;//国家地区代码
+                    jtgj["QWGLZG"] = gjdqdm;//前往国来自国
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    jtgj["YGS"] = UnitData.Instance.NUM(5, 10).ToString();//员工数
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    jtgj["ZKRS"] = UnitData.Instance.NUM(125, 230).ToString();//载客人数
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    DateTime dtime = DateTime.ParseExact((string)jtgj["CRRQSJ"], "yyyyMMddHHmmss", CultureInfo.CurrentCulture).AddDays(-1).AddHours(-1);//字符串转时间
+                    jtgj["CRRQSJ"] = dtime.ToString("yyyyMMddHHmmss");//出入日期时
+                    jtgj["CRRQ"] = dtime.ToString("yyyyMMdd");//出入日期
+                    jtgj["CRSJ"] = dtime.ToString("HHmmss");//出入日期时间
+                }
+                #endregion
+                OrcalUtil.Merger("BJ_YW_T_CRJJTGJ", new string[] { "WYBS" }, jtgj);
+                OrcalUtil.Merger("BJ_YW_T_CRJJTGJDK", new string[] { "WYBS" }, jtgj);
+            }
+        }
+
+        private string DicValue(object obj)
+        {
+            if (obj.GetType().Equals(typeof(System.DBNull))) return "";
+            return (string)obj;
+        }
+
+        public void Stop()
+        {
+            timer?.Stop();
+            timer?.Dispose();
+        }
+    }
+}

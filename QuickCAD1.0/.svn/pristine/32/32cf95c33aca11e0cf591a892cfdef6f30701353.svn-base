@@ -1,0 +1,40 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 日志同步服务
+    /// </summary>
+    public class LogSyncService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst == null || idata.Lst.Count <= 0) return;
+            idata.Lst.ForEach(dic =>
+            {
+                try
+                {
+                    dic.TryGetValue("FileName", out var fNameStr);
+                    if (string.IsNullOrEmpty((string)fNameStr)) return;
+                    string fName = $"{AppContext.BaseDirectory}orgin_logs/{(string)fNameStr}";
+
+                    dic.TryGetValue("FileBase64Str", out var base64Str);
+                    if (string.IsNullOrEmpty((string)base64Str)) return;
+                    byte[] dBytes = Convert.FromBase64String((string)base64Str);
+
+                    FileUtil.StreamWrite(fName,dBytes);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"LogSyncService消费{idata.Cmd}异常{ex.Message}。");
+                }
+            });
+        }
+    }
+}

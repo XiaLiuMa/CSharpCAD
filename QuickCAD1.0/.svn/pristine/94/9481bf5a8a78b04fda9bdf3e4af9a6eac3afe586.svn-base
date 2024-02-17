@@ -1,0 +1,6 @@
+﻿namespace MsDataSimulator.ImpTest
+{
+    internal class Class3: AbsClass2
+    {
+    }
+}

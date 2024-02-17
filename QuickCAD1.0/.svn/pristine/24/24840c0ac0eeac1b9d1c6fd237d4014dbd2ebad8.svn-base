@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace MsDataSimulator.Config.Mods
+{
+    public class DbModel
+    {
+        public string ip { get; set; }
+        public string port { get; set; }
+        public string name { get; set; }
+        public string user { get; set; }
+        public string pwd { get; set; }
+        public string tabs { get; set; }
+    }
+}

@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+https://go.microsoft.com/fwlink/?LinkID=208121.
+-->
+<Project>
+  <PropertyGroup>
+    <_PublishTargetUrl>E:\02SVN\01CSarp\01产品项目\01数据同步产品\ISolator1.2.1\03目标端\IsolatorTarget\../../publish/win64/IsolatorTarget/</_PublishTargetUrl>
+    <History>True|2024-01-14T08:22:46.6172572Z;True|2024-01-14T16:20:56.9389331+08:00;True|2024-01-11T22:56:49.2699698+08:00;True|2023-11-25T11:42:44.2991153+08:00;</History>
+    <LastFailureDetails />
+  </PropertyGroup>
+</Project>

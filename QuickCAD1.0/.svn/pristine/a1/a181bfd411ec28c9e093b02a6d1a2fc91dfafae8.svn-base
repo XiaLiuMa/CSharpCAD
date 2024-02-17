@@ -1,0 +1,167 @@
+﻿//using System;
+//using System.Linq;
+//using Max.BaseKit;
+//using Max.BaseKit.Exts;
+//using System.Threading;
+//using System.Collections.Concurrent;
+
+//namespace Max.DbTool
+//{
+//    public class SqlOperateManger
+//    {
+//        #region 单例
+//        private static SqlOperateManger i;
+//        private readonly static object objLock = new object();
+//        public static SqlOperateManger I
+//        {
+//            get
+//            {
+//                if (i == null)
+//                {
+//                    lock (objLock)
+//                    {
+//                        if (i == null)
+//                        {
+//                            i = new SqlOperateManger();
+//                        }
+//                    }
+//                }
+//                return i;
+//            }
+//        }
+//        #endregion
+
+//        /// <summary>
+//        /// 连接池线程安全对象字典<连接配置字符串,<连接对象,状态>>
+//        /// </summary>
+//        private ConcurrentDictionary<DbConfig, ConcurrentDictionary<ISqlOperate, bool>> _dic = new ConcurrentDictionary<DbConfig, ConcurrentDictionary<ISqlOperate, bool>>();
+
+//        /// <summary>
+//        /// 创建一个数据库操作对象
+//        /// </summary>
+//        /// <param name="db">连接池id(数据库配置)</param>
+//        /// <returns></returns>
+//        private ISqlOperate Creat(DbConfig db)
+//        {
+//            ISqlOperate operate = default;
+//            switch (db.DbType)
+//            {
+//                case "ORCAL":   //orcal数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.OracleOperate() { Config = db };
+//                    }
+//                    break;
+//                case "MSSQL":   //sqlserver数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.MssqlOperate() { Config = db };
+//                    }
+//                    break;
+//                case "MYSQL":   //mysql数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.MysqlOperate() { Config = db };
+//                    }
+//                    break;
+//                case "MONGO":   //mongo数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.MongoOperate() { Config = db };
+//                    }
+//                    break;
+//                case "GBASE":   //GBase数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.GbaseOperate() { Config = db };
+//                    }
+//                    break;
+//                case "SQLITE":   //sqlite数据库
+//                    {
+//                        operate = new Max.DbTool.Imp.SqliteOperate() { Config = db };
+//                    }
+//                    break;
+//                default: break;
+//            }
+//            return operate;
+//        }
+
+//        /// <summary>
+//        /// 从池中借取一个对象
+//        /// </summary>
+//        /// <param name="id">数据库配置</param>
+//        /// <returns></returns>
+//        public ISqlOperate Borrow(DbConfig id)
+//        {
+//            if (id == null) return null;
+//            ISqlOperate sql = default;
+//            ConcurrentDictionary<ISqlOperate, bool> _pool = default;
+//            try
+//            {
+//                #region 1、如果不存在池，创建池
+//                _dic.TryGetValue(id, out _pool);
+//                if (_pool == null)//新建连接池
+//                {
+//                    _pool = new ConcurrentDictionary<ISqlOperate, bool>();
+//                    ISqlOperate tsql = Creat(id);
+//                    _pool.TryAdd(tsql, true);//往池里新增一个可使用的对象
+//                    _dic.TryAdd(id, _pool);
+//                    _dic.TryGetValue(id, out _pool);
+//                }
+//                #endregion
+
+//                #region 2、获取空闲对象
+//                int i = 0;//用于计时
+//                do
+//                {
+//                    i++;
+//                    sql = _pool.ToList().Find(p => p.Value == true).Key; //获取空闲对象
+//                    if (sql != null)
+//                    {
+//                        _pool[sql] = false;//置为忙碌状态
+//                        break;
+//                    }
+//                    if (_pool.Count < id.Concurrency)//未超过池容量，继续新建
+//                    {
+//                        ISqlOperate tsql = Creat(id);
+//                        _pool.TryAdd(tsql, true);//往池里新增一个可使用的对象
+//                        continue;
+//                    }
+//                    if (i > 4000)//10分钟超时
+//                    {
+//                        NLogger.Warn($"从池中获取空闲ISqlOperate对象超时;id:{id.ToJson()}");
+//                        break;
+//                    }
+//                    Thread.Sleep(150);
+//                }
+//                while (sql == null); 
+//                #endregion
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"从池中借取一个对象异常:{ex.Message};id:{sql.ToJson()};sql:{sql.ToJson()};_pool:{_pool.ToJson()};_dic:{_dic.ToJson()}");
+//            }
+//            return sql;
+//        }
+
+//        /// <summary>
+//        /// 归还一个给池对象
+//        /// </summary>
+//        /// <param name="id">数据库配置</param>
+//        /// <param name="sql">数据库操作对象</param>
+//        public void Still(DbConfig id, ISqlOperate sql)
+//        {
+//            if (sql == null) return;
+//            ConcurrentDictionary<ISqlOperate, bool> _pool = default;
+//            try
+//            {
+//                _dic.TryGetValue(id, out _pool);
+//                if (_pool == null) return;
+//                if (_pool.Keys.Contains(sql))
+//                {
+//                    _pool[sql] = true;//置为空闲状态
+//                }
+//                NLogger.Debug($"归还一个对象给{id}池后，对象池情况:{_pool.ToJson()}");
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Warn($"归还一个对象给池异常:{ex.Message};id:{sql.ToJson()};sql:{sql.ToJson()};_pool:{_pool.ToJson()};_dic:{_dic.ToJson()}");
+//            }
+//        }
+//    }
+//}

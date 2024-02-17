@@ -1,0 +1,90 @@
+﻿using Quartz;
+using Max.BaseKit.Exts;
+using Max.BaseKit;
+
+namespace IsolatorOrigin.Business.MaxQuartz
+{
+    [DisallowConcurrentExecution]
+    public class QuartzJob : IJob
+    {
+        /// <summary>
+        /// 执行定时任务
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public Task Execute(IJobExecutionContext context)
+        {
+            string jobId = context.JobDetail.Key.Name;//定时任务id
+            var job = ConfigCacher.I.CronJobCacher.Find(p => jobId.Equals(p.Id));//定时任务
+            if (job == null || string.IsNullOrEmpty(job.SubCmds))
+            {
+                NLogger.Warn($"Execute》在定时任务配置中未找生产任务命令码【{jobId}；{job?.SubCmds}】。");
+                return Task.CompletedTask;
+            }
+
+            var cmds = job.SubCmds.TrimEnd(",").Split(',').ToList();
+            var tasks = ConfigCacher.I.ProduceTaskCacher.Where(p => p.TaskState && cmds.Contains(p.Cmd));
+            if (tasks == null || tasks.Count <= 0)
+            {
+                NLogger.Warn($"Execute》通过命令名未找生产任务或未找到可用的生产任务【{jobId}；{job?.SubCmds}】。");
+                return Task.CompletedTask;
+            }
+
+            tasks = tasks.OrderBy(p => p.PriorityLevel).ToList();//按优先级进行排序
+            tasks?.ForEach(task =>
+            {
+                DateTime now = DateTime.Now;//当前时间
+                switch (task.BizType)
+                {
+                    case 0: //数据同步
+                        {
+                            if (string.IsNullOrEmpty(task.Dbs)) return;
+                            var dbids = task.Dbs.Split(',').ToList();
+                            dbids?.ForEach(dbid =>
+                            {
+                                string stime = string.Empty;
+                                string etime = string.Empty;
+                                try
+                                {
+                                    var db = ConfigCacher.I.UseDbCacher.Find(t => dbid.Equals(t.Id));
+                                    if (db == null) return;
+
+                                    var tid = $"{task.Cmd}_{dbid}";//组合id("命令码_数据库标识")
+                                    var trt = ConfigCacher.I.TaskRunTimeCacher.Find(t => tid.Equals(t.Id));
+                                    ConfigCacher.I.SetTaskRunTime(tid, now.ToString("yyyy-MM-dd HH:mm:ss"));
+                                    stime = trt == null ? now.AddHours(-1).ToString("yyyy-MM-dd HH:mm:ss") : trt.RunTime;
+                                    etime = now.ToString("yyyy-MM-dd HH:mm:ss");
+                                    JobKernel.RunJob(task, db, stime, etime);
+                                }
+                                catch (Exception ex)
+                                {
+                                    NLogger.Error($"自动任务同步数据发生异常，【{task.Cmd}；{dbid}；{stime}；{etime}】，异常信息：{ex.Message}");
+                                }
+                            });
+                        }
+                        break;
+                    case 1: //日志同步
+                        {
+                            string stime = now.AddHours(-1).ToString("yyyy-MM-dd HH:mm:ss");
+                            string etime = now.ToString("yyyy-MM-dd HH:mm:ss");
+                            JobKernel.RunSyncLog(task, stime, stime);
+                        }
+                        break;
+                    case 2: JobKernel.RunSyncTime(task); break; //时间同步
+                    case 3: //字符叠加
+                        {
+                            if (string.IsNullOrEmpty(task.Dbs)) return;
+                            var dbids = task.Dbs.Split(',').ToList();
+                            dbids?.ForEach(dbid =>
+                            {
+                                JobKernel.RunSetChar(task, dbid);
+                            });
+                        }
+                        break;
+                    default: break;
+                }
+            });
+            return Task.CompletedTask;
+        }
+    }
+}

@@ -1,0 +1,17 @@
+﻿namespace IsolatorOrigin.Models
+{
+    /// <summary>
+    /// 手动任务
+    /// </summary>
+    public class ManualTask
+    {
+        /// <summary>
+        /// 命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 数据库Id
+        /// </summary>
+        public string DbId { get; set; }
+    }
+}

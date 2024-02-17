@@ -1,0 +1,58 @@
+﻿using Max.BaseKit.Utils;
+using WebApplication1.Controllers;
+
+namespace WebApplication1
+{
+    public class DataMocker
+    {
+        #region 单例
+        private static DataMocker? instance;
+        private readonly static object objLock = new object();
+        public static DataMocker Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new DataMocker();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        public List<SourceDb> SourceDb_Lst { get; set; }
+
+        public DataMocker()
+        {
+            SourceDb_Lst = new List<SourceDb>();
+            MockerSurceDb();
+        }
+
+        public void MockerSurceDb()
+        {
+            var dbtypes = new List<string>() { "MYSQL", "ORACLE", "MONGO", "DAMENG", "GBASE" };
+            for (int i = 0; i < 36; i++)
+            {
+                string dbtype = RandomUtil.PickOne(dbtypes);
+                string connstr = dbtype.Equals("ORACLE") ? "DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={db.DbIp})(PORT={db.DbPort})))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME={db.DbName})));PASSWORD={db.Pwd};PERSIST SECURITY INFO=True;USER ID={db.Uname};enlist=dynamic;Pooling=false;Connection Timeout=300;" : dbtype.Equals("MONGO") ? "mongodb://fred:foobar@localhost/baz" : dbtype.Equals("DAMENG") ? "Server={db.DbIp};Port={db.DbPort};User ID={db.Uname};Password={db.Pwd};Database={db.DbName}" : dbtype.Equals("GBASE") ? "Protocol=onsoctcp;Db_locale=zh_CN.utf8;Client_locale=zh_CN.utf8;Host={db.DbIp};Service={db.DbPort};Database={db.DbName};Uid={db.Uname};Pwd={db.Pwd};{db.Ext}" : "Server={db.DbIp};Port={db.DbPort};Database={db.DbName};Charset=utf8;Uid={db.Uname};Pwd={db.Pwd};SSL Mode=None";
+                SourceDb_Lst.Add(new SourceDb()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Cddm = $"01{i}",
+                    ConnStr = connstr,
+                    Concurrency = RandomUtil.Next(1, 50),
+                    DbType = dbtype,
+                    DbDescribe = $"测试用{dbtype}数据库01{i}"
+                });
+                SourceDb_Lst = SourceDb_Lst.OrderBy(p => p.Id).ToList();
+            }
+        }
+    }
+}

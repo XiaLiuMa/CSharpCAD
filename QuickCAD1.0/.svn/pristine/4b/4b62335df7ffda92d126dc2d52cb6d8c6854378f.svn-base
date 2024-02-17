@@ -1,0 +1,141 @@
+﻿using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Primitives;
+using MsDataSimulator.Config.Mods;
+using MsDataSimulator.Utils;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace MsDataSimulator.Config
+{
+    public class CfgHandler
+    {
+        #region 单例
+        private static CfgHandler instance;
+        private readonly static object objLock = new object();
+        public static CfgHandler Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new CfgHandler();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        private IFileProvider fileProvider;
+        private string appConfigPath = $@"{AppContext.BaseDirectory}";   //基础配置路径
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        public void Init()
+        {
+            fileProvider = new PhysicalFileProvider(appConfigPath);
+            ChangeToken.OnChange(() => fileProvider.Watch(msOrcalPath), () =>
+            {
+                _MsOrcal = XmlUtil.Load<DbModel>(appConfigPath + msOrcalPath);
+            });
+            ChangeToken.OnChange(() => fileProvider.Watch(gaMysqlPath), () =>
+            {
+                _GaMysql = XmlUtil.Load<DbModel>(appConfigPath + gaMysqlPath);
+            });
+            ChangeToken.OnChange(() => fileProvider.Watch(gaMongoPath), () =>
+            {
+                _GaMongo = XmlUtil.Load<DbModel>(appConfigPath + gaMongoPath);
+            });
+            
+        }
+
+        #region MsOrcal配置
+        private string msOrcalPath = @"DbMsOrcal.xml";
+        private DbModel _MsOrcal;
+        /// <summary>
+        /// Ga端Mysql配置
+        /// </summary>
+        public DbModel MsOrcal
+        {
+            get
+            {
+                if (_MsOrcal == null)
+                {
+                    _MsOrcal = XmlUtil.Load<DbModel>(appConfigPath + msOrcalPath);
+                }
+                return _MsOrcal;
+            }
+        }
+        /// <summary>
+        /// 保存MsOrcal配置
+        /// </summary>
+        /// <param name="config"></param>
+        public void SaveMsOrcal(DbModel config)
+        {
+            XmlUtil.Save(config, appConfigPath + msOrcalPath);
+        }
+        #endregion
+
+        #region GaMysql配置
+        private string gaMysqlPath = @"DbGaMysql.xml";
+        private DbModel _GaMysql;
+        /// <summary>
+        /// Ga端Mysql配置
+        /// </summary>
+        public DbModel GaMysql
+        {
+            get
+            {
+                if (_GaMysql == null)
+                {
+                    _GaMysql = XmlUtil.Load<DbModel>(appConfigPath + gaMysqlPath);
+                }
+                return _GaMysql;
+            }
+        }
+        /// <summary>
+        /// 保存GaMysql配置
+        /// </summary>
+        /// <param name="config"></param>
+        public void SaveGaMysql(DbModel config)
+        {
+            XmlUtil.Save(config, appConfigPath + gaMysqlPath);
+        }
+        #endregion
+
+        #region GaMongo配置
+        private string gaMongoPath = @"DbGaMongo.xml";
+        private DbModel _GaMongo;
+        /// <summary>
+        /// Ga端Mysql配置
+        /// </summary>
+        public DbModel GaMongo
+        {
+            get
+            {
+                if (_GaMongo == null)
+                {
+                    _GaMongo = XmlUtil.Load<DbModel>(appConfigPath + gaMongoPath);
+                }
+                return _GaMongo;
+            }
+        }
+        /// <summary>
+        /// 保存GaMongo配置
+        /// </summary>
+        /// <param name="config"></param>
+        public void SaveGaMongo(DbModel config)
+        {
+            XmlUtil.Save(config, appConfigPath + gaMongoPath);
+        }
+        #endregion
+    }
+}

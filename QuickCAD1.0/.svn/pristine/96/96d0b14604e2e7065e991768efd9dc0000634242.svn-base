@@ -1,0 +1,79 @@
+﻿using Max.BaseKit.Exts;
+using Max.BaseKit.Utils;
+using Max.ISolator.Core;
+using Max.ISolator.KafkaKit;
+using IsolatorTarget.Storage.Entities;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// Kafka发布服务
+    /// </summary>
+    public class KafkaService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="task">消费任务</param>
+        /// <param name="serviceId">服务标识</param>
+        public void ConsumeData(IsolatorData idata, ConsumeTaskEntity task, string serviceId)
+        {
+            var kafkaProduceEntity = ConfigCacher.I.KafkaProduce_Lst?.Find(p => serviceId.Equals(p.Id));
+            if (kafkaProduceEntity != null)
+            {
+                return;
+            }
+
+            string idataStr = JsonUtil.ObjectToStr(idata);
+            var kafkaProduceMod = kafkaProduceEntity.Convert<KafkaProducerMod>();
+            KafkaManager.I.Publich(kafkaProduceMod, idataStr);
+
+            //try
+            //{
+            //    string idsStr = JsonUtil.ObjectToStr(idata);
+            //    byte[] bytes = Encoding.UTF8.GetBytes(idsStr);
+            //    int cs_count = (bytes.Length % (kafka.MaxSize * 1024 * 1024) == 0) ? (bytes.Length / (kafka.MaxSize * 1024 * 1024)) : (bytes.Length / (kafka.MaxSize * 1024 * 1024)) + 1;
+            //    int ts_count = idata.Lst.Count / cs_count;//每次发送的条数
+
+            //    for (int i = 0; i < cs_count; i++)//分多次发送
+            //    {
+            //        try
+            //        {
+            //            //var lst = idata.Lst.Skip(i * ts_count).Take(ts_count).ToList();
+            //            //if (lst == null || lst.Count <= 0) continue;
+            //            //IsolatorData tempdata = new IsolatorData()
+            //            //{
+            //            //    Cmd = idata.Cmd,
+            //            //    Rwmc = idata.Rwmc,
+            //            //    Cflx = idata.Cflx,
+            //            //    Czlx = idata.Czlx,
+            //            //    Lst = lst
+            //            //};
+            //            //string idsStr1 = JsonUtil.ObjectToStr(tempdata);
+            //            //byte[] bytes1 = Encoding.UTF8.GetBytes(idsStr1);
+
+            //            //#region 利用递归拆分发送批次
+            //            //if (bytes1.Length <= KafkaManager.Instance.maxsize * 1024 * 1024)
+            //            //{
+            //            //    KafkaManager.Instance.PublichData(idsStr1);//发布到kafka
+            //            //}
+            //            //else
+            //            //{
+            //            //    ConsumeData(tempdata);
+            //            //}
+            //            //#endregion
+            //        }
+            //        catch (Exception ex)
+            //        {
+            //            NLogger.Error($"数据分页成给Kafka异常>>{ex.Message}");
+            //        }
+            //    }
+            //}
+            //catch (Exception ex)
+            //{
+            //    NLogger.Error($"KafkaService消费{idata.Cmd}异常{ex.Message}。");
+            //}
+        }
+    }
+}

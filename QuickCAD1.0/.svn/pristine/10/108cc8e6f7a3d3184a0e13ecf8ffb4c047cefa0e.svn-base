@@ -1,0 +1,3 @@
+//var params = "127.0.0.1:52301";
+var params = window.location.hostname + ":" + window.location.port;
+var appname = 'XXXX后台管理';

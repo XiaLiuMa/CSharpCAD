@@ -1,0 +1,29 @@
+using JCoder.Mock4Net;
+
+namespace DataMocker
+{
+    internal static class Program
+    {
+        /// <summary>
+        ///  The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
+
+            //var obj001 = Mock.GenPhoneNumber();
+            //var obj002 = Mock.GenFullNameCN(2, 2);
+            //var obj003 = Mock.GenFullNameEN(1, -1);
+            //var obj004 = Mock.GenTerritoryCode2();
+            //var obj005 = Mock.GenTerritoryCode3();
+            //var obj006 = Mock.GenTerritoryNumber();
+            //var obj007 = Mock.GenTerritoryCN();
+            //var obj008 = Mock.GenTerritoryEN();
+
+            Application.Run(new MainForm());
+        }
+    }
+}

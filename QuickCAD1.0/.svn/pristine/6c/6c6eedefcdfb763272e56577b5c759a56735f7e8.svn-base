@@ -1,0 +1,324 @@
+﻿using GaCharSet.Comm;
+using Newtonsoft.Json;
+using SetCharLib.Mod;
+using SetCharLib.SetCharacter;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using Max.ISolator.Mods;
+using Max.BaseKit.Exts;
+using Max.BaseKit;
+
+namespace GaCharSet.UseData.SetChar
+{
+    /// <summary>
+    /// 字符叠加器(数据使用)
+    /// </summary>
+    public class SetCharacter
+    {
+        #region 单例
+        private static SetCharacter instance;
+        private readonly static object objLock = new object();
+        public static SetCharacter Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new SetCharacter();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        //public SetCharacter()
+        //{
+        //    tdxxdic = new Dictionary<string, string>();
+        //    datablock = new BlockingCollection<IsolatorData>();
+        //    ClearAllZxsbDjxx();
+        //    ParsingDataBlock();
+        //}
+        #endregion
+
+        /// <summary>
+        /// 已叠加的旅客缓存
+        /// </summary>
+        private MaxCache LkxxCacher = new MaxCache();
+        /// <summary>
+        /// 实时通道信息字典<MSTDH,VALKEY>
+        /// </summary>
+        public Dictionary<string, string> tdxxdic = new Dictionary<string, string>();
+        /// <summary>
+        /// 数据阻塞队列
+        /// </summary>
+        public BlockingCollection<IsolatorData> datablock = new BlockingCollection<IsolatorData>();
+        /// <summary>
+        /// 上台线程安全队列
+        /// </summary>
+        private static ConcurrentDictionary<string, string> st_dic = new ConcurrentDictionary<string, string>();
+        /// <summary>
+        /// 下台线程安全队列
+        /// </summary>
+        private static ConcurrentDictionary<string, string> xt_dic = new ConcurrentDictionary<string, string>();
+
+        /// <summary>
+        /// 初始化字符叠加器
+        /// </summary>
+        public void Init()
+        {
+            LkxxCacher.CacheElapsed += LkxxCacher_CacheElapsed;
+            ParsingDataBlock();
+        }
+
+        /// <summary>
+        /// 已叠加的旅客缓存过期处理
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="obj"></param>
+        private void LkxxCacher_CacheElapsed(string key, object obj)
+        {
+            LkxxCacherBody lkxx = obj as LkxxCacherBody;
+            if (lkxx == null || lkxx.dygx == null) return;
+            WLSetCharacter wlSetChar = SetCharacterFactory.CreatWLSetCharacter(lkxx.dygx);
+            if (wlSetChar == null) return;
+            wlSetChar.ClearLKXX(lkxx.wybs);//清除旅客信息
+        }
+
+        /// <summary>
+        /// 注销字符叠加器
+        /// </summary>
+        public void DisInit()
+        {
+            #region 清除所有在线设备的叠加信息
+            //ComServerHandler.CanReciveComMsg = false;//先阻断处理串口数据
+            var zxwlsbs = SetCharacterFactory.dicWLSetCharacter;//在线网络设备
+            foreach (var item in zxwlsbs)
+            {
+                try
+                {
+                    item.Value.Dispose();//注销(清除设备叠加信息)
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"系统注销时清除{item.Key}的叠加信息异常：{ex.Message}");
+                }
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 处理数据队列
+        /// </summary>
+        private void ParsingDataBlock()
+        {
+            Task.Factory.StartNew(async () =>
+            {
+                #region 异步锁，固定开启15个线程，线程执行完释放，15个线程都在使用就处于等待状态
+                var slim = new SemaphoreSlim(15);
+                foreach (var data in datablock.GetConsumingEnumerable())
+                {
+                    await slim.WaitAsync();
+                    Task.Factory.StartNew(() =>
+                    {
+                        if (data == null || data.Lst?.Count <= 0) return;
+                        data.Lst.ForEach(p =>
+                        {
+                            try
+                            {
+                                switch (data.Cmd)
+                                {
+                                    case "SC&114":  //上台
+                                        {
+                                            string valkey = p["VALKEY"]?.ToString();
+                                            string tdh = p["TDH"]?.ToString();//通道号
+                                            string kadm = p["KADM"]?.ToString();//口岸代码
+                                            string mstdh = tdh + "|" + kadm; //公安端配置的梅沙通道号
+
+                                            #region ①过滤已经叠加过的信息
+                                            if (st_dic.ContainsKey(mstdh))
+                                            {
+                                                if (st_dic[mstdh].Equals(valkey))
+                                                {
+                                                    break;
+                                                }
+                                                st_dic.TryUpdate(mstdh, st_dic[mstdh], valkey);
+                                            }
+                                            else
+                                            {
+                                                st_dic.TryAdd(mstdh, valkey);
+                                            }
+                                            #endregion
+
+                                            DjMessage djmsg = new DjMessage();
+                                            djmsg.Czydm = p["CZYDM"]?.ToString();
+                                            djmsg.Czyxm = p["CZYXM"]?.ToString();
+                                            djmsg.Czybm = p["BMMC"]?.ToString();
+
+                                            djmsg.Lkzjhm = "";
+                                            djmsg.Lkxm = "";
+                                            djmsg.CSRQ = "";
+                                            djmsg.Jtgj = "";
+                                            djmsg.Lkgj = "";
+                                            djmsg.WYBS = "";
+                                            djmsg.Lkpjxx = "";
+                                            string fxsj = p["CRRQSJ"]?.ToString();//放行时间
+                                            string lkwybs = p["WYBS"]?.ToString();//LK唯一标识
+                                            if (!string.IsNullOrEmpty(lkwybs) && !string.IsNullOrEmpty(fxsj))
+                                            {
+                                                DateTime DateTimeFSSJ = fxsj.FormatFssj(null);
+                                                //②过滤出入时间过期了的人员信息，直接不叠加
+                                                double eventDuration = 15;
+                                                //double eventDuration = DateTimeFSSJ.CompareCalculate(DateTime.Now);
+                                                if (eventDuration < AsGlobal.Config.Lkxxgqsj)//旅客信息未过期
+                                                {
+                                                    djmsg.Lkzjhm = p["ZJHM"]?.ToString();
+                                                    djmsg.Lkxm = p["XM"]?.ToString();
+                                                    djmsg.CSRQ = p["CSRQ"]?.ToString();
+                                                    djmsg.Jtgj = p["JTGJBS"]?.ToString();
+                                                    djmsg.Lkgj = p["GJDQDM"]?.ToString();
+                                                    djmsg.WYBS = p["WYBS"]?.ToString();
+                                                    switch (p["PJNR"]?.ToString())
+                                                    {
+                                                        case "1": djmsg.Lkpjxx = "非常满意"; break;
+                                                        case "2": djmsg.Lkpjxx = "满意"; break;
+                                                        case "3": djmsg.Lkpjxx = "时间太长"; break;
+                                                        case "4": djmsg.Lkpjxx = "态度不好"; break;
+                                                        default: djmsg.Lkpjxx = ""; break;
+                                                    }
+                                                }
+                                            }
+                                            var wlsbs = GlobalSetChar.GetWLZfdjqygx(mstdh);//网络设备
+                                            NLogger.Debug($"查找上台{mstdh}对应关系个数{wlsbs?.Count}。");
+                                            if (wlsbs == null || wlsbs.Count <= 0) break;
+                                            wlsbs.ForEach(p => { CoverNVR(p, djmsg, mstdh); });
+                                        }
+                                        break;
+                                    case "SC&115":  //下台
+                                        {
+                                            string valkey = p["VALKEY"]?.ToString();
+                                            string tdh = p["TDH"]?.ToString();//通道号
+                                            string kadm = p["KADM"]?.ToString();//口岸代码
+                                            string mstdh = tdh + "|" + kadm; //公安端配置的梅沙通道号
+
+                                            #region 过滤已经清除过的信息
+                                            if (xt_dic.ContainsKey(mstdh))
+                                            {
+                                                if (xt_dic[mstdh].Equals(valkey))
+                                                {
+                                                    break;
+                                                }
+                                                xt_dic.TryUpdate(mstdh, xt_dic[mstdh], valkey);
+                                            }
+                                            else
+                                            {
+                                                xt_dic.TryAdd(mstdh, valkey);
+                                            }
+                                            #endregion
+
+                                            var wlsbs = GlobalSetChar.GetWLZfdjqygx(mstdh);//网络设备
+                                            NLogger.Debug($"查找下台{mstdh}对应关系个数{wlsbs?.Count}。");
+                                            if (wlsbs == null || wlsbs.Count <= 0) break;
+                                            wlsbs.ForEach(p => { ClearNVR(p); });
+                                        }
+                                        break;
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                NLogger.Error($"解析处理叠加数据异常：{ex.Message}");
+                            }
+                        });
+
+                        slim.Release();
+                    }).Employ();
+                }
+                #endregion
+            });
+        }
+
+        /// <summary>
+        /// 叠加NVR(网络设备)数据
+        /// </summary>
+        /// <param name="dygx">设备对应关系</param>
+        /// <param name="djxx">叠加信息</param>
+        private void CoverNVR(WLZFDJDYGX dygx, DjMessage djxx, string mstdh)
+        {
+            try
+            {
+                WLSetCharacter wlSetChar = SetCharacterFactory.CreatWLSetCharacter(dygx);
+                if (wlSetChar == null) return;
+                ThreadPool.QueueUserWorkItem(new WaitCallback(delegate
+                {
+                    NLogger.Debug($"往设备{dygx.WLSB.TDH}叠加数据：{JsonConvert.SerializeObject(djxx)}");
+                    bool flag = wlSetChar.SetCharacter(djxx);
+                    NLogger.Debug($"往设备{dygx.WLSB.TDH}叠加数据{flag}。");
+                    if (!string.IsNullOrEmpty(djxx.Lkzjhm))
+                    {
+                        #region ➂设置旅客缓存，过期清除LK的叠加信息
+                        LkxxCacherBody lkxxdjbody = new LkxxCacherBody()
+                        {
+                            wybs = djxx.Lkzjhm,
+                            djdate = DateTime.Now,
+                            dygx = dygx
+                        };
+                        LkxxCacher.SetCache(mstdh, lkxxdjbody, AsGlobal.Config.Lkxxgqsj * 1000);
+                        #endregion
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"叠加NVR(网络设备)数据异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 清除NVR(网络设备)数据
+        /// </summary>
+        /// <param name="dygx">设备对应关系</param>
+        private void ClearNVR(WLZFDJDYGX dygx)
+        {
+            try
+            {
+                WLSetCharacter wlSetChar = SetCharacterFactory.CreatWLSetCharacter(dygx);
+                if (wlSetChar == null) return;
+                ThreadPool.QueueUserWorkItem(new WaitCallback(delegate
+                {
+                    bool flag = wlSetChar.ClearAll();
+                    NLogger.Debug($"清除{dygx.WLSB.TDH}设备叠加数据{flag}。");
+                }));
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"清除NVR(网络设备)数据异常：{ex.Message}");
+            }
+        }
+    }
+
+
+    /// <summary>
+    /// 旅客缓存实体
+    /// </summary>
+    public class LkxxCacherBody
+    {
+        /// <summary>
+        /// 旅客wybs
+        /// </summary>
+        public string wybs { get; set; }
+        /// <summary>
+        /// 叠加时间
+        /// </summary>
+        public DateTime djdate { get; set; }
+        /// <summary>
+        /// 摄像机对应关系
+        /// </summary>
+        public WLZFDJDYGX dygx { get; set; }
+    }
+}

@@ -1,0 +1,88 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Data;
+using Oracle.ManagedDataAccess.Client;
+using System.Data.OleDb;
+
+namespace MsDataSimulator.Comm
+{
+    public class OracleOperate
+    {
+        #region //变量定义
+
+        /// <summary>
+        /// 数据库连接源
+        /// </summary>
+        private string myConnection = null;
+        
+        #endregion
+
+        public string DbCon
+        {
+            get { return this.myConnection; }
+            set { myConnection = value; }
+        }
+
+        public object lockObj = true;
+
+
+        public int RunSQL(string cmdText)
+        {
+            lock (lockObj)
+            {
+                using (OracleConnection conn = new OracleConnection(DbCon))
+                {
+                    using (OracleCommand cmd = new OracleCommand(cmdText, conn))
+                    {
+                        Console.WriteLine("sql语句=====" + cmdText);
+                        try
+                        {
+                            conn.Open();
+                            int rows = cmd.ExecuteNonQuery();
+                            return rows;
+                        }
+                        catch (OracleException E)
+                        {
+                            conn.Close();
+                            throw new Exception(E.Message);
+                        }
+                    }
+                }
+            }
+        }
+
+        static object obj = new object();
+
+        public bool RunSQL(string cmdText, ref DataSet ds)
+        {
+            bool flag = false;
+            lock (obj)
+            {
+                try
+                {
+                    using (OracleConnection oleDb = new OracleConnection(DbCon))
+                    {
+                        using (var da = new OracleDataAdapter(cmdText, oleDb))
+                        {
+                            oleDb.Open();
+                            da.Fill(ds);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw ex;
+                }
+            }
+            return flag;
+        }
+
+        public void Dispose()
+        {
+            
+        }
+    }
+}
+

@@ -1,0 +1,108 @@
+﻿using System;
+using Quartz;
+using Quartz.Impl;
+
+namespace DataSyncSource.QuartzExt
+{
+    /// <summary>
+    /// Quartz任务管理器
+    /// </summary>
+    public class QuartzManager
+    {
+        private static readonly IScheduler scheduler;
+        private static readonly object objlock = new object();
+        static QuartzManager()
+        {
+            if (scheduler == null)
+            {
+                lock (objlock)
+                {
+                    if (scheduler == null)
+                    {
+                        scheduler = StdSchedulerFactory.GetDefaultScheduler().Result;
+                        scheduler.Start();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// 以Cron开始一个Job
+        /// </summary>
+        /// <typeparam name="T">Job类型</typeparam>
+        /// <param name="name">Jon名称</param>
+        /// <param name="cronExpression">Cron表达式</param>
+        public static void StartJobWithCron<T>(string name, string cronExpression) where T : IJob
+        {
+            IJobDetail job = JobBuilder.Create<T>().WithIdentity(name, name + "_group").Build();
+            ITrigger trigger = TriggerBuilder.Create().StartNow()
+                .WithIdentity(name + "_trigger", name + "_group")
+                .WithCronSchedule(cronExpression, w => w.WithMisfireHandlingInstructionDoNothing())
+                .Build() as ICronTrigger;
+            if (!scheduler.CheckExists(job.Key).Result && !scheduler.CheckExists(trigger.Key).Result)
+            {
+                scheduler.ScheduleJob(job, trigger);
+            }
+        }
+
+        /// <summary>
+        /// 以Interval开始一个Job
+        /// </summary>
+        /// <typeparam name="T">Job类型</typeparam>
+        /// <param name="name">Jon名称</param>
+        /// <param name="simpleInterval">时间间隔事件</param>
+        /// <param name="isBlock">是否阻塞(默认true:阻塞)</param>
+        public static void StartJobWithSimple<T>(string name, Action<SimpleScheduleBuilder> simpleInterval) where T : IJob
+        {
+            IJobDetail job = JobBuilder.Create<T>().WithIdentity(name, name + "_group").Build();
+            ITrigger trigger = TriggerBuilder.Create().StartNow()
+                .WithSimpleSchedule(simpleInterval)
+                .Build() as ISimpleTrigger;
+
+            if (!scheduler.CheckExists(job.Key).Result && !scheduler.CheckExists(trigger.Key).Result)
+            {
+                scheduler.ScheduleJob(job, trigger);
+            }
+        }
+
+        /// <summary>
+        /// 以Cron修改任务修改Job,即时生效
+        /// </summary>
+        /// <param name="name">Jon名称</param>
+        /// <param name="cronExpression">Cron表达式</param>
+        public static async void ModifyJob(string name, string cronExpression)
+        {
+            TriggerKey triggerKey = new TriggerKey(name + "_trigger", name + "_group");
+            ITrigger trigger = await scheduler.GetTrigger(triggerKey);//触发器的key
+            CronScheduleBuilder scheduleBuilder = CronScheduleBuilder.CronSchedule(cronExpression);
+            trigger = trigger.GetTriggerBuilder().WithIdentity(triggerKey).WithSchedule(scheduleBuilder).Build();
+
+            await scheduler.RescheduleJob(triggerKey, trigger);
+        }
+
+        /// <summary>
+        /// 删除Job，即時刪除，不再限於IJob的實現方法Execute內
+        /// </summary>
+        /// <param name="job"></param>
+        /// <param name="trigger"></param>
+        public static void DeleteJob(string name)
+        {
+            TriggerKey triggerKey = new TriggerKey(name + "_trigger", name + "_group");//触发器的key
+            scheduler.PauseTrigger(triggerKey);//暂停触发器
+            scheduler.UnscheduleJob(triggerKey);//移除触发器
+            JobKey jobKey = new JobKey(name, name + "_group");//Job的Key
+            scheduler.DeleteJob(jobKey);
+        }
+
+        /// <summary>
+        /// 停止运行
+        /// </summary>
+        public static void ShutDown()
+        {
+            if (scheduler != null && !scheduler.IsShutdown)
+            {
+                scheduler.Shutdown();
+            }
+        }
+    }
+}

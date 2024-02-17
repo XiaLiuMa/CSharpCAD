@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DbModel>
+  <ip>127.0.0.1</ip>
+  <port>1521</port>
+  <name>orcl</name>
+  <user>qgtg</user>
+  <pwd>123456</pwd>
+  <tabs>
+    bj_yw_t_czyzczx,
+    bj_yw_t_tdssjk,
+    bj_yw_t_crjjtgj,
+    bj_yw_t_crjjtgjdk,
+    bj_yw_t_crjjtgjlis,
+    bj_yw_t_chwfwgjtgj,
+    bj_yw_t_crjry,
+    bj_yw_t_crjrydk,
+    bj_yw_t_crjrylis,
+    bj_yw_t_chwfwgry,
+    gjmq_lsrjxk_ry_rydj,
+    bj_flt_disp_asupschd,
+    bj_pi_t_ybxx,
+    bj_iapi_t_ybxx
+  </tabs>
+</DbModel>

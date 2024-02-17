@@ -1,0 +1,101 @@
+﻿using Max.ISolator.Core.Syncers;
+
+namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// MaxISolator回调
+    /// </summary>
+    /// <param name="p">(1:表示可能处于堵塞状态)</param>
+    public delegate void MaxISolatorCallback(int p);
+    public class MaxISolator
+    {
+        #region 单例
+        private static MaxISolator instance;
+        private readonly static object objLock = new object();
+        public static MaxISolator Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new MaxISolator();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 隔离器回调
+        /// </summary>
+        public MaxISolatorCallback Callback { get; set; }
+
+        /// <summary>
+        /// 同步类型(1:网闸，2:串口，3:串口服务器)
+        /// </summary>
+        public int SyncType { get; private set; }
+
+        /// <summary>
+        /// 块大小(单个文件或单条消息的大小，单位M)
+        /// </summary>
+        public int BlockSize { get; private set; }
+
+        private AbsSyncer syncer { get; set; }
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        /// <param name="itype">隔离器类型(1:网闸,2:串口,3:串口服务器)</param>
+        /// <param name="isize">块大小(单个文件或单条消息的大小，单位M)</param>
+        /// <param name="iparam">隔离器初始化参数(注意：类型不同参数不同)</param>
+        /// <param name="callback">隔离器回调函数</param>
+        public void InitISolator(int itype, int isize, string iparam, MaxISolatorCallback callback)
+        {
+            SyncType = itype;
+            BlockSize = isize;
+            Callback = callback;
+            switch (SyncType)
+            {
+                case 1://网闸模式
+                    {
+                        syncer = new NetBrakeSyncer(iparam);
+                    }
+                    break;
+                case 2://串口模式
+                    {
+                        syncer = new SerialPortSyncer(iparam);
+                    }
+                    break;
+                case 3://串口服务器模式
+                    {
+                        syncer = new SerialServerSyncer(iparam);
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 数据同步
+        /// </summary>
+        /// <param name="data"></param>
+        public void SyncData(IsolatorData idata)
+        {
+            syncer.SyncData(idata);
+        }
+
+        /// <summary>
+        /// 销毁隔离器
+        /// </summary>
+        public void DisposeISolator()
+        {
+
+        }
+    }
+}

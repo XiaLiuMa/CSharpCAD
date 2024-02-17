@@ -1,0 +1,52 @@
+﻿using GaCharSet.Config.Entities;
+using Max.DbToolkit;
+using Max.DbToolkit.Imp;
+using Max.DbToolkit.SqlExtend;
+using Max.DbToolkit.SqlExtend.Mod;
+using System;
+using System.Collections.Generic;
+
+namespace GaCharSet.Config
+{
+    public abstract class AbsAppDal<T> : AbsSqlDal<T> where T : BaseEntity, new()
+    {
+        protected AbsAppDal()
+        {
+            SqlOperate = SqlManger.Instance.Borrow(new Max.DbToolkit.DbConfig()
+            {
+                Id = "GaDataSync",
+                DbType = "SQLITE",
+                ConnStr = $"Data Source={AppContext.BaseDirectory}GaCharSet.db"
+            });
+        }
+    }
+
+    public class CamInfoDal : AbsAppDal<CamInfo>
+    {
+        /// <summary>
+        /// 根据通道号查询网络设备关联关系
+        /// </summary>
+        /// <param name="mstdh"></param>
+        /// <returns></returns>
+        public List<Dictionary<string, object>> SelectGlgx(string mstdh)
+        {
+            List<Dictionary<string, object>> diclst = new List<Dictionary<string, object>>();
+            if (string.IsNullOrEmpty(mstdh))
+            {
+                string sqlstr = $"SELECT a.*,b.* FROM CamInfo a,CamPoint b WHERE b.Id=a.ZBID";
+                diclst = SqlUtil.Select(sqlstr, this.SqlOperate);//关联关系列表
+            }
+            else
+            {
+                string sqlstr = $"SELECT a.*,b.* FROM CamInfo a,CamPoint b WHERE a.MSTDH='{mstdh}' AND b.Id=a.ZBID";
+                diclst = SqlUtil.Select(sqlstr, this.SqlOperate);//关联关系列表
+            }
+            return diclst;
+        }
+    }
+    public class CamPointDal : AbsAppDal<CamPoint> { }
+    public class LogRunDal : AbsAppDal<LogRun> { }
+    public class LogWebDal : AbsAppDal<LogWeb> { }
+    public class UserDal : AbsAppDal<User> { }
+    
+}

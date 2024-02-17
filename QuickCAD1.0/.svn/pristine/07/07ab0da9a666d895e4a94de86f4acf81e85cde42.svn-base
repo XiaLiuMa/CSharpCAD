@@ -1,0 +1,214 @@
+var json = [];
+//nameList与widthList的数组长度要一致
+var nameList = ['', '编号', '设备型号', '设备名称', 'IP地址', '端口号', '网路通道号', '用户名', '密码', '坐标编号', 'MS通道号'] //table的列名
+var widthList = [5, 10, 100, 100, 100, 100, 100, 100, 100, 100, 100] //table每列的宽度
+
+$(function() {
+    UpdataPage(); // 加载页面时初始化表格
+    WlsxjQuery(); //初始化表格数据
+    LoadZbs();
+
+    // 点击查询按钮
+    $("#select").on("click", function() {
+        WlsxjQuery();
+        // console.log(json);
+    });
+
+    // 点击删除按钮
+    $("#delete").on("click", function() {
+        if ($("input[name='checktr']:checked").length <= 0) {
+            alert("请至少选择其中一项数据进行删除！")
+            return false;
+        }
+        var delArr = [];
+        // 删除选择的列表项
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                var a = $(this).parents("tr").find("td").eq(1).text();
+                delArr.push(a);
+            }
+        });
+        $.ajax({
+            url: "http://" + params + "/app/res_wlsxj/delete",
+            headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+            type: "post",
+            data: {
+                ids: delArr
+            },
+            async: false,
+            error: function() {
+                console.log("错误");
+            },
+            success: function(res) {
+                // 如果请求成功，将返回的json数组赋给数组json
+                if (res == true) {
+                    WlsxjQuery();
+                    location.reload();
+                } else {
+                    alert(res)
+                }
+            }
+        })
+    });
+
+    // 点击添加按钮
+    $("#add").on("click", function() {
+        $("#confirm").attr("czlx", "0");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击修改按钮
+    $("#update").on("click", function() {
+        if ($("input[name='checktr']:checked").length != 1) {
+            alert("请选择其中一项数据进行修改！")
+            return false;
+        }
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                $("input[name='sid']").val(json[i].id);
+                $('#sbxhSelect').val(json[i].sbxh);
+                $("input[name='sbmc']").val(json[i].sbmc);
+                $("input[name='sbip']").val(json[i].ip);
+                $("input[name='port']").val(json[i].port);
+                $("input[name='channel']").val(json[i].channel);
+                $("input[name='uesrname']").val(json[i].useR_NAME);
+                $("input[name='userpwd']").val(json[i].useR_PWD);
+                $('#zbidSelect').val(json[i].zbid);
+                var _array = json[i].mstdh.split('|');
+                $("input[name='tdh']").val(_array[0]);
+                $("input[name='kadm']").val(_array[1]);
+            }
+        });
+        $("#confirm").attr("czlx", "1");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击关闭按钮
+    $(".close").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+    // 点击确定按钮
+    $("#confirm").on("click", function() {
+        var _sid = $("input[name='sid']").val();
+        var _sbxh = $('#sbxhSelect option:selected').val(); //选中的值
+        var _sbmc = $("input[name='sbmc']").val();
+        var _sbip = $("input[name='sbip']").val();
+        var _port = $("input[name='port']").val();
+        var _channel = $("input[name='channel']").val();
+        var _uesrname = $("input[name='uesrname']").val();
+        var _userpwd = $("input[name='userpwd']").val();
+        var _zbid = $('#zbidSelect option:selected').val(); //选中的值
+        var _mstdh = $("input[name='tdh']").val() + "|" + $("input[name='kadm']").val();
+
+        if ($(this).attr("czlx") == "0") {
+            //添加操作
+            $.ajax({
+                url: "http://" + params + "/app/res_wlsxj/add",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    sbxh: _sbxh,
+                    sbmc: _sbmc,
+                    sbip: _sbip,
+                    port: _port,
+                    channel: _channel,
+                    uesrname: _uesrname,
+                    userpwd: _userpwd,
+                    zbid: _zbid,
+                    mstdh: _mstdh
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    // console.log(res);
+                    // 如果请求成功，将返回的json数组赋给数组json
+                    if (res == true) {
+                        WlsxjQuery();
+                        // location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            });
+        } else {
+            //修改操作
+            $.ajax({
+                url: "http://" + params + "/app/res_wlsxj/alert",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    sid: _sid,
+                    sbxh: _sbxh,
+                    sbmc: _sbmc,
+                    sbip: _sbip,
+                    port: _port,
+                    channel: _channel,
+                    uesrname: _uesrname,
+                    userpwd: _userpwd,
+                    zbid: _zbid,
+                    mstdh: _mstdh
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    // 如果请求成功，将返回的json数组赋给数组json
+                    if (res == true) {
+                        WlsxjQuery();
+                        location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            });
+        }
+        $(".peizhi").css("display", "none");
+    });
+
+    // 点击取消按钮
+    $("#cancel").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+});
+
+/**加载坐标列表 */
+function LoadZbs() {
+    $.ajax({
+        url: "http://" + params + "/app/res_wlsxj/loadzbs",
+        headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+        type: "get",
+        data: {},
+        success: function(res) {
+            if (res) {
+                var html = "";
+                for (var i = 0; i < res.length; i++) {
+                    html += "<option value='" + res[i].id + "'>" + res[i].zbmc + "</option>";
+                }
+                $("#zbidSelect").html(html);
+            }
+        }
+    });
+}
+
+/**数据查询 */
+function WlsxjQuery() {
+    var condition = $("input[name='condition']").val();
+    $.ajax({
+        url: "http://" + params + "/app/res_wlsxj/query",
+        headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+        type: "get",
+        data: {
+            condition: condition
+        },
+        async: false,
+        success: function(res) {
+            json = (res == null) ? [] : res;
+            reloadpage();
+        }
+    });
+}

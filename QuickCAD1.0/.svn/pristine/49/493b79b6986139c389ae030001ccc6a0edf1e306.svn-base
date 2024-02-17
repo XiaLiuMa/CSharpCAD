@@ -1,0 +1,28 @@
+﻿using System.Threading.Tasks;
+using GaCharSet.UseData.SetChar;
+using Max.ISolator;
+using Max.ISolator.Mods;
+
+namespace GaCharSet.UseData.Services
+{
+    /// <summary>
+    /// 字符叠加服务:命令码"SC&*"
+    /// </summary>
+    public class SetCharService: MaxIService
+    {
+        public string Tag { get; set; } = "SC";
+        public string ServiceName { get; set; } = "SetCharService";
+
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            Task.Run(() =>
+            {
+                SetCharacter.Instance.datablock.Add(idata);
+            });
+        }
+    }
+}

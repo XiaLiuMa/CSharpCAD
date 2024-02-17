@@ -1,0 +1,311 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Exts;
+using Max.BaseKit.Utils;
+using Max.ISolator.NetBrakePkg;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Max.ISolator.Core.Handlers
+{
+    /// <summary>
+    /// 网闸数据监听助手
+    /// </summary>
+    public class GatekeeperHandler : CommHandler
+    {
+        #region 单例
+        private static GatekeeperHandler instance;
+        private readonly static object objLock = new object();
+        public static GatekeeperHandler Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new GatekeeperHandler();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        public GatekeeperHandler()
+        {
+            ScanAvailableFiles();
+            ConsumeFileComplete += (p) =>
+            {
+                ConsumeFileCompleteEvent(p.Id);
+            };
+        }
+
+        /// <summary>
+        /// 文件消费完后续事件
+        /// </summary>
+        /// <param name="fname">文件全名</param>
+        private void ConsumeFileCompleteEvent(string fname)
+        {
+            try
+            {
+                if (File.Exists(fname))
+                {
+                    if (Config.BackupEnable)//备份文件
+                    {
+                        if (!fname.IsFileInUsing(600))
+                        {
+                            try
+                            {
+                                string tfname = $"{Config.BackupPath}/{Path.GetFileName(fname)}";
+                                using (FileStream fs = new FileStream(tfname, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None))
+                                {
+                                    byte[] datas = File.ReadAllBytes(fname);
+                                    fs.Write(datas, 0, datas.Length);
+                                    fs.Close();
+                                    fs.Dispose();
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                NLogger.Warn($"备份{fname}文件异常：{ex.Message}");
+                            }
+                        }
+                    }
+                    if (fname.IsFileInUsing(600))
+                    {
+                        NLogger.Warn($"{fname}文件10分钟内还是占用状态，该文件放弃删除。");
+                        return;
+                    }
+                    File.Delete(fname);//删除文件
+                }
+
+                bool flag = default;
+                if (UsingFiles.Keys.Contains(fname))
+                {
+                    UsingFiles.TryRemove(fname, out flag);
+                }
+                NLogger.Info($"{fname}文件消费完成并删除。");
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"文件消费完成后续处理异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 自动待消费文件(队列：先入先出)
+        /// </summary>
+        private readonly ConcurrentQueue<string> ZdFiles = new ConcurrentQueue<string>();
+        /// <summary>
+        /// 手动待消费文件(栈：后入先出)
+        /// </summary>
+        private readonly ConcurrentStack<string> SdFiles = new ConcurrentStack<string>();
+        /// <summary>
+        /// 正在消费的文件
+        /// </summary>
+        private readonly ConcurrentDictionary<string, bool> UsingFiles = new ConcurrentDictionary<string, bool>();
+
+        /// <summary>
+        /// 网闸配置
+        /// </summary>
+        public NetBrakeCfg Config { get; private set; }
+
+        /// <summary>
+        /// 注册网闸文件扫描事件
+        /// </summary>
+        /// <param name="scanpath">扫描路径</param>
+        public void SubscribeNetBrake(NetBrakeCfg config)
+        {
+            Config = config;
+            Task.Factory.StartNew(() =>
+            {
+                int t_times = 0;//临时计数器，用于分析消费文件是否堵塞，堵塞的情况下重启
+                string ufjson = string.Empty; //临时文件名缓存器，用于缓存上次正在扫描时的正在消费的文件名集
+                while (true)
+                {
+                    try
+                    {
+                        var zd_files = FindFiles(new DirectoryInfo(Config.ScanPath), "ZD_", "*.txt");
+                        foreach (var item in zd_files)
+                        {
+                            if (!ZdFiles.Contains(item.FullName) && !UsingFiles.ContainsKey(item.FullName)) //同时满足ZD任务列表以及正在消费的列表里面都没有的情况下才可插入
+                            {
+                                ZdFiles.Enqueue(item.FullName); //插入
+                            }
+                        }
+
+                        var sd_files = FindFiles(new DirectoryInfo(Config.ScanPath), "SD_", "*.txt");
+                        foreach (var item in sd_files)
+                        {
+                            if (!SdFiles.Contains(item.FullName) && !UsingFiles.ContainsKey(item.FullName)) //同时满足ZD任务列表以及正在消费的列表里面都没有的情况下才可插入
+                            {
+                                SdFiles.Push(item.FullName); //插入
+                            }
+                        }
+
+                        #region 消费阻塞监控(5分钟内一直在消费这写文件考虑到已发生阻塞)
+                        if (!ufjson.Equals(JsonUtil.ObjectToStr(UsingFiles))) //消费池最多只允许数
+                        {
+                            t_times = 0;
+                            ufjson = JsonUtil.ObjectToStr(UsingFiles);
+                        }
+                        else
+                        {
+                            if (UsingFiles.Count > 0) //在消费的队列不为空的情况下
+                            {
+                                t_times++;
+                                if (t_times > 5 * 60)
+                                {
+                                    NLogger.Warn("消费池已满，且5分钟还没变化，可能发生未知堵塞，开始重启。。。");
+                                    MaxISolator.Instance.Callback.Invoke(1);
+                                }
+                            }
+                        }
+                        #endregion
+                        NLogger.Debug($"扫描到ZD文件{zd_files?.Count}个，SD文件{sd_files?.Count}个；待消费的ZD文件{ZdFiles?.Count}个，SD文件{SdFiles?.Count}个；正在消费的文件{UsingFiles?.Count}个。");
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描可用文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 1000);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 扫描可用文件(100毫秒扫描一次)
+        /// </summary>
+        private void ScanAvailableFiles()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                    InsertFileToUsingFiles:
+                        //TODO:这个地方会有Config空值报错，需要调查处理
+                        if (UsingFiles.Count < Config.ConcurrencySize) //消费池最多只允许数
+                        {
+                            if (ZdFiles.Count > 0) //1、优先插入自动文件
+                            {
+                                string zdfile = default;
+                                ZdFiles.TryDequeue(out zdfile);//取出
+                                if (!string.IsNullOrEmpty(zdfile))
+                                {
+                                    UsingFiles.TryAdd(zdfile, false);
+                                    ParsingFileAndConsumeData(zdfile);
+                                }
+                                goto InsertFileToUsingFiles;
+                            }
+                            if (SdFiles.Count > 0) //2、随后处理手动文件
+                            {
+                                string sdfile = default;
+                                SdFiles.TryPop(out sdfile);//取出
+                                if (!string.IsNullOrEmpty(sdfile))
+                                {
+                                    UsingFiles.TryAdd(sdfile, false);
+                                    ParsingFileAndConsumeData(sdfile);
+                                }
+                                goto InsertFileToUsingFiles;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描可用文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 根据自定义格式-解析文件，然后消费数据
+        /// </summary>
+        private void ParsingFileAndConsumeData(string fname)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                IsolatorData idata = default;
+                if (!File.Exists(fname)) return;
+                if (fname.IsFileInUsing(600))
+                {
+                    NLogger.Warn($"{fname}文件10分钟内还是占用状态，该文件放弃消费。");
+                    return;
+                }
+                string[] strs = fname.Split('@');
+                if (strs == null || strs.Length < 3) return;
+                try
+                {
+                    using (var fsread = new FileStream(fname, FileMode.Open, FileAccess.Read, FileShare.None))
+                    {
+                        List<byte> bytelst = new List<byte>();//数据临时存储
+                        while (true)
+                        {
+                            byte[] buff = new byte[1024 * 1024 * 2];
+                            int r = fsread.Read(buff, 0, buff.Length);//返回实际读取到的字节
+                            bytelst.AddRange(buff.Skip(0).Take(r));
+                            if (r == 0) break;//当字节位0的时候 证明已经读取结束
+                        }
+                        byte[] bytearray = bytelst.ToArray();//数据字节数组
+                        string datastr = Encoding.UTF8.GetString(bytearray);
+                        idata = JsonUtil.StrToObject<IsolatorData>(datastr);
+                        if (idata != null) idata.Id = fname;//用文件名作为数据Id
+                        fsread.Close();
+                        fsread.Dispose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"在NetBrakeHandler中处理消费{fname}文件异常：{ex.Message}");
+                }
+                if (idata == null)
+                {
+                    ConsumeFileCompleteEvent(fname);//对于空文件或者不符合协议的文件直接消费完成
+                    return;
+                }
+                ConsumeData(idata);//消费数据
+            });
+        }
+
+        /// <summary>
+        /// 查找特定路径下特定后缀名的含有指定字段的文件,并进行排序
+        /// </summary>
+        /// <param name="dirInfo">要查找的目录路径</param>
+        /// <param name="subName">要包含的指定字段，若为""，则表示全部文件(夹)</param>
+        /// <param name="pattern">指定文件后缀，例如"*.txt"，"*.json","*.xml"等</param>
+        /// <returns>符合条件的文件(夹)名称列表</returns>
+        private List<FileInfo> FindFiles(DirectoryInfo dirInfo, string subName, string pattern)
+        {
+            List<FileInfo> files = new List<FileInfo>();
+            if (!dirInfo.Exists) return files;
+            foreach (var fInfo in dirInfo.EnumerateFiles(pattern))
+            {
+                if (string.IsNullOrEmpty(subName.Trim()))
+                {
+                    files.Add(fInfo);
+                }
+                else
+                {
+                    if (fInfo.Name.Contains(subName.Trim()))
+                    {
+                        files.Add(fInfo);
+                    }
+                }
+            }
+            files.OrderBy(p => p.CreationTime);
+            return files;
+        }
+    }
+}

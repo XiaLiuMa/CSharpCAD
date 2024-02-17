@@ -1,0 +1,37 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<WebIp>127.0.0.1</WebIp>
+	<WebPort>53302</WebPort>
+	<AppName>Ga字符叠加服务</AppName>
+	<ProcessName>GaCharSet</ProcessName>
+	<LogDays>7</LogDays>
+	<!--同步类型(1:网闸,2:串口,3:串口服务器)-->
+	<SyncType>1</SyncType>
+	<!--块大小(单个文件或单条消息的大小，单位M，不建议设置太小，起码要保证大于单条数据的大小，默认设置2M)-->
+	<BlockSize>2</BlockSize>
+	<!--网闸模式配置-->
+	<NetBrake>
+		<BuildPath>D:\TempCP\GaBuildPath</BuildPath>
+		<SyncPath>D:\TempCP\GaSyncPath</SyncPath>
+		<ScanPath>D:\TempCP\MsSyncPath</ScanPath>
+	</NetBrake>
+	<!--串口模式配置-->
+	<SerialPorts>
+		<SerialPort>
+			<PortName>COM7</PortName>
+			<BaudRate>115200</BaudRate>
+			<DataBit>8</DataBit>
+			<StopBit>1</StopBit>
+			<Parity>None</Parity>
+		</SerialPort>
+	</SerialPorts>
+	<!--串口服务器模式配置-->
+	<SerialServers>
+		<SerialServer>
+			<ServerIP>127.0.0.1</ServerIP>
+			<ServerPort>8007</ServerPort>
+		</SerialServer>
+	</SerialServers>
+	<!--旅客信息过期时间(秒)-->
+	<Lkxxgqsj>180</Lkxxgqsj>
+</AppConfig>

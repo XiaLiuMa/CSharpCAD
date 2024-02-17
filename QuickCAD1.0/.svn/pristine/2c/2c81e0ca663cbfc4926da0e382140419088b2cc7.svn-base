@@ -1,0 +1,37 @@
+﻿namespace Max.ISolator.NetBrakePkg
+{
+    /// <summary>
+    /// 网闸配置
+    /// </summary>
+    public class NetBrakeCfg
+    {
+        /// <summary>
+        ///  同步路径
+        /// </summary>
+        public string SyncPath { get; set; }
+        /// <summary>
+        ///  扫描路径
+        /// </summary>
+        public string ScanPath { get; set; }
+        /// <summary>
+        /// 文件消费并发大小
+        /// </summary>
+        public int ConcurrencySize { get; set; }
+        /// <summary>
+        /// 是否备份
+        /// </summary>
+        public bool BackupEnable { get; set; }
+        /// <summary>
+        /// 备份路径
+        /// </summary>
+        public string BackupPath { get; set; }
+        /// <summary>
+        /// 是否启用图片本地保存
+        /// </summary>
+        public bool LocalImgEnable { get; set; }
+        /// <summary>
+        /// 图片本地保存物理地址
+        /// </summary>
+        public string LocalImgPath { get; set; }
+    }
+}

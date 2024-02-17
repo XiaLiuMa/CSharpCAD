@@ -1,0 +1,74 @@
+﻿using System;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.RabbitMqPkg
+{
+    /// <summary>
+    /// RabbitMQ工厂(当前只集成Topic模式)
+    /// </summary>
+    public class RmqManager
+    {
+        #region 单例
+        private static RmqManager instance;
+        private readonly static object objLock = new object();
+        public static RmqManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new RmqManager();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 生产者字典
+        /// </summary>
+        private readonly ConcurrentDictionary<RmqProducerCfg, RmqProducer> _Producers = new ConcurrentDictionary<RmqProducerCfg, RmqProducer>();
+        /// <summary>
+        /// 消费者字典
+        /// </summary>
+        private readonly ConcurrentDictionary<RmqConsumerCfg, RmqConsumer> _Consumers = new ConcurrentDictionary<RmqConsumerCfg, RmqConsumer>();
+
+        /// <summary>
+        /// 消费者注册
+        /// </summary>
+        /// <param name="config">消费者配置</param>
+        /// <param name="callBack">消费者回调</param>
+        public void Subscribe(RmqConsumerCfg config, Action<string> callBack)
+        {
+            _Consumers.TryGetValue(config, out var consumer);
+            if (consumer == null)
+            {
+                _Consumers.TryAdd(config, new RmqConsumer(config));
+                _Consumers.TryGetValue(config, out consumer);
+                consumer.Subscribe(callBack);
+            }
+        }
+
+        /// <summary>
+        /// 生产者发布
+        /// </summary>
+        /// <param name="config">生产者配置</param>
+        /// <param name="data">生产的数据</param>
+        public void Publich(RmqProducerCfg config, string data)
+        {
+            _Producers.TryGetValue(config, out var producer);
+            if (producer == null)
+            {
+                _Producers.TryAdd(config, new RmqProducer(config));
+                _Producers.TryGetValue(config, out producer);
+                producer.Publich(data);
+            }
+        }
+    }
+}

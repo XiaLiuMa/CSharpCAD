@@ -1,0 +1,52 @@
+//Main
+$(function() {
+
+    //串口服务器
+    $("#res_ckfwq").click(function() {
+        $(".index_iframe").attr("src", "../res/res_ckfwq.html");
+    });
+
+    //网络摄像机
+    $("#res_wlsxj").click(function() {
+        $(".index_iframe").attr("src", "../res/res_wlsxj.html");
+    });
+
+    //摄像机坐标
+    $("#res_sxjzb").click(function() {
+        $(".index_iframe").attr("src", "../res/res_sxjzb.html");
+    });
+
+    //日志管理--系统日志
+    $("#log_xtrz").click(function() {
+        $(".index_iframe").attr("src", "../log/log_xtrz.html");
+    });
+
+    //日志管理--网络日志
+    $("#log_wlrz").click(function() {
+        $(".index_iframe").attr("src", "../log/log_wlrz.html");
+    });
+
+
+    //系统管理--系统配置
+    $("#sys_xtpz").click(function() {
+        $(".index_iframe").attr("src", "../sys/sys_xtpz.html");
+    });
+
+
+    //退出登录操作
+    $(".logout").on("click", function() {
+        $.ajax({
+            url: "http://" + params + "/app/user/logout",
+            headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+            type: "post",
+            data: {},
+            success: function(res) {
+                if (res == true) {
+                    window.location.href = "../user/login.html";
+                } else {
+                    alert("退出登录失败！");
+                }
+            }
+        })
+    })
+});

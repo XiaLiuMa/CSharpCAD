@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>后台管理系统首页</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../comm/css/layui.css">
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+    <link rel="stylesheet" href="home.css" />
+</head>
+
+<body>
+    <header class="index-header">
+        <div class="header-img"></div>
+        <!-- <img class="header-img" src="./comm/img/logo.png" alt="" /> -->
+        <div class="header-title">XXXX后台管理系统</div>
+        <div class="top">
+            <ul class="header-ul">
+                <li>
+                    <a class="header-list" id="res">
+                        <img src="../comm/img/list2.png" alt="" />
+                        <div>资源管理</div>
+                    </a>
+                    <ul class="ultab">
+                        <li><a id="res_dbcmd" href="#">任务命令码</a></li>
+                        <li><a id="res_gasjk" href="#">GA数据库</a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a class="header-list" id="log">
+                        <img src="../comm/img/list4.png" alt="" />
+                        <div>日志管理</div>
+                    </a>
+                    <ul class="ultab">
+                        <li><a id="log_xtrz" href="#">系统日志</a></li>
+                        <li><a id="log_wlrz" href="#">网络日志</a></li>
+                    </ul>
+                </li>
+
+                <li>
+                    <a class="header-list" id="sys_xtpz">
+                        <img src="../comm/img/list5.png" alt="" />
+                        <div>系统配置</div>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- <div class="user">
+            <img src="../comm/img/touxiang.png" alt="" />
+            <div class="user-name">admin123</div>
+        </div> -->
+        <div class="logout">
+            <img src="../comm/img/logout.png" alt="" />
+            <div class="logout-title">注销</div>
+        </div>
+    </header>
+
+    <div class="d_iframe">
+        <iframe class="index_iframe" width="100%" height="100%" style="min-height: 560px;" src="../res/res_dbcmd.html" frameborder="0"></iframe>
+    </div>
+
+    <script src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script src="../comm/js/bootstrap.min.js"></script>
+    <script src="../comm/js/template-native.js"></script>
+    <script src="../comm/js/layui.js"></script>
+    <script src="../comm/js/mypage.js"></script>
+    <script type="text/javascript" src="../comm/js/mygloble.js"></script>
+    <script type="text/javascript" src="../comm/js/myutil.js"></script>
+    <script>
+        $(".header-title").text(appname);
+        $(function() {
+            //资源管理--任务命令码
+            $("#res_dbcmd").click(function() {
+                $(".index_iframe").attr("src", "../res/res_dbcmd.html");
+            });
+
+            //资源管理--MS数据库
+            $("#res_gasjk").click(function() {
+                $(".index_iframe").attr("src", "../res/res_gasjk.html");
+            });
+
+            //日志管理--系统日志
+            $("#log_xtrz").click(function() {
+                $(".index_iframe").attr("src", "../log/log_xtrz.html");
+            });
+
+            //日志管理--网络日志
+            $("#log_wlrz").click(function() {
+                $(".index_iframe").attr("src", "../log/log_wlrz.html");
+            });
+
+            //系统管理--系统配置
+            $("#sys_xtpz").click(function() {
+                alert("暂无系统配置！");
+            });
+
+            //退出登录操作
+            $(".logout").on("click", function() {
+                $.ajax({
+                    url: "http://" + params + "/app/user/logout",
+                    headers: {
+                        "Authorization": localStorage.getItem("mytoken")
+                    }, //本地token
+                    type: "post",
+                    data: {},
+                    success: function(res) {
+                        if (res == true) {
+                            window.location.href = "../user/login.html";
+                        } else {
+                            alert("退出登录失败！");
+                        }
+                    }
+                })
+            })
+        });
+    </script>
+</body>
+
+</html>

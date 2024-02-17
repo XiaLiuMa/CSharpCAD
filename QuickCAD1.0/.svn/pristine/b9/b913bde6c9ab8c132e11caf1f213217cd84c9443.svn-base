@@ -1,0 +1,29 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorTarget.Storage.Entities
+{
+    [Table("ImgLocal")]
+    /// <summary>
+    /// 本地服务实体
+    /// </summary>
+    public class ImgLocalEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 是否可用
+        /// </summary>
+        public bool IsUsable { get; set; }
+        /// <summary>
+        /// 本地服务地址
+        /// </summary>
+        public string ServerUrl { get; set; }
+        /// <summary>
+        /// 本地路径
+        /// </summary>
+        public string LocalPath { get; set; }
+    }
+}

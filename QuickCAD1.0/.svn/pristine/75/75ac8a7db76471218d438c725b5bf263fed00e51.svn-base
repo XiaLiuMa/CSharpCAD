@@ -1,0 +1,35 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Text;
+using System.Threading;
+
+namespace Max.BaseKit.Utils
+{
+    public class SystemUtil
+    {
+        public static int GetProcessId()
+        {
+            Process processes = Process.GetCurrentProcess();
+            return processes.Id;
+        }
+
+        public static int GetProcessId(string name)
+        {
+            Process[] processes = Process.GetProcesses();
+            foreach (Process process in processes)
+            {
+                if (process.ProcessName.Equals(name))
+                {
+                    return process.Id;
+                }
+            }
+            return -1;
+        }
+
+        public static int GetThreadId()
+        {
+            return Thread.CurrentThread.ManagedThreadId;
+        }
+    }
+}

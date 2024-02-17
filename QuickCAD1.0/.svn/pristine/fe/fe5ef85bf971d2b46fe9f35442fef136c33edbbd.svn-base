@@ -1,0 +1,89 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using IsolatorOrigin.Models;
+using Newtonsoft.Json.Linq;
+using IsolatorOrigin.Business;
+
+namespace IsolatorOrigin.Controllers
+{
+    /// <summary>
+    /// 系统设置控制器
+    /// </summary>
+    [Authorize]
+    public class SystemSetController : Controller
+    {
+        private readonly IConfiguration _configuration;
+        public SystemSetController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 获取系统配置
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<MySettingMod>> GetConfig()
+        {
+            try
+            {
+                var config = new MySettingMod()
+                {
+                    IsBizUsable = _configuration.GetValue<bool>("MySettings:IsBizUsable"),
+                };
+                return Ok(new ResultMsg<MySettingMod>() { Code = StatusType.Success, Msg = "查询系统配置成功", Data = config });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<MySettingMod>() { Code = StatusType.SysException, Msg = $"查询系统配置异常，{ex.Message}" });
+            }
+
+
+        }
+
+        /// <summary>
+        /// 设置系统配置
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> SetConfig(MySettingMod obj)
+        {
+            if (obj == null) return Ok(new ResultMsg<string>() { Code = StatusType.ParameterNull, Msg = "设置系统配置失败，参数为空" });
+            try
+            {
+                bool old_IsBizUsable = _configuration.GetValue<bool>("MySettings:IsBizUsable");
+
+                var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+                var json = System.IO.File.ReadAllText(configPath);
+                var jsonObj = JObject.Parse(json);
+                jsonObj["MySettings"]["IsBizUsable"] = $"{obj.IsBizUsable}";
+
+                System.IO.File.WriteAllText(configPath, jsonObj.ToString());
+
+                if (!old_IsBizUsable.Equals(obj.IsBizUsable))
+                {
+                    if (obj.IsBizUsable)
+                    {
+                        BusinessLeader.I.BootUp(); //启动业务
+                    }
+                    else
+                    {
+                        BusinessLeader.I.ShutDown(); //启动业务
+                    }
+                }
+
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "设置系统配置成功" });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.SysException, Msg = $"设置系统配置异常，{ex.Message}" });
+            }
+        }
+    }
+}

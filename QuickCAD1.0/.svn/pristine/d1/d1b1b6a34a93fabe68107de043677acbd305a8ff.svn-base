@@ -1,0 +1,20 @@
+﻿using Max.BaseKit;
+using IsolatorTarget.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+
+namespace IsolatorTarget.Controllers
+{
+    /// <summary>
+    /// 菜单管理控制器
+    /// </summary>
+    [Authorize]
+    public class MenuMgtController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+        
+    }
+}

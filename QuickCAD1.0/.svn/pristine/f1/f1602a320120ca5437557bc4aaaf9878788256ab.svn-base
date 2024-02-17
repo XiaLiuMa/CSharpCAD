@@ -1,0 +1,23 @@
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+
+namespace IsolatorOrigin.Controllers
+{
+    /// <summary>
+    /// 系统设置控制器
+    /// </summary>
+    [Authorize]
+    public class SystemSetController : Controller
+    {
+        private readonly IConfiguration _configuration;
+        public SystemSetController(IConfiguration configuration)
+        {
+            _configuration = configuration;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+    }
+}

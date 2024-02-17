@@ -1,0 +1,166 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.ISolator.SeriaPortPkg;
+using Max.SerialPort;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口同步助手
+    /// </summary>
+    public class SerialPortIsolator : AbsIsolator
+    {
+        public SerialPortIsolator(string iparam)
+        {
+            try
+            {
+                NLogger.Info($"初始化串口助手。。。");
+                var mParam = JsonUtil.StrToObject<List<SerialPortCfg>>(iparam);
+                if (mParam == null || mParam.Count <= 0)
+                {
+                    NLogger.Error($"串口助手参数不合理，初始化失败。");
+                    return;
+                }
+                SerialPortManager.Instance.GenerateSerialClient(mParam);
+                //SerialPortHandler.Instance.SubscribeSerialPort();
+                SerialPortManager.Instance.RegisterAllReceivedEvents(OnDataReceived);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化串口助手异常：{ex.Message}");
+            }
+        }
+
+        public override ConcurrentBag<string> WaitProduceFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentQueue<string> ProducingFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentBag<string> WaitConsumeFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentQueue<string> ConsumingFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public override void ConsumeData(IsolatorData data)
+        {
+            var fName = CacheData(data, data.CutNum);//缓存文件
+            WaitConsumeFiles.Enqueue(fName);
+        }
+
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public override void ProduceData(IsolatorData idata)
+        {
+            if (idata == null || idata?.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1);//缓存文件
+                    WaitProduceFiles.Enqueue(fName);
+
+
+
+                    string datastr = JsonConvert.SerializeObject(tlst[i]);
+                    byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+                    var client = SerialPortManager.Instance.GetFreeSerialPort();
+                    client?.SendBytes(ys_bytes);
+                    NLogger.Debug($"串口发送{idata.Cmd}数据...");
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口同步数据异常：{ex.Message}");
+                }
+            }
+        }
+
+        private void OnDataReceived(byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null || bytes.Length <= 0) return;
+                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+                string datastr = Encoding.UTF8.GetString(jy_bytes);
+                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(datastr);
+                NLogger.Debug($"串口接收到{idata.Cmd}数据...");
+                if (idata == null) return;
+                ConsumeData(idata);//消费数据
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"接收串口数据解析异常>>{ex.Message}");
+            }
+        }
+    }
+}
+
+
+
+
+//using Max.BaseKit;
+//using Max.BaseKit.Utils;
+//using Max.SerialPort;
+//using Newtonsoft.Json;
+//using System;
+//using System.Text;
+
+//namespace Max.ISolator.Core.Handlers
+//{
+//    /// <summary>
+//    /// 串口模式数据监听助手
+//    /// </summary>
+//    public class SerialPortHandler : CommHandler
+//    {
+//        #region 单例
+//        private static SerialPortHandler instance;
+//        private readonly static object objLock = new object();
+//        public static SerialPortHandler Instance
+//        {
+//            get
+//            {
+//                if (instance == null)
+//                {
+//                    lock (objLock)
+//                    {
+//                        if (instance == null)
+//                        {
+//                            instance = new SerialPortHandler();
+//                        }
+//                    }
+//                }
+//                return instance;
+//            }
+//        }
+//        #endregion
+
+//        /// <summary>
+//        /// 注册串口监听事件
+//        /// </summary>
+//        public void SubscribeSerialPort()
+//        {
+//            SerialPortManager.Instance.RegisterAllReceivedEvents(OnDataReceived);
+//        }
+
+//        private void OnDataReceived(byte[] bytes)
+//        {
+//            try
+//            {
+//                if (bytes == null || bytes.Length <= 0) return;
+//                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+//                string datastr = Encoding.UTF8.GetString(jy_bytes);
+//                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(datastr);
+//                NLogger.Debug($"串口接收到{idata.Cmd}数据...");
+//                if (idata == null) return;
+//                ConsumeData(idata);//消费数据
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Error($"接收串口数据解析异常>>{ex.Message}");
+//            }
+//        }
+//    }
+//}
+

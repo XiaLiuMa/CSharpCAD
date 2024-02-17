@@ -1,0 +1,157 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System;
+using System.IO;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Threading;
+using Max.BaseKit.Customs;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 网闸同步助手
+    /// </summary>
+    public class GatekeeperIsolator : AbsIsolator
+    {
+        public override string Id { get; set; }
+        /// <summary>
+        /// 同步路径
+        /// </summary>
+        public string SyncPath { get; private set; }
+        /// <summary>
+        /// 扫描路径
+        /// </summary>
+        public string ScanPath { get; private set; }
+        public override string ProduceCachePath { get; set; }
+        public override bool IsBackupProduce { get; set; }
+        public override string ProduceBackupPath { get; set; }
+        public override int ProduceChannelSize { get; set; }
+        public override int ItemSize { get; set; }
+        public override int BulkSize { get; set; }
+        public override bool IsZip { get; set; }
+        public override CustomConcurrentList<string> WaitProduceFiles { get; set; }
+        public override BlockingCollection<string> ProducingFiles { get; set; }
+
+        /// <summary>
+        /// 创建网闸隔离器
+        /// </summary>
+        /// <param name="id">主键Id</param>
+        /// <param name="syncPath">同步路径</param>
+        /// <param name="scanPath">扫描路径</param>
+        /// <param name="produceCachePath">生产文件缓存路径</param>
+        /// <param name="isBackupProduce">是否备份生产文件</param>
+        /// <param name="produceBackupPath">生产文件备份路径</param>
+        /// <param name="produceChannelSize">数据生产管道大小，用于控制消费并行数</param>
+        /// <param name="itemSize">数量大小(单个文件可容纳多少条数据)</param>
+        /// <param name="bulkSize">容积大小(单个文件可容纳多大的数据，单位M)</param>
+        /// <param name="isZip">是否压缩数据</param>
+        public GatekeeperIsolator(string id, string syncPath, string scanPath, string produceCachePath, bool isBackupProduce, string produceBackupPath, int produceChannelSize, int itemSize, int bulkSize, bool isZip)
+        {
+            this.Id = id;
+            this.SyncPath = syncPath;
+            this.ScanPath = scanPath;
+            this.ProduceCachePath = produceCachePath;
+            this.IsBackupProduce = isBackupProduce;
+            this.ProduceBackupPath = produceBackupPath;
+            this.ProduceChannelSize = produceChannelSize;
+            this.ItemSize = itemSize;
+            this.BulkSize = bulkSize;
+            this.IsZip= isZip;
+            WaitProduceFiles = new CustomConcurrentList<string>();
+            ProducingFiles = new BlockingCollection<string>();
+        }
+
+        public override void BootUp()
+        {
+            ScanProduceCacheFiles();
+            ExecuteProducing();
+            ScanCacheFiles();
+            OnDataReceived();
+        }
+
+        /// <summary>
+        /// 执行生产
+        /// </summary>
+        private void ExecuteProducing()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                foreach (var fname in ProducingFiles.GetConsumingEnumerable())
+                {
+                    try
+                    {
+                        if (IsBackupProduce)
+                        {
+                            var sfPath1 = fname;//源文件路径
+                            var dfPath1 = fname.Replace(ProduceCachePath, ProduceBackupPath);//目标文件路径
+                            dfPath1 = dfPath1.Replace($"{Id}_", "");//文件名去除隔离器Id
+                            FileUtil.StreamCopy(sfPath1, dfPath1);//将文件复制到生产备份路径
+                        }
+                        var sfPath = fname;//源文件路径
+                        var dfPath = fname.Replace(ProduceCachePath, SyncPath);//目标文件路径
+                        dfPath = dfPath.Replace($"{Id}_", "");//文件名去除隔离器Id
+                        FileUtil.StreamMove(sfPath, dfPath);//将文件移动到网闸同步路径
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Warn($"网闸从缓存区移动文件到同步区发生异常：{ex.Message}");
+                    }
+                }
+            });
+        }
+
+        /// <summary>
+        /// 扫描网闸同步的文件
+        /// </summary>
+        public void OnDataReceived()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var files = FileUtil.FindFiles(new DirectoryInfo(ScanPath), null, "*.txt");
+                        files?.ForEach(f =>
+                        {
+                            var sfPath = f.FullName;//源文件路径
+                            var dfPath = f.FullName.Replace(ScanPath, MaxIsolator.I.ConsumeCachePath);//目标文件路径
+                            FileUtil.StreamMove(sfPath, dfPath);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        public override void ProduceData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1, ProduceCachePath);//缓存文件
+                    WaitProduceFiles.Add(fName);//加入待生产队列
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"网闸同步数据异常：{ex.Message}");
+                }
+            }
+        }
+
+
+
+        public override void ShutDown()
+        {
+            throw new NotImplementedException();
+        }
+    }
+}

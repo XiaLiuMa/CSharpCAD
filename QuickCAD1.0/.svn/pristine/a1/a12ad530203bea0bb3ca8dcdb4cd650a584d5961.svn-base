@@ -1,0 +1,8 @@
+﻿namespace Max.SerialPort
+{
+    public interface AbsSerialPortCodec
+    {
+        byte[] Coding(byte[] data);
+        byte[] Decoding(byte[] data);
+    }
+}

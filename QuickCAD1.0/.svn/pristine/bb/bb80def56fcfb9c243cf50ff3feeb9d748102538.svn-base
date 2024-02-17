@@ -1,0 +1,19 @@
+﻿using Quartz;
+using Max.BaseKit.Utils;
+
+namespace IsolatorTarget.Business.MaxQuartz
+{
+    [DisallowConcurrentExecution]
+    public class QuartzJob : IJob
+    {
+        /// <summary>
+        /// 执行定时任务
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public Task Execute(IJobExecutionContext context)
+        {
+            return Task.CompletedTask;
+        }
+    }
+}

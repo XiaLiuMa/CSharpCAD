@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--同步时，数据库操作方式，1:原始数据库连接池方案；2：独立连接方案-->
+	<ExportType>2</ExportType>
+	<!--导出路径-->
+	<ExportPath>D:\SjtbTemp\MsSyncPath</ExportPath>
+	<!--数据库配置-->
+	<DbConfigs>
+		<DbConfig>
+			<Id>01</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>02</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>03</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>04</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>05</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>06</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>07</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>08</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>09</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>10</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+		<DbConfig>
+			<Id>11</Id>
+			<ConnectStr>DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=orcl)));PASSWORD=qgtg;PERSIST SECURITY INFO=True;USER ID=qgtg;enlist=dynamic;</ConnectStr>
+		</DbConfig>
+	</DbConfigs>
+	<!--导出配置-->
+	<ExConfigs>
+		<ExConfig>
+			<Cmd>012</Cmd>
+			<Rwmc>ms_d_bcdm</Rwmc>
+			<DbId>01,02,03,04,05,06,07,08,09,10,11</DbId>
+			<SqlStr>SELECT a.BCDM,utl_raw.cast_to_raw ( a.BCMC ) AS BCMC,a.SYBJ FROM BJ_YW_T_BCDM a</SqlStr>
+		</ExConfig>
+		<ExConfig>
+			<Cmd>013</Cmd>
+			<Rwmc>ms_d_cddm</Rwmc>
+			<DbId>01,02,03,04,05,06,07,08,09,10,11</DbId>
+			<SqlStr>SELECT a.CDDM,utl_raw.cast_to_raw ( a.CDMS ) AS CDMS,a.KADM,a.SYBJ,a.CDLX FROM BJ_YW_T_CDDM a</SqlStr>
+		</ExConfig>
+		<ExConfig>
+			<Cmd>014</Cmd>
+			<Rwmc>ms_d_mtdm</Rwmc>
+			<DbId>04,05,06,07,08,09,11</DbId>
+			<SqlStr>SELECT a.MTDM,utl_raw.cast_to_raw ( a.MTMC ) AS MTMC,a.KADM,a.SYBJ,a.YWMC FROM BJ_YW_T_MTDM a</SqlStr>
+		</ExConfig>
+		<ExConfig>
+			<Cmd>015</Cmd>
+			<Rwmc>ms_d_bwdm</Rwmc>
+			<DbId>04,05,06,07,08,09,11</DbId>
+			<SqlStr>SELECT a.BWDM,utl_raw.cast_to_raw ( a.BWMC ) AS BWMC,a.KADM,a.MTDM,a.SYBJ,a.YWMC FROM BJ_YW_T_BWDM a</SqlStr>
+		</ExConfig>
+		<ExConfig>
+			<Cmd>041</Cmd>
+			<Rwmc>ms_t_gzzzl</Rwmc>
+			<DbId>01,02,03,04,05,06,07,08,09,10,11</DbId>
+			<SqlStr>SELECT a.KADM,a.TDH,a.GZZZT,a.YFLKLX,a.ZJHM,a.WYBS,a.TDXSPDM,a.TDXSPXX,a.CZYDM,utl_raw.cast_to_raw ( a.CZYXM ) AS CZYXM,a.TDLX,a.CZYZCSJ,a.TDKTSJ,a.TDGBSJ,a.ZCBM,a.IP,a.GALKYFS,a.FGALKYFS,a.YGYFS,a.JTGJYFS,a.BKBJS,a.YCTJS,a.RQ FROM BJ_YW_T_TDSSJK a</SqlStr>
+		</ExConfig>
+	</ExConfigs>
+</AppConfig>

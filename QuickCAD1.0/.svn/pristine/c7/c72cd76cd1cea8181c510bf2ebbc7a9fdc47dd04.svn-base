@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>子任务配置</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../comm/css/layui.css" />
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+
+    <style>
+        .editzrwpz {
+            width: 360px;
+            height: 580px;
+        }
+        
+        .selectdbs {
+            width: 360px;
+            height: 240px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="handle">
+            <img id="add" src="../comm/img/add.png" alt="" />
+            <img id="delete" src="../comm/img/delete.png" alt="" />
+            <img id="update" src="../comm/img/alert.png" alt="" />
+            <input type="text" class="select-input" name="condition" placeholder="请输入任务名">
+            <img id="select" src="../comm/img/select.png" alt="" />
+        </div>
+        <!--以下为两个必须div元素-->
+        <div id="table" class="table-div"></div>
+        <div id="pageBar" class="txtRight"></div>
+    </div>
+
+    <!-- 配置子任务 -->
+    <div class="peizhi editzrwpz">
+        <div class="pz-header">
+            <span class="pz-title">子任务编辑</span>
+            <button type="button" class="close" id="editzrwpz_close"><span style="color:#0C4EF7;">&times;</span></button>
+        </div>
+        <div class="pz-content">
+            <div class="flexDiv"><span>命令码：</span><input id="cmd" type="text"></div>
+            <div class="flexDiv"><span>子任务名称：</span><input id="zrwmc" type="text"></div>
+            <div class="flexDiv">
+            <span>定时任务：</span>
+            <input id="scheduId" type="text" readonly=true>
+            </div>
+            <div class="flexDiv"><span>MS库：</span><input id="msdbs" type="text" readonly="true"></div>
+            <div class="flexDiv">
+                <span>任务类型：</span>
+                <input type="checkbox" name="rwlx" value="A" checked="true" title="无时间过滤类">A&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="checkbox" name="rwlx" value="C" title="时间过滤类">C&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="checkbox" name="rwlx" value="Y" title="年统计类">Y&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="checkbox" name="rwlx" value="M" title="月统计类">M&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="checkbox" name="rwlx" value="D" title="日统计类">D&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="checkbox" name="rwlx" value="H" title="时统计类">H&nbsp;&nbsp;
+            </div>
+            <div class="flexDiv"><span>延迟时长(秒)：</span><input id="ycsc" type="text"></div>
+            <div class="flexDiv">
+                <span>是否启用：</span>
+                <input type="radio" name="canuse" value="true">是&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                <input type="radio" name="canuse" value="false" checked="true">否&nbsp;&nbsp;
+            </div>
+            <div class="flexDiv"><span>描述：</span><input id="desc" type="text"></div>
+            <div class="flexDiv"><span>Sql语句：</span><textarea class="pz-textarea" id="sqltxt" cols="30" rows="7"></textarea></div>
+        </div>
+        <div class="pz-footer">
+            <button type="button" class="btn btn-primary" id="editzrwpz_confirm">确认</button>
+            <button type="button" class="btn btn-default btn-danger" id="editzrwpz_cancel">取消</button>
+        </div>
+    </div>
+
+    <!-- 选择数据库 -->
+    <div class="peizhi selectdbs">
+        <div class="pz-header">
+            <span class="pz-title">配置数据库</span>
+            <button type="button" class="close" id="selectdbs_close"><span style="color:#0C4EF7;">&times;</span></button>
+        </div>
+        <div class="pz-content">
+            <div class="flexDiv">
+                <span>选择数据库：</span>
+                <select class="pz-select" id="dbSelect" multiple="multiple"></select>
+            </div>
+        </div>
+        <div class="pz-footer">
+            <button type="button" class="btn btn-primary" id="selectdbs_confirm">确认</button>
+            <button type="button" class="btn btn-default btn-danger" id="selectdbs_cancel">取消</button>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="../comm/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../comm/js/template-native.js"></script>
+    <script type="text/javascript" src="../comm/js/layui.js"></script>
+    <script type="text/javascript" src="../comm/js/mygloble.js"></script>
+    <script type="text/javascript" src="../comm/js/myutil.js"></script>
+    <script type="text/javascript" src="../comm/js/mypage.js"></script>
+    <script>
+        var json = []; //标准json格式 目前只支持[{a:b,c:d},{a:b,c:d}]此种格式 
+        //nameList与widthList的数组长度要一致
+        var nameList = ['', '命令码', '子任务名称','父任务Id', 'MS库', '任务类型', '延迟时长(秒)', '是否启用', '描述', 'Sql语句'] //table的列名
+        var widthList = [5, 20, 100, 100, 100, 100, 100, 100, 100, 100] //table每列的宽度
+
+        $(function() {
+            UpdataPage(); // 加载页面时初始化表格
+            ZrwpzQuery(); //初始化表格数据
+            LoadSchedu();//加载定时任务
+            LoadMsDb(); //加载MS数据库
+
+            // 点击查询按钮
+            $("#select").on("click", function() {
+                ZrwpzQuery();
+            });
+
+            // 点击删除按钮
+            $("#delete").on("click", function() {
+                if ($("input[name='checktr']:checked").length <= 0) {
+                    alert("请至少选择其中一项数据进行删除！")
+                    return false;
+                }
+                var msg = "确定要删除吗？\n\n请确认！";
+                if (confirm(msg) == false) {
+                    return false;
+                } else {
+                    var idArr = [];
+                    // 删除选择的列表项
+                    $(".trcheck").each(function(i, item) {
+                        if ($(this).prop("checked")) {
+                            var id = $(this).parents("tr").find("td").eq(1).text();
+                            idArr.push(id);
+                        }
+                    });
+                    $.ajax({
+                        url: "http://" + params + "/app/res_zrwpz/delete",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            ids: idArr
+                        },
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                ZrwpzQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    });
+                }
+            });
+
+            // 点击添加按钮
+            $("#add").on("click", function() {
+                $("#cmd").removeAttr("disabled"); //子任务命令码可编辑
+                $("#zrwmc").removeAttr("disabled"); //子任务名称可编辑
+                $("#editzrwpz_confirm").attr("czlx", "0");
+                $(".editzrwpz").css("display", "block");
+            });
+
+            // 点击修改按钮
+            $("#update").on("click", function() {
+                if ($("input[name='checktr']:checked").length != 1) {
+                    alert("请选择其中一项数据进行修改！")
+                    return false;
+                }
+                $(".trcheck").each(function(i, item) {
+                    if ($(this).prop('checked')) {
+                        $("#cmd").attr({
+                            "disabled": "disabled"
+                        }); //子任务命令码不可编辑
+                        $("#zrwmc").attr({
+                            "disabled": "disabled"
+                        }); //子任务名称不可编辑
+                        var id = $(this).parents("tr").find("td").eq(1).text();
+                        var data = json.filter(p => p.cmd == id)[0];
+                        $("input[id='cmd']").val(data.cmd);
+                        $("input[id='zrwmc']").val(data.jname);
+                        var rwlxs = data.rwlx.split(','); //字符分割
+                        $("input[name='rwlx']").each(function() {
+                            var tfalg = rwlxs.includes($(this).val()) ? true : false;
+                            $(this).prop("checked", tfalg);
+                        }); //任务类型
+                        $("input[id='ycsc']").val(data.ycsc);
+                        $("input[id='msdbs']").val(data.dbs);
+                        $("input[name='canuse'][value='" + data.state + "']").click(); //是否可用
+                        $("input[id='desc']").val(data.description);
+                        $("textarea[id='sqltxt']").val(data.sqlTxt);
+                    }
+                });
+                $("#editzrwpz_confirm").attr("czlx", "1");
+                $(".editzrwpz").css("display", "block");
+            });
+
+            // 【任务配置框】关闭按钮
+            $("#editzrwpz_close").on("click", function() {
+                $(".editzrwpz").css("display", "none");
+            });
+
+            // 【任务配置框】取消按钮
+            $("#editzrwpz_cancel").on("click", function() {
+                $(".editzrwpz").css("display", "none");
+            });
+
+            // 【任务配置框】确定按钮
+            $("#editzrwpz_confirm").on("click", function() {
+                var _cmd = $("input[id='cmd']").val();
+                var _jname = $("input[id='zrwmc']").val();
+                var rwlxstr = ""; //任务类型字符串
+                $('input[name="rwlx"]:checked').each(function() {
+                    rwlxstr += $(this).val() + ",";
+                });
+                var reg = /,$/gi;
+                var _rwlx = rwlxstr.replace(reg, ""); //去除最后一个逗号
+                var _ycsc = $("input[id='ycsc']").val();
+                var _dbs = $("input[id='msdbs']").val();
+                var _sta = $('input[name="canuse"]:checked').val();
+                var _des = $("input[id='desc']").val();
+                var _sqltxt = $("textarea[id='sqltxt']").val();
+
+                if ($(this).attr("czlx") == "0") {
+                    //添加操作
+                    $.ajax({
+                        url: "http://" + params + "/app/res_zrwpz/add",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            cmd: _cmd,
+                            jname: _jname,
+                            rwlx: _rwlx,
+                            ycsc: _ycsc,
+                            dbs: _dbs,
+                            sta: _sta,
+                            des: _des,
+                            sqltxt: _sqltxt
+                        },
+                        // async: false,
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                ZrwpzQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    });
+                } else {
+                    $.ajax({
+                        url: "http://" + params + "/app/res_zrwpz/alert",
+                        headers: {
+                            "Authorization": localStorage.getItem("mytoken")
+                        }, //本地token
+                        type: "post",
+                        data: {
+                            cmd: _cmd,
+                            jname: _jname,
+                            rwlx: _rwlx,
+                            ycsc: _ycsc,
+                            dbs: _dbs,
+                            sta: _sta,
+                            des: _des,
+                            sqltxt: _sqltxt
+                        },
+                        // async: false,
+                        error: function() {
+                            console.log("错误");
+                        },
+                        success: function(res) {
+                            // 如果请求成功，将返回的json数组赋给数组json
+                            if (res == true) {
+                                ZrwpzQuery();
+                            } else {
+                                alert(res)
+                            }
+                        }
+                    });
+                }
+                $(".editzrwpz").css("display", "none");
+            });
+
+            // 点击选择数据库
+            $("#msdbs").on("click", function() {
+                var msdbs = $("input[id='msdbs']").val();
+                if (msdbs) {
+                    var dbarray = msdbs.split(',');
+                    $("#dbSelect option").each(function(i, v) {
+                        var tfalg = dbarray.includes($(v).val()) ? true : false;
+                        $(this).prop("selected", tfalg);
+                    });
+                }
+                $(".selectdbs").css("display", "block");
+            });
+
+            // 【数据库选择框】关闭按钮
+            $("#selectdbs_close").on("click", function() {
+                $(".selectdbs").css("display", "none");
+            });
+
+            // 【数据库选择框】取消按钮
+            $("#selectdbs_cancel").on("click", function() {
+                $(".selectdbs").css("display", "none");
+            });
+
+            // 【数据库选择框】确定按钮
+            $("#selectdbs_confirm").on("click", function() {
+                var select = document.getElementById("dbSelect");
+                var dbidsstr = ""; //ids字符串，用逗号隔开
+                for (i = 0; i < select.length; i++) {
+                    if (select.options[i].selected) {
+                        dbidsstr += select[i].value + ",";
+                    }
+                }
+                var reg = /,$/gi;
+                dbidsstr = dbidsstr.replace(reg, ""); //去除最后一个逗号
+                $("input[id='msdbs']").val(dbidsstr);
+                $(".selectdbs").css("display", "none");
+            });
+        });
+
+
+        /**子任务配置查询 */
+        function ZrwpzQuery() {
+            var condition = $("input[name='condition']").val();
+            $.ajax({
+                url: "http://" + params + "/app/res_zrwpz/query",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                data: {
+                    condition: condition
+                },
+                success: function(res) {
+                    json = (res == null) ? [] : res;
+                    reloadpage();
+                }
+            })
+        }
+
+        /**加载数据库列表 */
+        function LoadMsDb() {
+            $.ajax({
+                url: "http://" + params + "/app/res_mssjk/query",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                data: {
+                    condition: ""
+                },
+                success: function (res) { //如果请求返回数据正常,动态加载界面
+                    if (res) {
+                        var html = "";
+                        for (var i = 0; i < res.length; i++) {
+                            html += "<option value='" + res[i].id + "'>" + res[i].describe + "</option>";
+                        }
+                        $("#dbSelect").html(html);
+                    }
+                }
+            })
+        }
+
+        /**加载定时任务列表 */
+        function LoadSchedu() {
+            $.ajax({
+                url: "http://" + params + "/app/res_rwpz/query",
+                headers: {
+                    "Authorization": localStorage.getItem("mytoken")
+                }, //本地token
+                type: "get",
+                data: {
+                    condition: ""
+                },
+                success: function(res) { //如果请求返回数据正常,动态加载界面
+                    if (res) {
+                        var html = "";
+                        for (var i = 0; i < res.length; i++) {
+                            html += "<option value='" + res[i].jobName + "'>" + res[i].jobName + "</option>";
+                        }
+                        $("#scheduId").html(html);
+                    }
+                }
+            })
+        }
+    </script>
+</body>
+
+</html>

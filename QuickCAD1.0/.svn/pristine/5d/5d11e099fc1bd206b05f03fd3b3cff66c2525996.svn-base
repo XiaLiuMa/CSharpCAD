@@ -1,0 +1,48 @@
+﻿//using System.Data;
+//using System.Collections.Generic;
+//using System;
+
+//namespace Max.DbTool
+//{
+//    /// <summary>
+//    /// 数据库操作接口
+//    /// </summary>
+//    public interface ISqlOperate : IDisposable
+//    {
+//        /// <summary>
+//        /// 数据库配置
+//        /// </summary>
+//        DbConfig Config { get; set; }
+//        /// <summary>
+//        /// 执行SQL
+//        /// </summary>
+//        /// <param name="sqlstr">Sql语句</param>
+//        /// <returns></returns>
+//        bool Execute(string sqlstr);
+//        /// <summary>
+//        /// 查询SQL
+//        /// </summary>
+//        /// <param name="sqlstr">Sql语句</param>
+//        DataTable Query(string sqlstr);
+//        /// <summary>
+//        /// 定制化Sql语句查询
+//        /// </summary>
+//        /// <param name="str">Sql语句</param>
+//        /// <returns></returns>
+//        //List<Dictionary<string, object>> CtoSqlSelect(string str);
+//        /// <summary>
+//        /// 批量覆盖语句(有就修改，没有就新增)
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="dlst">数据集</param>
+//        //bool BatchCover(string tname, List<Dictionary<string, object>> dlst);
+//        bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null);
+//        /// <summary>
+//        /// 批量删除
+//        /// </summary>
+//        /// <param name="tname">表名</param>
+//        /// <param name="fileds">删除条件的字段集</param>
+//        /// <param name="dlst">数据集</param>
+//        bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst);
+//    }
+//}

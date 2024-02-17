@@ -1,0 +1,121 @@
+﻿using IsolatorOrigin.Models;
+using IsolatorOrigin.Storage.Entities;
+using Max.BaseKit.Customs;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// 配置缓存器
+    /// </summary>
+    public class ConfigCacher
+    {
+        #region 单例
+        private static ConfigCacher i;
+        private readonly static object objLock = new object();
+        public static ConfigCacher I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new ConfigCacher();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 网闸配置缓存
+        /// </summary>
+        public CustomDbCacher<GatekeeperEntity> GatekeeperCacher { get; private set; }
+        /// <summary>
+        /// 串口配置缓存
+        /// </summary>
+        public CustomDbCacher<SerialPortEntity> SerialPortCacher { get; private set; }
+        /// <summary>
+        /// 串口服务器配置缓存
+        /// </summary>
+        public CustomDbCacher<SerialServerEntity> SerialServerCacher { get; private set; }
+        /// <summary>
+        /// 数据库配置缓存
+        /// </summary>
+        public CustomDbCacher<UseDbEntity> UseDbCacher { get; private set; }
+        /// <summary>
+        /// 生产任务配置缓存
+        /// </summary>
+        public CustomDbCacher<ProduceTaskEntity> ProduceTaskCacher { get; private set; }
+        /// <summary>
+        /// 定时任务配置缓存
+        /// </summary>
+        public CustomDbCacher<CronJobEntity> CronJobCacher { get; private set; }
+        /// <summary>
+        /// 任务运行时间配置缓存
+        /// </summary>
+        public CustomDbCacher<TaskRunTimeEntity> TaskRunTimeCacher { get; private set; }
+
+        /// <summary>
+        /// 正在执行的手动任务
+        /// </summary>
+        public CustomConcurrentList<RuningManualTask> RuningManualTasks { get; private set; }
+        public ConfigCacher()
+        {
+            GatekeeperCacher = new CustomDbCacher<GatekeeperEntity>();
+            SerialPortCacher = new CustomDbCacher<SerialPortEntity>();
+            SerialServerCacher = new CustomDbCacher<SerialServerEntity>();
+            UseDbCacher = new CustomDbCacher<UseDbEntity>();
+            ProduceTaskCacher = new CustomDbCacher<ProduceTaskEntity>();
+            CronJobCacher = new CustomDbCacher<CronJobEntity>();
+            TaskRunTimeCacher = new CustomDbCacher<TaskRunTimeEntity>();
+            RuningManualTasks = new CustomConcurrentList<RuningManualTask>();
+        }
+
+        /// <summary>
+        /// 设置任务运行时间
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="runTime"></param>
+        public void SetTaskRunTime(string id, string runTime)
+        {
+            var obj = TaskRunTimeCacher.Find(p => id.Equals(p.Id));
+            if (obj == null)
+            {
+               bool flag = TaskRunTimeCacher.Add(new TaskRunTimeEntity() { Id = id, RunTime = runTime });
+            }
+            else
+            {
+                bool flag = TaskRunTimeCacher.Updata(new TaskRunTimeEntity() { Id = id, RunTime = runTime }, p => id.Equals(p.Id));
+            }
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索ProduceTaskEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<ProduceTaskEntity> SearchProduceTaskByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return ProduceTaskCacher.Where(p => idArr.Contains(p.Cmd)).ToList();
+        }
+
+        /// <summary>
+        /// 根据主键Id搜索UseDbEntity
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        public List<UseDbEntity> SearchUseDbByIds(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return default;
+            var idArr = ids.Split(',').ToList();
+            return UseDbCacher.Where(p => idArr.Contains(p.Id)).ToList();
+        }
+    }
+}

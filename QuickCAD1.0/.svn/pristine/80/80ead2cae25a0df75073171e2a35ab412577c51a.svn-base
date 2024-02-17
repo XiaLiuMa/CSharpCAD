@@ -1,0 +1,47 @@
+﻿using IsolatorOrigin.Storage.Entities;
+
+namespace IsolatorOrigin.Models
+{
+    /// <summary>
+    /// 正在运行的手动任务扩展
+    /// </summary>
+    public class RuningManualTaskExt
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 任务
+        /// </summary>
+        public ProduceTaskEntity Task { get; set; }
+        /// <summary>
+        /// 命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 任务名称
+        /// </summary>
+        public string TaskName { get; set; }
+        /// <summary>
+        /// 数据库
+        /// </summary>
+        public UseDbEntity Db { get; set; }
+        /// <summary>
+        /// 数据库描述
+        /// </summary>
+        public string DbDesc { get; set; }
+        /// <summary>
+        /// 开始时间
+        /// </summary>
+        public string STime { get; set; }
+        /// <summary>
+        /// 结束时间
+        /// </summary>
+        public string ETime { get; set; }
+        /// <summary>
+        /// 运行时间
+        /// </summary>
+        public string RTime { get; set; }
+    }
+}

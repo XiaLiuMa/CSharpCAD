@@ -1,0 +1,1 @@
+2024-01-11 23:37:46.0201 INFO  C类常规001执行1的任务:20200101000000-20240111233726划分1472个区间。  JobKernel.RunJob => JobKernel.RunCJob => NLogger.Info

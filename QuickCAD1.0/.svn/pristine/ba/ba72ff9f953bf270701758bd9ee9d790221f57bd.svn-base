@@ -1,0 +1,184 @@
+﻿using IsolatorOrigin.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using System.Net.Mime;
+using Max.BaseKit.Utils;
+
+namespace IsolatorOrigin.Controllers
+{
+    /// <summary>
+    /// 日志管理控制器
+    /// </summary>
+    [Authorize]
+    public class LogMgtController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Detail()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="logType"></param>
+        /// <param name="stime"></param>
+        /// <param name="etime"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<LogVMod> PagingSearch(int page = 1, int limit = 10, string logType = "", string stime = "", string etime = "")
+        {
+            var rd = new ResultPaging<LogVMod>();
+            var tlst = new List<LogVMod>();
+            #region 搜索
+            switch (logType)
+            {
+                case "zyd": tlst.AddRange(SearchOriginLogs()); break;
+                case "zyd_info": tlst.AddRange(SearchOriginLogs("info")); break;
+                case "zyd_waring": tlst.AddRange(SearchOriginLogs("waring")); break;
+                case "zyd_error": tlst.AddRange(SearchOriginLogs("error")); break;
+                default: tlst.AddRange(SearchOriginLogs());  break;
+            }
+            if (!string.IsNullOrEmpty(stime))
+            {
+                tlst = tlst.FindAll(p => Convert.ToDateTime(p.UpdateTime) >= Convert.ToDateTime(stime)).ToList();
+            }
+            if (!string.IsNullOrEmpty(etime))
+            {
+                tlst = tlst.FindAll(p => Convert.ToDateTime(p.UpdateTime) <= Convert.ToDateTime(etime)).ToList();
+            }
+            #endregion
+
+            tlst = tlst.OrderByDescending(p => p.UpdateTime).ToList();
+            var lst = tlst.Skip((page - 1) * limit).Take(limit).ToList();
+            rd.Count = tlst.Count;
+            rd.Data = lst;
+            return rd;
+        }
+
+        /// <summary>
+        /// 搜索源头端日志
+        /// </summary>
+        /// <param name="logType"></param>
+        /// <returns></returns>
+        private List<LogVMod> SearchOriginLogs(string logType = "")
+        {
+            var rlst = new List<LogVMod>();
+            var originPath = $"{AppContext.BaseDirectory}logs/";//源头端日志
+            if (Directory.Exists(originPath)) Directory.CreateDirectory(originPath);
+            var originFiles = FileUtil.FindFiles(new DirectoryInfo(originPath), logType, "*.log");
+            originFiles?.ForEach(f =>
+            {
+                rlst.Add(new LogVMod()
+                {
+                    LogFullFileName = f.FullName,
+                    BelongSystem = "IsolatorOrgin",
+                    LogType = f.Name.Replace(".log", "").Split('_')[1],
+                    UpdateTime = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss"),
+                    LogFileName = f.Name
+                });
+            });
+            return rlst;
+        }
+
+        /// <summary>
+        /// 查看日志
+        /// </summary>
+        /// <param name="fileName"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> ViewLog(string fileName = "")
+        {
+            if (string.IsNullOrEmpty(fileName)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            if (!System.IO.File.Exists(fileName)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "文件不存在" });
+            string str = System.IO.File.ReadAllText(fileName);
+            return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "查看日志成功", Data = str });
+        }
+
+        /// <summary>
+        /// 删除
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Delete(string ids = "")
+        {
+            if (string.IsNullOrEmpty(ids)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            var idArr = ids.Split(',').ToList();
+            int count = 0;
+            idArr?.ForEach(i =>
+            {
+                System.IO.File.Delete(i);
+                count++;
+            });
+            if (count > 0)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除成功", Data = null });
+            }
+            else
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "删除失败", Data = null });
+            }
+        }
+
+        /// <summary>
+        /// 日志下载
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public async Task<IActionResult> Download(string filePath = "")
+        {
+            if (!System.IO.File.Exists(filePath))
+            {
+                return BadRequest("文件不存在");
+            }
+
+            var memoryStream = new MemoryStream();
+            using (var stream = new FileStream(filePath, FileMode.Open))
+            {
+                await stream.CopyToAsync(memoryStream);
+            }
+            memoryStream.Seek(0, SeekOrigin.Begin);
+            var contentType = "application/octet-stream";
+            var contentDisposition = new ContentDisposition
+            {
+                FileName = Path.GetFileName(filePath),
+                Inline = false //强制浏览器下载而不是在浏览器中打开
+            };
+
+            Response.Headers.Add("Content-Disposition", contentDisposition.ToString());
+            return File(memoryStream, contentType, Path.GetFileName(filePath));
+        }
+    }
+
+    public class LogVMod
+    {
+        /// <summary>
+        /// 所属系统
+        /// </summary>
+        public string BelongSystem { get; set; }
+        /// <summary>
+        /// 日志类型
+        /// </summary>
+        public string LogType { get; set; }
+        /// <summary>
+        /// 修改时间
+        /// </summary>
+        public string UpdateTime { get; set; }
+        /// <summary>
+        /// 日志文件名称
+        /// </summary>
+        public string LogFileName { get; set; }
+        /// <summary>
+        /// 日志全文件名称
+        /// </summary>
+        public string LogFullFileName { get; set; }
+    }
+}

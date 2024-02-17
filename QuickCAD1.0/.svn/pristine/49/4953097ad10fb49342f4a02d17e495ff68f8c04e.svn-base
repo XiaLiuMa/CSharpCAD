@@ -1,0 +1,37 @@
+﻿namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 模拟字符叠加设备
+    /// </summary>
+    public class MNSB
+    {
+        /// <summary>
+        /// 串口名称
+        /// </summary>
+        public string PORT_NAME { get; set; }
+        /// <summary>
+        /// 波特率
+        /// </summary>
+        public int? BAUDRATE { get; set; }
+        /// <summary>
+        /// 串口数据位
+        /// </summary>
+        public int? DATABITS { get; set; }
+        /// <summary>
+        /// 串口校验位
+        /// </summary>
+        public string PARITY { get; set; }
+        /// <summary>
+        /// 串口停止位
+        /// </summary>
+        public string STOPBITS { get; set; }
+        /// <summary>
+        /// 串口握手协议
+        /// </summary>
+        public string HANDSHAKE { get; set; }
+        /// <summary>
+        /// 监控通道号
+        /// </summary>
+        public int? JKTDH { get; set; }
+    }
+}

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DataSyncSource": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

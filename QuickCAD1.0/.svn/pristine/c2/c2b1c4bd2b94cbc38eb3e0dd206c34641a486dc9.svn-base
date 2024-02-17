@@ -1,0 +1,83 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorTarget.Storage.Entities
+{
+    [Table("RmqProduce")]
+    /// <summary>
+    /// RabbitMQ生产者实体
+    /// </summary>
+    public class RmqProduceEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 是否可用
+        /// </summary>
+        public bool IsUsable { get; set; }
+        #region 基础配置
+        /// <summary>
+        /// VirtualHost地址
+        /// </summary>
+        public string Vhost { get; set; }
+        /// <summary>
+        /// Ip地址
+        /// </summary>
+        public string Ip { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int Port { get; set; }
+        /// <summary>
+        /// 用户名
+        /// </summary>
+        public string Use { get; set; }
+        /// <summary>
+        /// 密码
+        /// </summary>
+        public string Pwd { get; set; }
+        #endregion
+        /// <summary>
+        /// 对话名称
+        /// </summary>
+        public string ExchangeName { get; set; }
+        /// <summary>
+        /// 对话密钥
+        /// </summary>
+        public string ExchangeKey { get; set; }
+        /// <summary>
+        /// 是否需要接收确认
+        /// </summary>
+        public bool IsAck { get; set; }
+        /// <summary>
+        /// 当前系统是否监听当前队列数据进行消费
+        /// </summary>
+        public bool IsListen { get; set; }
+        /// <summary>
+        /// 是否设置优先级
+        /// </summary>
+        public bool IsPriority { get; set; }
+        /// <summary>
+        /// 是否设置队列过期时间
+        /// </summary>
+        public bool IsTtl { get; set; }
+        /// <summary>
+        /// 优先级大小
+        /// </summary>
+        public int PrioritySize { get; set; }
+        /// <summary>
+        /// 队列名称
+        /// </summary>
+        public string QueueName { get; set; }
+        /// <summary>
+        /// 过期时间
+        /// </summary>
+        public int TtlTime { get; set; }
+        /// <summary>
+        /// 最大并行数
+        /// </summary>
+        public int Concurrency { get; set; } = 1;
+    }
+}

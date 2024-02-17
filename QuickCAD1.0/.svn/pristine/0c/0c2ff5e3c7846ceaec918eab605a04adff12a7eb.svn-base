@@ -1,0 +1,88 @@
+﻿using IsolatorOrigin.Storage;
+using IsolatorOrigin.Storage.Entities;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// 配置缓存器
+    /// </summary>
+    public class ConfigCacher
+    {
+        #region 单例
+        private static ConfigCacher i;
+        private readonly static object objLock = new object();
+        public static ConfigCacher I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new ConfigCacher();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public ConfigCacher() { Refresh(); }
+
+        /// <summary>
+        /// 网闸集合
+        /// </summary>
+        public List<GatekeeperEntity> Gatekeeper_Lst { get; private set; }
+        /// <summary>
+        /// 串口集合
+        /// </summary>
+        public List<SerialPortEntity> SerialPort_Lst { get; private set; }
+        /// <summary>
+        /// 串口服务器集合
+        /// </summary>
+        public List<SerialServerEntity> SerialServer_Lst { get; private set; }
+        /// <summary>
+        /// 数据库集合
+        /// </summary>
+        public List<SourceDbEntity> SourceDb_Lst { get; private set; }
+        /// <summary>
+        /// 子任务集合
+        /// </summary>
+        public List<SubTaskEntity> SubTask_Lst { get; private set; }
+        /// <summary>
+        /// 定时任务集合
+        /// </summary>
+        public List<CronJobEntity> CronJob_Lst { get; private set; }
+        /// <summary>
+        /// 任务运行时间集合
+        /// </summary>
+        public List<TaskRunTimeEntity> TaskRunTime_Lst { get; private set; }
+
+        /// <summary>
+        /// 设置任务运行时间
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="runTime"></param>
+        public void SetTaskRunTime(string id, string runTime)
+        {
+
+        }
+
+        /// <summary>
+        /// 刷新
+        /// </summary>
+        public void Refresh()
+        {
+            Gatekeeper_Lst = DataMocker.Instance.GatekeeperEntity_Lst;
+            SerialPort_Lst = DataMocker.Instance.SerialPortEntity_Lst;
+            SerialServer_Lst = DataMocker.Instance.SerialServerEntity_Lst;
+            SourceDb_Lst = DataMocker.Instance.SourceDbEntity_Lst;
+            SubTask_Lst = DataMocker.Instance.SubTaskEntity_Lst;
+            CronJob_Lst = DataMocker.Instance.CronJobEntity_Lst;
+            TaskRunTime_Lst = DataMocker.Instance.TaskRunTimeEntity_Lst;
+        }
+    }
+}

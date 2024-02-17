@@ -1,0 +1,14 @@
+﻿namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// 数据消费接口
+    /// </summary>
+    public interface MaxIService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="data"></param>
+        void ConsumeData(IsolatorData idata);
+    }
+}

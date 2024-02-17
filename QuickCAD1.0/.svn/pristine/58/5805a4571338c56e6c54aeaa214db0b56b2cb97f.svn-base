@@ -1,0 +1,166 @@
+﻿using MsDataSimulator.Views;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Timers;
+
+namespace MsDataSimulator.Jobs
+{
+    /// <summary>
+    /// 出入境人员历史
+    /// </summary>
+    public class CrjrylisJob
+    {
+        #region 单例
+        private static CrjrylisJob instance;
+        private readonly static object objLock = new object();
+        public static CrjrylisJob Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new CrjrylisJob();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        private Timer timer;    //出入境人员定时器
+        /// <summary>
+        /// 启动CrjrylisJob
+        /// </summary>
+        public void Run()
+        {
+            InsertCrjrylis(null, null);//先手动触发第一次
+            timer = new Timer(10 * 60 * 1000);//间隔10分钟触发一次
+            timer.Start();
+            timer.Elapsed += InsertCrjrylis;
+        }
+
+        /// <summary>
+        /// 插入出入境交人员历史
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void InsertCrjrylis(object sender, ElapsedEventArgs e)
+        {
+            DateTime dt = DateTime.Now;
+            string sgbz = UnitData.Instance.STR(new string[] { "U", "D" });//删改标志
+            int num = Convert.ToInt32(OrcalUtil.Select($"SELECT COUNT(*)  FROM BJ_YW_T_CRJRY").FirstOrDefault().FirstOrDefault().Value);
+            int rownum = UnitData.Instance.NUM(1, num);//随机数
+            string sqlstr = $"SELECT * FROM (select rownum as rn, t.* from BJ_YW_T_CRJRY t where rownum<={num}) WHERE rn={rownum}";
+            Dictionary<string, object> crjry = OrcalUtil.Select(sqlstr).FirstOrDefault();//取一条随机的出入境人员数据
+            if (crjry == null) return;
+            crjry.Remove("RN");//移除行号
+            #region 出入境人员历史数据
+            Dictionary<string, object> crjrylis = new Dictionary<string, object>();
+            crjrylis.Add("RYLBDM", DicValue(crjry["RYLBDM"]));//人员类别代码
+            crjrylis.Add("XM", DicValue(crjry["XM"]));//姓名
+            crjrylis.Add("GJDQDM", DicValue(crjry["GJDQDM"]));//国家或地区代码
+            crjrylis.Add("XBDM", DicValue(crjry["XBDM"]));//性别代码
+            crjrylis.Add("CSRQ", DicValue(crjry["CSRQ"]));//出生日期
+            crjrylis.Add("ZJLBDM", DicValue(crjry["ZJLBDM"]));//证件类别代码
+            crjrylis.Add("ZJHM", DicValue(crjry["ZJHM"]));//证件号码
+            crjrylis.Add("QZZLDM", DicValue(crjry["QZZLDM"]));// 签证种类代码
+            crjrylis.Add("CRRQ", DicValue(crjry["CRRQ"]));//出入日期
+            crjrylis.Add("CRSJ", DicValue(crjry["CRSJ"]));//出入时间
+            crjrylis.Add("CRRQSJ", DicValue(crjry["CRRQSJ"]));//出入日期时间
+            crjrylis.Add("CRKADM", DicValue(crjry["CRKADM"]));//出入口岸代码
+            crjrylis.Add("JTFSDM", DicValue(crjry["JTFSDM"]));//交通方式代码
+            crjrylis.Add("JTGJBS", DicValue(crjry["JTGJBS"]));//交通工具标识（航次）
+            crjrylis.Add("QWGJDQDM", DicValue(crjry["QWGJDQDM"]));//前往国家或地区代码
+            crjrylis.Add("FZD", DicValue(crjry["FZD"]));//发证地（国内:行政区划；国外:国家地区）
+            crjrylis.Add("CRJSYDM", DicValue(crjry["CRJSYDM"]));//出境理由代码
+            crjrylis.Add("CZY", DicValue(crjry["CZY"]));//检查员号
+            crjrylis.Add("TDH", DicValue(crjry["TDH"]));//通道号
+            crjrylis.Add("NBTH", DicValue(crjry["NBTH"]));//内部团号(1位团体类型+5位组团单位+10位日期时间+4位通道号+1位标识位)
+            crjrylis.Add("LXTH", DicValue(crjry["LXTH"]));//旅行团号
+            crjrylis.Add("CCXMBZ", DicValue(crjry["CCXMBZ"]));//超长姓名备注
+            crjrylis.Add("YNZSM", DicValue(crjry["YNZSM"]));//疑难字说明
+            crjrylis.Add("D2ZH", DicValue(crjry["D2ZH"]));//第二证号
+            crjrylis.Add("D2ZLDM", DicValue(crjry["D2ZLDM"]));//第二证类
+            crjrylis.Add("D2CSRQ", DicValue(crjry["D2CSRQ"]));//第二出生日期
+            crjrylis.Add("D2XM", DicValue(crjry["D2XM"]));//第二姓名
+            crjrylis.Add("RI", DicValue(crjry["RI"]));//日
+            crjrylis.Add("XMPY", DicValue(crjry["XMPY"]));//姓名拼音
+            crjrylis.Add("JTXM", DicValue(crjry["JTXM"]));//简体姓名
+            crjrylis.Add("BMDM", DicValue(crjry["BMDM"]));//部门代码（当前部门）
+            crjrylis.Add("WYBS", DicValue(crjry["WYBS"]));//唯一标识（口岸代码 +通道号+出入日期+出入时间+3位流水号）
+            crjrylis.Add("MZDM", DicValue(crjry["MZDM"]));//民族代码
+            crjrylis.Add("ZDYDM", DicValue(crjry["ZDYDM"]));//自定义代码
+            crjrylis.Add("ZZTDBJ", DicValue(crjry["ZZTDBJ"]));//自助通道标记(1:自助0:非自助)
+            crjrylis.Add("HTBLBJ", DicValue(crjry["HTBLBJ"]));//后台补录标记(0非补录；1补录)
+            crjrylis.Add("CRBZ", DicValue(crjry["CRBZ"]));//出入标志
+            crjrylis.Add("BGCZY", UnitData.Instance.CZYDM);//变更操作员
+            crjrylis.Add("BGCZSJ", dt.ToString("yyyyMMddHHmmss"));//变更操作时间
+            crjrylis.Add("YBGCZY", DicValue(crjry["BGCZY"]));//原变更操作员代码
+            crjrylis.Add("YBGCZSJ", DicValue(crjry["BGCZY"]));//原变更时间
+            crjrylis.Add("BGYY", sgbz);//变更原因（U：修改；D：删除）
+            crjrylis.Add("BGMS", sgbz);//变更原因描述
+            crjrylis.Add("QZH", DicValue(crjry["QZH"]));//签证号
+            crjrylis.Add("TLQ", DicValue(crjry["TLQ"]));//停留期
+            #endregion
+
+            bool flag = OrcalUtil.Merger("BJ_YW_T_CRJRYLIS", new string[] { "WYBS" }, crjrylis);
+            if (flag)
+            {
+                MainForm.Instance.RefreshTabPanel("CRJRYLIS", crjrylis);
+            }
+            if (sgbz.Equals("D"))//删除
+            {
+                OrcalUtil.RunSQL($"DELETE BJ_YW_T_CRJRY WHERE WYBS='{(string)crjry["WYBS"]}'");
+                OrcalUtil.RunSQL($"DELETE BJ_YW_T_CRJRYDK WHERE WYBS='{(string)crjry["WYBS"]}'");
+            }
+            else if (sgbz.Equals("U"))//修改
+            {
+                #region 出入境人员变更项
+                if (UnitData.Instance.FLAG())
+                {
+                    string gjdqdm = UnitData.Instance.GJDQDM;
+                    crjry["GJDQDM"] = gjdqdm;//国家地区代码
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    crjry["XM"] = UnitData.Instance.XM;//姓名
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    crjry["CRJSYDM"] = UnitData.Instance.SYDM;//出入境事由代码
+                }
+                if (UnitData.Instance.FLAG())
+                {
+                    DateTime dtime = DateTime.ParseExact((string)crjry["CRRQSJ"], "yyyyMMddHHmmss", CultureInfo.CurrentCulture).AddDays(-1).AddHours(-1);//字符串转时间
+                    crjry["CRRQSJ"] = dtime.ToString("yyyyMMddHHmmss");//出入日期时
+                    crjry["CRRQ"] = dtime.ToString("yyyyMMdd");//出入日期
+                    crjry["CRSJ"] = dtime.ToString("HHmmss");//出入日期时间
+                }
+                #endregion
+                OrcalUtil.Merger("BJ_YW_T_CRJRY", new string[] { "WYBS" }, crjry);
+                OrcalUtil.Merger("BJ_YW_T_CRJRYDK", new string[] { "WYBS" }, crjry);
+            }
+        }
+
+        private string DicValue(object obj)
+        {
+            if (obj.GetType().Equals(typeof(System.DBNull))) return "";
+            return (string)obj;
+        }
+
+        public void Stop()
+        {
+            timer?.Stop();
+            timer?.Dispose();
+        }
+    }
+}

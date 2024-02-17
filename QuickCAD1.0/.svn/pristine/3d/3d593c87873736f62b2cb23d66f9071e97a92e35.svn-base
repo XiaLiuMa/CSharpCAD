@@ -1,0 +1,141 @@
+﻿using System;
+using Max.BaseKit;
+using System.Text;
+using System.Timers;
+using DataSyncSource.Comm;
+using System.Diagnostics;
+using DataSyncSource.Config;
+using Max.BaseKit.Utils;
+using DataSyncSource.QuartzExt;
+using System.Threading.Tasks;
+using DataSyncSource.Config.Entities;
+using System.Globalization;
+using System.Linq;
+using Max.ISolator.Core;
+
+namespace DataSyncSource
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            AppDomain.CurrentDomain.ProcessExit += CurrentDomain_ProcessExit;
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+            string process_name = AppXmlConfiger.Config.ProcessName;//进程名称
+            System.Threading.Mutex mutex = new System.Threading.Mutex(false, process_name);
+            bool Running = !mutex.WaitOne(0, false);
+            if (!Running)
+            {
+                #region 定时重启
+                if (AppXmlConfiger.Config.AutoRestartEnable)
+                {
+                    Timer timer = new Timer(AppXmlConfiger.Config.AutoRestartTimes * 24 * 60 * 60 * 1000);
+                    timer.Elapsed += (s, e) => { Restart(); };
+                    timer.Enabled = true;
+                    timer.Start();
+                }
+                #endregion
+                Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);//注册GB2312编码
+                InitISolator();//初始化隔离器
+                StartSyncTask();//启动同步任务
+                LogManager.Instance.StartLogCleaning();//启动日志清理
+                WebServer.Instance.StartService();  //启动Web服务
+                while (true) Console.ReadKey();
+            }
+        }
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        private static void InitISolator()
+        {
+            string iparam = string.Empty;
+            switch (AppXmlConfiger.Config.SyncType)
+            {
+                case 1: iparam = JsonUtil.ObjectToStr(AppXmlConfiger.Config.NetBrake); break;//网闸模式
+                case 2: iparam = JsonUtil.ObjectToStr(AppXmlConfiger.Config.SerialPorts); break;//串口模式
+                case 3: iparam = JsonUtil.ObjectToStr(AppXmlConfiger.Config.SerialServers); break;//串口服务器模式
+                default: break;
+            }
+            MaxISolator.Instance.InitISolator(AppXmlConfiger.Config.SyncType, AppXmlConfiger.Config.BlockSize, iparam, (p) => { if (p == 1) Program.Restart(); });
+        }
+
+        /// <summary>
+        /// 启动同步任务
+        /// </summary>
+        private static void StartSyncTask()
+        {
+            var cronJobs = AppDbConfiger.QueryByCondition<CronJob>();
+            cronJobs?.ForEach(job =>
+            {
+                DateTime nowTime = DateTime.Now;  //当前时间
+                #region 开机启动任务
+                Task.Factory.StartNew(() =>
+                {
+                    try
+                    {
+                        string j_rtime = string.IsNullOrEmpty(job.RunTime) ? nowTime.AddHours(-3).ToString("yyyyMMddHHmmss") : job.RunTime;//上次运行时间
+                        DateTime j_r_dt = DateTime.ParseExact(j_rtime, "yyyyMMddHHmmss", CultureInfo.CurrentCulture);
+                        var cmds = job.SubCmds?.Split(',').ToList();
+                        cmds?.ForEach(cmd =>
+                        {
+                            var zrw = AppDbConfiger.QueryFirst<SubTask>(cmd);
+                            if (zrw != null && Convert.ToBoolean(zrw.TaskState))
+                            {
+                                DateTime t_stime = j_r_dt.AddMinutes(Convert.ToInt32($"-{zrw.DelayTime}"));//zrw处理延迟后的开始时间
+                                string stime = t_stime.ToString("yyyyMMddHHmmss");//开始时间
+                                string etime = nowTime.ToString("yyyyMMddHHmmss");//结束时间
+                                var dbs = zrw.Dbs.Split(',').ToList();
+                                dbs?.ForEach(db =>
+                                {
+                                    JobKernel.RunJob(zrw, db, stime, etime, false);
+                                });
+                            }
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"开机启动任务，执行{job.Id}定时任务异常：{ex.Message}");
+                    }
+                });
+                #endregion
+
+                AppDbConfiger.SetRunTime(job.Id, nowTime.ToString("yyyyMMddHHmmss"));//记录运行时间
+                QuartzManager.StartJobWithCron<QuartzJob>(job.Id, job.CronExpr);//启动定时任务
+            });
+        }
+
+        /// <summary>
+        /// 重启程序
+        /// </summary>
+        public static void Restart()
+        {
+            Process.Start(Process.GetCurrentProcess().MainModule.FileName);
+            Environment.Exit(0);
+        }
+
+        /// <summary>
+        /// 控制台进程关闭事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private static void CurrentDomain_ProcessExit(object sender, EventArgs e)
+        {
+            WebServer.Instance.Dispose();
+            QuartzManager.ShutDown();
+        }
+
+        /// <summary>
+        /// 未捕获的异常
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            NLogger.Error($"系统未捕获异常：{e.ToString()}");
+            WebServer.Instance.Dispose();
+            QuartzManager.ShutDown();
+            Environment.Exit(0);
+        }
+    }
+}

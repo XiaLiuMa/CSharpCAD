@@ -1,0 +1,21 @@
+﻿namespace IsolatorTarget.Models
+{
+    /// <summary>
+    /// 字典模式前端模型
+    /// </summary>
+    public class DictVMod
+    {
+        /// <summary>
+        /// 所属分组
+        /// </summary>
+        public string Group { get; set; }
+        /// <summary>
+        /// 唯一标识
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 显示名称
+        /// </summary>
+        public string Title { get; set; }
+    }
+}

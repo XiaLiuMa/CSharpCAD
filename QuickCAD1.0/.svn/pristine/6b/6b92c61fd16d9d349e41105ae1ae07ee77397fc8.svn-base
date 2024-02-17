@@ -1,0 +1,150 @@
+﻿using IsolatorOrigin.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using IsolatorOrigin.Business;
+using Max.BaseKit.Exts;
+
+namespace IsolatorOrigin.Controllers
+{
+    /// <summary>
+    /// 手动同步控制器
+    /// </summary>
+    [Authorize]
+    public class ManualSyncController : Controller
+    {
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 启动手动任务
+        /// </summary>
+        /// <param name="mTasks"></param>
+        /// <param name="stime"></param>
+        /// <param name="etime"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Start(List<ManualTask> mTasks, string stime = "", string etime = "")
+        {
+            if (mTasks == null || mTasks.Count <= 0) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+
+            var now = DateTime.Now;//当前时间
+            var tempLst = new List<RuningManualTaskExt>();//临时列表
+            mTasks?.ForEach(mTask =>
+            {
+                var task = ConfigCacher.I.ProduceTaskCacher.Find(p => mTask.Cmd.Contains(p.Cmd));
+                var db = ConfigCacher.I.UseDbCacher.Find(p => mTask.DbId.Contains(p.Id));
+                if (task == null || db == null) return;
+                var tobj = new RuningManualTaskExt()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Cmd = task.Cmd,
+                    TaskName = task.TaskName,
+                    Task = task,
+                    DbDesc = db.DbDescribe,
+                    Db = db,
+                    STime = stime,
+                    ETime = etime,
+                    RTime = now.ToString("yyyy-MM-dd HH:mm:ss")
+                };
+                tempLst.Add(tobj);
+                var bobj = tobj.Convert<RuningManualTask>();
+                ConfigCacher.I.RuningManualTasks.Add(bobj);
+            });
+
+            Task.Factory.StartNew(() =>
+            {
+                tempLst?.ForEach(temp =>
+                {
+                    var bobj = ConfigCacher.I.RuningManualTasks.Find(p => temp.Id.Equals(p.Id));
+                    ConfigCacher.I.RuningManualTasks.Remove(bobj);
+                    var bobj1 = temp.Convert<RuningManualTask>();
+                    bobj1.RState = 1;//正在运行中
+                    ConfigCacher.I.RuningManualTasks.Add(bobj1);
+
+                    JobKernel.RunJob(temp.Task, temp.Db, temp.STime, temp.ETime, false);
+
+                    var bobj2 = ConfigCacher.I.RuningManualTasks.Find(p => temp.Id.Equals(p.Id));
+                    ConfigCacher.I.RuningManualTasks.Remove(bobj2);//运行完成，删除掉
+                });
+            });
+
+            return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "启动手动任务成功" });
+        }
+
+        /// <summary>
+        /// 查询正在运行的手动任务
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<List<RuningManualTask>>> SearchRuning()
+        {
+            var rlst = ConfigCacher.I.RuningManualTasks.ToList();
+            return Ok(new ResultMsg<List<RuningManualTask>>()
+            {
+                Code = StatusType.Success,
+                Msg = "启动手动任务成功",
+                Data = rlst
+            });
+        }
+
+        /// <summary>
+        /// 通过命令码查询任务树
+        /// </summary>
+        /// <param name="cmds"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<List<ManualTaskTree>>> SearchTaskTree(string cmds = "")
+        {
+            if (string.IsNullOrEmpty(cmds)) return Ok(new ResultMsg<List<ManualTaskTree>>() { Code = StatusType.Success, Msg = "参数为空" });
+            var rlst = new List<ManualTaskTree>();
+            var firstNode = new ManualTaskTree() //1级节点
+            {
+                Id = "1",
+                Title = "全部",
+                Field = "",
+                IsFoot = false,
+                Children = new List<ManualTaskTree>()
+            };
+            var ProduceTasks = ConfigCacher.I.SearchProduceTaskByIds(cmds);
+            int i = 1;
+            int j = 1;
+            ProduceTasks?.ForEach(ProduceTask =>
+            {
+                var twoNode = new ManualTaskTree() //2级节点
+                {
+                    Id = $"{i + 1}",
+                    Title = ProduceTask.TaskName,
+                    Field = ProduceTask.Cmd,
+                    IsFoot = false,
+                    Children = new List<ManualTaskTree>()
+                };
+                i++;
+                j += i;
+                var UseDbs = ConfigCacher.I.SearchUseDbByIds(ProduceTask.Dbs);
+                UseDbs?.ForEach(UseDbs =>
+                {
+                    var threeNode = new ManualTaskTree() //3级节点
+                    {
+                        Id = $"{j + 1}",
+                        Title = UseDbs.DbDescribe,
+                        Field = UseDbs.Id,
+                        IsFoot = true,
+                        Children = new List<ManualTaskTree>()
+                    };
+                    twoNode.Children.Add(threeNode);
+                    j++;
+                });
+                firstNode.Children.Add(twoNode);
+            });
+            rlst.Add(firstNode);
+            return Ok(new ResultMsg<List<ManualTaskTree>>()
+            {
+                Code = StatusType.Success,
+                Msg = "查询任务树成功",
+                Data = rlst
+            });
+        }
+    }
+}

@@ -1,0 +1,49 @@
+﻿using System;
+using Dapper.Contrib.Extensions;
+
+namespace DataSyncTarget.Config.Entities
+{
+    [Table("TargetTask")]
+    [Serializable]
+    /// <summary>
+    /// 目标任务
+    /// </summary>
+    public class TargetTask
+    {
+        [Key]
+        /// <summary>
+        /// 命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 表名
+        /// </summary>
+        public string Tname { get; set; }
+        /// <summary>
+        /// 主键
+        /// </summary>
+        public string Keys { get; set; }
+        /// <summary>
+        /// 变更依据--对应的是时间字段，用于根据时间做删除
+        /// </summary>
+        public string Bgyj { get; set; }
+        /// <summary>
+        /// 关联数据库Id
+        /// </summary>
+        public string DbId { get; set; }
+
+        /// <summary>
+        /// 关联服务Id集(用逗号隔开)
+        /// </summary>
+        public string ServiceIds { get; set; }
+
+        /// <summary>
+        /// 结构化Json配置--{"Map":{"A1":"T1","A2.B1":"T1+T2","A2.B2":"T1-T2"},"Format":{"A1":"","A2":{"B1":0,"B2":0}}}
+        /// </summary>
+        public string MJson { get; set; }
+        /// <summary>
+        /// 备注
+        /// </summary>
+        public string Bz { get; set; }
+    }
+}

@@ -1,0 +1,80 @@
+﻿//using System;
+//using System.Data;
+//using Max.BaseKit;
+//using System.Data.SQLite;
+//using System.Collections.Generic;
+
+//namespace Max.DbTool.Imp
+//{
+//    /// <summary>
+//    /// 提供Sqlite数据库操作实现【System.Data.SQLite驱动】
+//    /// </summary>
+//    public class SqliteOperate2 : ISqlOperate
+//    {
+//        public DbConfig Config { get; set; }
+//        private static readonly object obj_lock = new object();
+//        public bool Execute(string sqlstr)
+//        {
+//            lock (obj_lock)
+//            {
+//                try
+//                {
+//                    using (SQLiteConnection connection = new SQLiteConnection(Config.ConnStr))
+//                    {
+//                        connection.Open();
+//                        using (var cmd = new SQLiteCommand(sqlstr, connection))
+//                        {
+//                            cmd.ExecuteNonQuery();
+//                            return true;
+//                        }
+//                    }
+//                }
+//                catch (Exception ex)
+//                {
+//                    NLogger.Warn($"Sqlite执行的Execute异常:{ex.Message},语句:{sqlstr}");
+//                    return false;
+//                }
+//            }
+//        }
+//        public DataTable Query(string sqlstr)
+//        {
+//            lock (obj_lock)
+//            {
+//                DataTable dt = new DataTable();
+//                try
+//                {
+//                    sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+//                    using (SQLiteConnection connection = new SQLiteConnection(Config.ConnStr))
+//                    {
+//                        connection.Open();
+//                        using (var da = new SQLiteDataAdapter(sqlstr, connection))
+//                        {
+//                            da.Fill(dt);
+//                            return dt;
+//                        }
+//                    }
+//                }
+//                catch (Exception ex)
+//                {
+//                    NLogger.Warn($"Sqlite执行的Query异常:{ex.Message},语句:{sqlstr}");
+//                    return dt;
+//                }
+//            }
+//        }
+
+//        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public void Dispose()
+//        {
+//            SqlOperateManger.I.Still(Config, this);
+//        }
+//    }
+//}

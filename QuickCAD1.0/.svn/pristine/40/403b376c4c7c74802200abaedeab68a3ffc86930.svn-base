@@ -1,0 +1,63 @@
+﻿using System;
+using System.Runtime.Caching;
+
+namespace Max.BaseKit.Customs
+{
+    public class CacheHelper
+    {
+        private static readonly MemoryCache cache = MemoryCache.Default;
+        /// <summary>
+        /// 缓存移除事件
+        /// </summary>
+        public static Action<string, object> OnRemoved;
+        /// <summary>
+        /// 缓存修改事件
+        /// </summary>
+        public static Action<string, object> OnChanged;
+
+        /// <summary>
+        /// 检查数据是否发生变化
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static bool CheckDataChange(string key, object data)
+        {
+            var tobj = cache.Contains(key) ? cache.Get(key) : default;
+            return !data.Equals(tobj);
+        }
+
+        /// <summary>
+        /// 获取缓存数据
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public static object GetCacheData(string key)
+        {
+            return cache.Contains(key) ? cache.Get(key) : default;
+        }
+
+        /// <summary>
+        /// 更新缓存数据
+        /// </summary>
+        /// <param name="key"></param>
+        /// <param name="data"></param>
+        /// <param name="timeout">超时时长(单位：秒)</param>
+        public static void UpdateCacheData(string key, object data, double timeout = 0)
+        {
+            var policy = new CacheItemPolicy
+            {
+                AbsoluteExpiration = DateTimeOffset.Now.AddSeconds(timeout),
+                RemovedCallback = p => { OnRemoved?.Invoke(key, p.CacheItem.Value); },
+                UpdateCallback = p =>
+                {
+                    if (!data.Equals(p.UpdatedCacheItem.Value)) //检查是否真正发生修改
+                    {
+                        OnChanged?.Invoke(key, p.UpdatedCacheItem.Value);
+                    }
+                }
+            };
+            cache.Set(key, data, policy);
+        }
+    }
+}

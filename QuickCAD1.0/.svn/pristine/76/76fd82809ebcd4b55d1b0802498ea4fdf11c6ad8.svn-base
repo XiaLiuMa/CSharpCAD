@@ -1,0 +1,120 @@
+﻿using Confluent.Kafka;
+using System;
+using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace KafkaTest
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+
+            //string ll = @"C:\Users\Administrator\Desktop\2021-11-24_172940.jpg";
+            //byte[] bytes = File.ReadAllBytes(ll);
+            //string ss = Convert.ToBase64String(bytes);
+
+            Console.WriteLine("Hello World!");
+            InitConsumers();
+            Thread.Sleep(3 * 1000);
+            InitProducers();
+            Thread.Sleep(3 * 1000);
+            InitProducers();
+            Thread.Sleep(3 * 1000);
+            InitProducers();
+            Thread.Sleep(3 * 1000);
+            InitProducers();
+        }
+
+        /// <summary>
+        /// 初始化生产者
+        /// </summary>
+        private static void InitProducers()
+        {
+            var config = new ProducerConfig
+            {
+                BootstrapServers = "192.168.111.11:9092"
+            };
+
+            Action<IProducer<Null, string>, Error> BuildErrorHandler = (s, e) =>
+            {
+                Console.WriteLine($"创建生产者异常: {e.Reason}");
+            };
+
+            Action<DeliveryReport<Null, string>> ProducerHandler = (r) =>
+            {
+                Console.WriteLine(!r.Error.IsError ? $"生产数据到 {r.TopicPartitionOffset}" : $"生产数据异常: {r.Error.Reason}");
+            };
+
+            using (var p = new ProducerBuilder<Null, string>(config).SetErrorHandler(BuildErrorHandler).Build())
+            {
+                try
+                {
+                    for (var i = 1; i <= 10; i++)
+                    {
+                        p.Produce("test", new Message<Null, string> { Value = $"my message: {i}" }, ProducerHandler);
+                    }
+                    p.Flush(TimeSpan.FromSeconds(10));
+                }
+                catch (ProduceException<Null, string> e)
+                {
+                    Console.WriteLine($"Delivery failed: {e.Error.Reason}");
+                }
+            }
+            Console.WriteLine("Done!");
+        }
+
+        /// <summary>
+        /// 初始化消费者
+        /// </summary>
+        private static void InitConsumers()
+        {
+            Task.Factory.StartNew(()=> 
+            {
+                var conf = new ConsumerConfig
+                {
+                    GroupId = "test-consumer-group",
+                    BootstrapServers = "192.168.111.11:9092",
+                    AutoOffsetReset = AutoOffsetReset.Earliest,
+                    EnableAutoOffsetStore = false//<----this
+                };
+                using (var consumer = new ConsumerBuilder<Ignore, string>(conf)
+                    .SetErrorHandler((s, e) => Console.WriteLine($"创建消费者异常: {e.Reason}"))
+                    .Build())
+                {
+
+                    consumer.Subscribe("test");
+                    var cts = new CancellationTokenSource();
+                    Console.CancelKeyPress += (_, e) =>
+                    {
+                        e.Cancel = true; // prevent the process from terminating.
+                        cts.Cancel();
+                    };
+
+                    try
+                    {
+                        while (true)
+                        {
+                            try
+                            {
+                                var consumeResult = consumer.Consume(cts.Token);
+                                Console.WriteLine($"Received message at {consumeResult.TopicPartitionOffset}: ${consumeResult.Message.Value}");
+                                consumer.StoreOffset(consumeResult);//<----this
+                            }
+                            catch (ConsumeException e)
+                            {
+                                Console.WriteLine($"Error occured: {e.Error.Reason}");
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        // Ensure the consumer leaves the group cleanly and final offsets are committed.
+                        consumer.Close();
+                    }
+                }
+            });
+        }
+    }
+}

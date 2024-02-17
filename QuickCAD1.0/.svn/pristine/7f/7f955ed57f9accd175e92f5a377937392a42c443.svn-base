@@ -1,0 +1,25 @@
+﻿using Max.BaseKit.Customs;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// 同步助手
+    /// </summary>
+    public interface IIsolator
+    {
+        /// <summary>
+        /// 待生产的文件集
+        /// </summary>
+        CustomConcurrentList<FileCodeMod> WaitProduceFiles { get; set; }
+        /// <summary>
+        /// 正在生产的文件集(队列：先入先出)
+        /// </summary>
+        BlockingCollection<string> ProducingFiles { get; set; }
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="data"></param>
+        void ProduceData(IsolatorData data);
+    }
+}

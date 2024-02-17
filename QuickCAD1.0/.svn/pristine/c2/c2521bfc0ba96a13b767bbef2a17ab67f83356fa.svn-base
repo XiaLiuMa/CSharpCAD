@@ -1,0 +1,57 @@
+﻿using Quartz;
+using Quartz.Impl;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace QuartzTest
+{
+    public class OneService
+    {
+        #region 单例
+        private static OneService instance;
+        private readonly static object objLock = new object();
+        public static OneService Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new OneService();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        //调度器
+        IScheduler scheduler;
+        public OneService()
+        {
+            //调度器工厂
+            scheduler = new StdSchedulerFactory().GetScheduler().Result;
+        }
+
+        public void Start(string jobKey)
+        {
+            //创建任务
+            IJobDetail wakeUpJob = JobBuilder.Create<OneJob>().WithIdentity(new JobKey(jobKey)).Build();
+
+            //创建触发器，配置5秒执行一次
+            ITrigger trigger1 = TriggerBuilder.Create().WithCronSchedule("0/5 * * * * ? ").Build();
+
+            //将任务与触发器添加到调度器中，如果需要多个就绑定多个即可
+            scheduler.ScheduleJob(wakeUpJob, trigger1);
+
+            //开始执行
+            scheduler.Start();
+        }
+    }
+
+}

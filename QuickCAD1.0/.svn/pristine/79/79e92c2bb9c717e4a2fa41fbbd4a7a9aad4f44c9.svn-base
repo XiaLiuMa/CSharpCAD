@@ -1,0 +1,32 @@
+﻿using Max.BaseKit.Utils;
+using Max.ISolator.RabbitMqKit;
+using Max.BaseKit.Exts;
+using IsolatorTarget.Storage.Entities;
+using System.Text;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// RabbitMq发送服务
+    /// </summary>
+    public class RabbitMqService
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata">数据</param>
+        /// <param name="task">消费任务</param>
+        /// <param name="serviceId">服务标识</param>
+        public void ConsumeData(IsolatorData idata, ConsumeTaskEntity task, string serviceId)
+        {
+            var rmqProduceEntity = ConfigCacher.I.RmqProduceCacher?.Find(p => serviceId.Equals(p.Id));
+            if (rmqProduceEntity == null) return;
+
+            string idataStr = JsonUtil.ObjectToStr(idata);
+            byte[] iadtaBytes = Encoding.UTF8.GetBytes(idataStr);
+            var rmqProduceMod = rmqProduceEntity.Convert<RmqProducerMod>();
+            RmqManager.I.Publich(rmqProduceMod, iadtaBytes);
+        }
+    }
+}

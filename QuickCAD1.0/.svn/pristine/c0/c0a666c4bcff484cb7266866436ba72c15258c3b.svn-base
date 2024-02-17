@@ -1,0 +1,21 @@
+﻿namespace DataSyncSource.Config.Models
+{
+    /// <summary>
+    /// 网闸配置
+    /// </summary>
+    public class NetBrake
+    {
+        /// <summary>
+        /// 生成路径
+        /// </summary>
+        public string BuildPath { get; set; }
+        /// <summary>
+        ///  同步路径
+        /// </summary>
+        public string SyncPath { get; set; }
+        /// <summary>
+        ///  扫描路径
+        /// </summary>
+        public string ScanPath { get; set; }
+    }
+}

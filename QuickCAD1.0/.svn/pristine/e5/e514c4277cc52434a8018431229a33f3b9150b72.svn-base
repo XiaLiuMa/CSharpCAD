@@ -1,0 +1,38 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MsDataSimulator
+{
+    public class Class2
+    {
+        #region 单例
+        private static Class2 i;
+        private readonly static object objLock = new object();
+        public static Class2 I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new Class2();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public Class1 Get1()
+        {
+            return new Class1();
+        }
+    }
+}

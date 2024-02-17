@@ -1,0 +1,43 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace SetCharLib
+{
+    public class GlobalSetChar
+    {
+        #region 单例
+        private static GlobalSetChar i;
+        private readonly static object objLock = new object();
+        public static GlobalSetChar I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new GlobalSetChar();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        public void SetCharacter()
+        { 
+        
+        }
+
+        public void ClearCharacter()
+        {
+
+        }
+    }
+}

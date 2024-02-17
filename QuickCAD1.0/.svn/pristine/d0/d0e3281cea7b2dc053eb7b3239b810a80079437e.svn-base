@@ -1,0 +1,111 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using System;
+using System.IO;
+using Max.ISolator.NetBrakePkg;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.Linq;
+using System.Threading;
+using Max.BaseKit.Customs;
+using NPOI.POIFS.Crypt.Dsig;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 网闸同步助手
+    /// </summary>
+    public class GatekeeperIsolator : AbsIsolator
+    {
+        /// <summary>
+        /// 网闸配置
+        /// </summary>
+        public NetBrakeCfg Config { get; private set; }
+        public override CustomConcurrentList<FileCodeMod> WaitProduceFiles { get; set; }
+        public override BlockingCollection<string> ProducingFiles { get; set; }
+        /// <summary>
+        /// 文件扫描路径
+        /// </summary>
+        public string ScanPath { get; private set; } = string.Empty;
+
+        public GatekeeperIsolator(string iparam)
+        {
+            ScanCacheFiles();
+            try
+            {
+                NLogger.Info($"初始化网闸助手。。。");
+                var mParam = JsonUtil.StrToObject<NetBrakeCfg>(iparam);
+                if (mParam != null)
+                {
+                    Config = mParam;
+                    Config.SyncPath = string.IsNullOrEmpty(Config.SyncPath) ? $"{AppContext.BaseDirectory}/Temp/BackupPath" : Config.SyncPath;
+                    if (!Directory.Exists(Config.SyncPath)) Directory.CreateDirectory(Config.SyncPath);
+                    Config.ScanPath = string.IsNullOrEmpty(Config.ScanPath) ? $"{AppContext.BaseDirectory}/Temp/ScanPath" : Config.ScanPath;
+                    if (!Directory.Exists(Config.ScanPath)) Directory.CreateDirectory(Config.ScanPath);
+                    Config.BackupPath = string.IsNullOrEmpty(Config.BackupPath) ? $"{AppContext.BaseDirectory}/Temp/BackupPath" : Config.BackupPath;
+                    if (!Directory.Exists(Config.BackupPath)) Directory.CreateDirectory(Config.BackupPath);
+                    Config.LocalImgPath = string.IsNullOrEmpty(Config.LocalImgPath) ? $"{AppContext.BaseDirectory}/Temp/LocalImgPath" : Config.LocalImgPath;
+                    if (!Directory.Exists(Config.LocalImgPath)) Directory.CreateDirectory(Config.LocalImgPath);
+                }
+                else
+                {
+                    NLogger.Warn($"网闸助手参数不合理，将使用默认路径。");
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化网闸助手异常：{ex.Message}");
+            }
+        }
+
+        public void Test()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var files = FileUtil.FindFiles(new DirectoryInfo(Config.ScanPath), null, "*.txt");
+                        files?.ForEach(f =>
+                        {
+                            //TODO...将文件移值缓存区域
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"扫描待消费的缓存文件异常：{ex.Message}");
+                    }
+                    Thread.Sleep(1 * 100);
+                }
+            }, TaskCreationOptions.LongRunning);
+        }
+
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public override void ProduceData(IsolatorData idata)
+        {
+            if (idata == null || idata.Lst.Count <= 0) return;
+            var tlst = LimitIsolatorData(idata);//分页
+            for (int i = 0; i < tlst.Count; i++)
+            {
+                try
+                {
+                    var fName = CacheData(tlst[i], i + 1);//缓存文件
+                    WaitProduceFiles.Add(new FileCodeMod()
+                    {
+                        FileName = fName,
+                        CreatTime = idata.Rtime,
+                        Level = idata.Level,
+                    });//加入待生产队列
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"网闸同步数据异常：{ex.Message}");
+                }
+            }
+        }
+    }
+}

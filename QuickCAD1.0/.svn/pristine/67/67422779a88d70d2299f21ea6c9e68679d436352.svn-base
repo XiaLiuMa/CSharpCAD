@@ -1,0 +1,33 @@
+﻿using Quartz;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace QuartzTest
+{
+    public class OneJob : IJob
+    {
+        public Task Execute(IJobExecutionContext context)
+        {
+            Console.WriteLine($"{context.JobDetail.Key}");
+            int[] nums = new int[] { 1, 2, 3};
+
+            Task[] tasks = new Task[nums.Length];
+            for (int i = 0; i < tasks.Length; i++)
+            {
+                var j = i;
+                tasks[i] = Task.Run(() => { Test(nums[j]); });
+            }
+            return Task.CompletedTask;
+        }
+
+        private void Test(int num)
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine($"{DateTime.Now} **** {num} **** {i}");
+            }
+        }
+    }
+}

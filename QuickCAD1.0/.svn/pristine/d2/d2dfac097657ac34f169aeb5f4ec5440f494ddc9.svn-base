@@ -1,0 +1,164 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form layuimini-form">
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">主键Id</label>
+            <div class="layui-input-block">
+                <input id="id" name="id" type="text" placeholder="请输入主键Id" value="" class="layui-input" lay-verify="required">
+                <tip>主键Id，建议以"I1"开头，如若不是，后台会自动添加上。</tip>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">URL地址</label>
+            <div class="layui-input-block">
+                <input id="endpoint" name="endpoint" type="text" placeholder="请输入URL地址" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">用户ID</label>
+            <div class="layui-input-block">
+                <input id="accessKey" name="accessKey" type="text" placeholder="请输入用户ID" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">密码</label>
+            <div class="layui-input-block">
+                <input id="secretKey" name="secretKey" type="text" placeholder="请输入密码" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">桶名称</label>
+            <div class="layui-input-block">
+                <input id="bucketName" name="bucketName" type="text" placeholder="请输入桶名称" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">最大并行数</label>
+            <div class="layui-input-block">
+                <input id="concurrency" name="concurrency" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label required">描述</label>
+            <div class="layui-input-block">
+                <input id="iDescribe" name="iDescribe" type="text" placeholder="请输入描述" value="" class="layui-input" lay-verify="required">
+            </div>
+        </div>
+        <div class="layui-form-item" id="saveBtn">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" id="saveBtn1">确认保存</button>
+            </div>
+        </div>
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>说明1</h3><br>
+            <h4>说明2</h4>
+            <p>如果需要，这里可以放一些说明。</p><br>
+            <h4>说明3</h4>
+            <p>如果需要，这里可以放一些说明。</p>
+        </div>
+    </div>
+    </div>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod = parent.parentMod;//全局变量，子页面获取父页面传来的参数。
+        var subPageState = parent.subPageState;//全局变量，子页面状态('copy','look','add','edit')
+        layui.use(['form'], function () {
+            var form = layui.form;
+            var layer = layui.layer;
+            var $ = layui.$;
+            var apiUrl;//接口地址
+            Init();//页面初始化
+
+            function Init() {
+                switch (subPageState) {
+                    case 'look': { //查看
+                        $('#saveBtn').hide();//隐藏，不占位
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $("#endpoint").val(parentMod.endpoint);
+                        $('#endpoint').attr("disabled", true);
+                        $("#accessKey").val(parentMod.accessKey);
+                        $('#accessKey').attr("disabled", true);
+                        $("#secretKey").val(parentMod.secretKey);
+                        $('#secretKey').attr("disabled", true);
+                        $("#bucketName").val(parentMod.bucketName);
+                        $('#bucketName').attr("disabled", true);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $('#concurrency').attr("disabled", true);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        $('#iDescribe').attr("disabled", true);//禁用
+                    } break;
+                    case 'add': { //新增
+                        apiUrl = '/ImgMinio/Add';
+                    } break;
+                    case 'edit': { //编辑
+                        apiUrl = '/ImgMinio/Update';
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $("#endpoint").val(parentMod.endpoint);
+                        $("#accessKey").val(parentMod.accessKey);
+                        $("#secretKey").val(parentMod.secretKey);
+                        $("#bucketName").val(parentMod.bucketName);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                    } break;
+                    case 'copy': { //拷贝
+                        apiUrl = '/ImgMinio/Add';
+                        $("#id").val(parentMod.id);
+                        $("#endpoint").val(parentMod.endpoint);
+                        $("#accessKey").val(parentMod.accessKey);
+                        $("#secretKey").val(parentMod.secretKey);
+                        $("#bucketName").val(parentMod.bucketName);
+                        $("#concurrency").val(parentMod.concurrency);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                    } break;
+                    default: break;
+                }
+            }
+
+            //监听提交
+            form.on('submit(saveBtn)', function (data) {
+                $.ajax({
+                    type: 'POST',
+                    url: apiUrl, //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: data.field,//form数据
+                    success: function (res) {//函数参数 "data" 为请求成功服务端返回的数据
+                        layer.msg(res.msg);
+                        if (res.code == 0) {
+                            window.parent.location.reload();
+                            var iframeIndex = parent.layer.getFrameIndex(window.name);
+                            parent.layer.close(iframeIndex);//关闭iframe
+                        }
+                    },
+                    error: function (err) {
+                        layer.msg("接口【" + apiUrl + "】请求错误，状态码：" + err.status);
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

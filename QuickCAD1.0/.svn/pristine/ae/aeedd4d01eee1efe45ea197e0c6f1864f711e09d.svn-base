@@ -1,0 +1,258 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>layui</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form layuimini-form">
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">主键Id</label>
+            <div class="layui-input-block">
+                <input id="id" name="id" type="text" placeholder="请输入主键Id" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">启用状态</label>
+            <div class="layui-input-block">
+                <input id="isUsable" name="isUsable" type="checkbox" lay-skin="switch" title="启用|禁用">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">Ip地址</label>
+            <div class="layui-input-block">
+                <input id="serverIP" name="serverIP" type="text" placeholder="请输入IP地址" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">端口号</label>
+            <div class="layui-input-block">
+                <input id="serverPort" name="serverPort" type="number" autocomplete="off" class="layui-input" min="5000" max="15000" step="1" lay-affix="number">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">隔离器模式</label>
+            <div class="layui-input-block">
+                <select id="bizType" name="bizType" lay-verify="required" lay-search="">
+                    <option value="0">双向模式</option>
+                    <option value="1">生产者模式</option>
+                    <option value="2" selected>消费者模式</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">生产文件缓存路径</label>
+            <div class="layui-input-block">
+                <input id="produceCachePath" name="produceCachePath" type="text" placeholder="请输入生产文件缓存路径" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">是否备份生产文件</label>
+            <div class="layui-input-block">
+                <input id="isBackupProduce" name="isBackupProduce" type="checkbox" lay-skin="switch" title="备份|不备份">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">生产文件备份路径</label>
+            <div class="layui-input-block">
+                <input id="produceBackupPath" name="produceBackupPath" type="text" placeholder="请输入生产文件备份路径" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">消费文件缓存路径</label>
+            <div class="layui-input-block">
+                <input id="consumeCachePath" name="consumeCachePath" type="text" placeholder="请输入消费文件缓存路径" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">是否备份消费文件</label>
+            <div class="layui-input-block">
+                <input id="isBackupConsume" name="isBackupConsume" type="checkbox" lay-skin="switch" title="备份|不备份">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">消费文件备份路径</label>
+            <div class="layui-input-block">
+                <input id="consumeBackupPath" name="consumeBackupPath" type="text" placeholder="请输入消费文件备份路径" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">管道大小</label>
+            <div class="layui-input-block">
+                <input id="channelSize" name="channelSize" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">数量大小</label>
+            <div class="layui-input-block">
+                <input id="itemSize" name="itemSize" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">容积大小</label>
+            <div class="layui-input-block">
+                <input id="bulkSize" name="bulkSize" type="number" autocomplete="off" class="layui-input" min="1" step="1" lay-affix="number">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">是否压缩</label>
+            <div class="layui-input-block">
+                <input id="isZip" name="isZip" type="checkbox" lay-skin="switch" title="压缩|不压缩">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">隔离器描述</label>
+            <div class="layui-input-block">
+                <input id="iDescribe" name="iDescribe" type="text" placeholder="请输入隔离器描述" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item" id="saveBtn">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" id="saveBtn1">确认保存</button>
+            </div>
+        </div>
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>说明</h3><br>
+            <h4>入款到保险箱</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+            <br><h4>入款到现金</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+        </div>
+    </div>
+    </div>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod = parent.parentMod;//全局变量，子页面获取父页面传来的参数。
+        var subPageState = parent.subPageState;//全局变量，子页面状态('look','add','edit')
+        layui.use(['form'], function () {
+            var form = layui.form;
+            var layer = layui.layer;
+            var $ = layui.$;
+            var apiUrl;//接口地址
+            Init();//页面初始化
+
+            function Init() {
+                switch (subPageState) {
+                    case 'look': { //查看
+                        //$('#saveBtn').show();//显示
+                        $('#saveBtn').hide();//隐藏，不占位
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $('#isUsable').attr('checked', parentMod.isUsable);
+                        $('#isUsable').attr("disabled", true);//禁用
+                        $("#serverIP").val(parentMod.serverIP);
+                        $('#serverIP').attr("disabled", true);
+                        $("#serverPort").val(parentMod.serverPort);
+                        $('#serverPort').attr("disabled", true);
+                        $("#mode").attr('checked', parentMod.mode);
+                        $('#mode').attr("disabled", true);//禁用
+                        $("#produceCachePath").val(parentMod.produceCachePath);
+                        $('#produceCachePath').attr("disabled", true);//禁用
+                        $('#isBackupProduce').attr('checked', parentMod.isBackupProduce);
+                        $('#isBackupProduce').attr("disabled", true);//禁用
+                        $("#produceBackupPath").val(parentMod.produceBackupPath);
+                        $('#produceBackupPath').attr("disabled", true);//禁用
+                        $("#consumeCachePath").val(parentMod.consumeCachePath);
+                        $('#consumeCachePath').attr("disabled", true);//禁用
+                        $('#isBackupConsume').attr('checked', parentMod.isBackupConsume);
+                        $('#isBackupConsume').attr("disabled", true);//禁用
+                        $("#consumeBackupPath").val(parentMod.consumeBackupPath);
+                        $('#consumeBackupPath').attr("disabled", true);//禁用
+                        $("#channelSize").val(parentMod.channelSize);
+                        $('#channelSize').attr("disabled", true);//禁用
+                        $("#itemSize").val(parentMod.itemSize);
+                        $('#itemSize').attr("disabled", true);//禁用
+                        $("#bulkSize").val(parentMod.bulkSize);
+                        $('#bulkSize').attr("disabled", true);//禁用
+                        $('#isZip').attr('checked', parentMod.isZip);
+                        $('#isZip').attr("disabled", true);//禁用
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        $('#iDescribe').attr("disabled", true);//禁用
+                        // $(#dbDescribe').addClass("layui-disabled").attr("disabled", true);//禁用并变灰
+                        form.render('checkbox');
+                    } break;
+                    case 'add': { //新增
+                        apiUrl = '/SerialServer/Add';
+                    } break;
+                    case 'edit': { //编辑
+                        apiUrl = '/SerialServer/Update';
+                        $("#id").val(parentMod.id);
+                        $('#id').attr("disabled", true);//禁用
+                        $('#isUsable').attr('checked', parentMod.isUsable);
+                        $("#serverIP").val(parentMod.portName);
+                        $("#serverPort").val(parentMod.serverPort);
+                        $("#mode").attr('checked', parentMod.mode);
+                        $("#produceCachePath").val(parentMod.produceCachePath);
+                        $('#isBackupProduce').attr('checked', parentMod.isBackupProduce);
+                        $("#produceBackupPath").val(parentMod.produceBackupPath);
+                        $("#consumeCachePath").val(parentMod.consumeCachePath);
+                        $('#isBackupConsume').attr('checked', parentMod.isBackupConsume);
+                        $("#consumeBackupPath").val(parentMod.consumeBackupPath);
+                        $("#channelSize").val(parentMod.channelSize);
+                        $("#itemSize").val(parentMod.itemSize);
+                        $("#bulkSize").val(parentMod.bulkSize);
+                        $('#isZip').attr('checked', parentMod.isZip);
+                        $("#iDescribe").val(parentMod.iDescribe);
+                        form.render('checkbox');
+                    } break;
+                    default: break;
+                }
+            }
+
+            // // 监听输入框修改事件
+            // $('#serverIP').on('input propertychange', function () {
+            //     var ipValue = $(this).val();
+            //     // 使用正则表达式判断输入框中的内容是否为合法的IP地址
+            //     var regExp = /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/;
+            //     if (regExp.test(ipValue) && RegExp.$1 <= 255 && RegExp.$2 <= 255 && RegExp.$3 <= 255 && RegExp.$4 <= 255) {
+            //         // 如果是合法的IP地址，则将输入框边框设置为绿色
+            //         $(this).css('border-color', '#5FB878');
+            //     } else {
+            //         $(this).val("");
+            //     }
+            // });
+
+            //监听提交
+            form.on('submit(saveBtn)', function (data) {
+                data.field.isUsable = data.field.isUsable == "on" ? true : false;
+                data.field.isBackupProduce = data.field.isBackupProduce == "on" ? true : false;
+                data.field.isZip = data.field.isZip == "on" ? true : false;
+                $.ajax({
+                    type: 'POST',
+                    url: apiUrl, //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: data.field,//form数据
+                    success: function (res) {//函数参数 "data" 为请求成功服务端返回的数据
+                        if (res.code == 0) {
+                            layer.msg(res.msg);
+                        }
+                    },
+                    error: function (err) {
+                        if (err.status == 401) {
+                            parent.location.href = "/Hmoe/Login";
+                        }
+                    }
+                });
+                window.parent.location.reload();
+                var iframeIndex = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(iframeIndex);//关闭iframe
+                //parent.RefreshTable();//刷新父页面表格
+
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

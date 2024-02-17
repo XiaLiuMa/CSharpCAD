@@ -1,0 +1,38 @@
+﻿//using Max.DbTool.SqlExtend.Mod;
+
+//namespace DataSyncSource.Config.Entities
+//{
+//    /// <summary>
+//    /// 历史变更延迟记录
+//    /// </summary>
+//    public class LisBgYcjl : BaseEntity
+//    {
+//        /// <summary>
+//        /// 子任务命令码
+//        /// </summary>
+//        public string Cmd { get; set; }
+//        /// <summary>
+//        /// 数据库Id
+//        /// </summary>
+//        public string Db { get; set; }
+//        /// <summary>
+//        /// 主键值
+//        /// </summary>
+//        public string Keys { get; set; }
+
+//        public override string[] GetKeyValues()
+//        {
+//            return new string[] { "Cmd", "Db" };
+//        }
+
+//        public override string[] GetDataBaseAuto()
+//        {
+//            return new string[] { "" };
+//        }
+
+//        public override string GetTableName()
+//        {
+//            return "LisBgYcjl";
+//        }
+//    }
+//}

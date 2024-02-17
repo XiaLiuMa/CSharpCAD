@@ -1,0 +1,177 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.TcpKit;
+using Max.TcpKit.Core;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 串口服务器同步助手
+    /// </summary>
+    public class SerialServerIsolator : AbsIsolator
+    {
+        private ConcurrentQueue<MaxTcpClient> tcpClients;
+        public SerialServerIsolator(string iparam)
+        {
+            tcpClients = new ConcurrentQueue<MaxTcpClient>();
+            try
+            {
+                NLogger.Info($"初始化串口服务器助手。。。");
+                var mParam = JsonUtil.StrToObject<List<SerialServerParam>>(iparam);
+                if (mParam == null || mParam.Count <= 0)
+                {
+                    NLogger.Error($"串口服务器参数不合理，初始化失败。");
+                    return;
+                }
+                foreach (var item in mParam)
+                {
+                    MaxTcpClient tcpClient = new MaxTcpClient(item.ServerIP, item.ServerPort);
+                    //SerialServerHandler.Instance.SubscribeComServer(tcpClient);//注册串口服务器接收事件
+                    tcpClient.OnReceived += OnDataReceived;
+                    tcpClient.ConnectAsync();
+                    tcpClients.Enqueue(tcpClient);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"初始化串口服务器助手异常：{ex.Message}");
+            }
+        }
+
+        public override ConcurrentBag<string> WaitProduceFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentQueue<string> ProducingFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentBag<string> WaitConsumeFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+        public override ConcurrentQueue<string> ConsumingFiles { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
+
+        public override void ConsumeData(IsolatorData data)
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public override void ProduceData(IsolatorData idata)
+        {
+            //if (idata == null || idata.Lst.Count <= 0) return;
+            //var tlst = LimitIsolatorData(idata);//分页
+
+            //for (int i = 0; i < tlst.Count; i++)
+            //{
+            //    try
+            //    {
+            //        var fName = CacheData(tlst[i], i + 1);//缓存文件
+
+            //        string datastr = JsonConvert.SerializeObject(tlst[i]);
+            //        byte[] ys_bytes = ZipUtil.Compress(Encoding.UTF8.GetBytes(datastr));//压缩
+            //        MaxTcpClient client;
+            //        tcpClients.TryDequeue(out client);
+            //        if (client != null)
+            //        {
+            //            client.SendAsync(ys_bytes);
+            //            tcpClients.Enqueue(client);
+            //        }
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        NLogger.Error($"串口服务器同步数据异常：{ex.Message}");
+            //    }
+            //}
+        }
+
+        private void OnDataReceived(byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null || bytes.Length <= 0) return;
+                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+                string msg = Encoding.UTF8.GetString(jy_bytes);
+                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(msg);
+                NLogger.Debug($"串口服务器接收到{idata.Cmd}数据...");
+                if (idata == null) return;
+                ConsumeData(idata);//消费数据
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"串口服务器接收数据异常：{ex.Message}");
+            }
+        }
+    }
+}
+
+
+
+
+
+
+//using Max.BaseKit;
+//using Max.BaseKit.Utils;
+//using Max.TcpKit.Core;
+//using Newtonsoft.Json;
+//using System;
+//using System.Text;
+
+//namespace Max.ISolator.Core.Handlers
+//{
+//    /// <summary>
+//    /// 串口服务器数据监听助手
+//    /// </summary>
+//    public class SerialServerHandler : CommHandler
+//    {
+//        #region 单例
+//        private static SerialServerHandler instance;
+//        private readonly static object objLock = new object();
+//        public static SerialServerHandler Instance
+//        {
+//            get
+//            {
+//                if (instance == null)
+//                {
+//                    lock (objLock)
+//                    {
+//                        if (instance == null)
+//                        {
+//                            instance = new SerialServerHandler();
+//                        }
+//                    }
+//                }
+//                return instance;
+//            }
+//        }
+//        #endregion
+
+//        /// <summary>
+//        /// 注册串口服务器接收事件
+//        /// </summary>
+//        public void SubscribeComServer(MaxTcpClient tcpClient)
+//        {
+//            tcpClient.OnReceived += TcpClient_OnReceived;
+//        }
+
+//        private void TcpClient_OnReceived(byte[] obj)
+//        {
+//            try
+//            {
+//                if (obj == null || obj.Length <= 0) return;
+//                byte[] jy_bytes = ZipUtil.Decompress(obj);//解压
+//                string msg = Encoding.UTF8.GetString(jy_bytes);
+//                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(msg);
+//                NLogger.Debug($"串口服务器接收到{idata.Cmd}数据...");
+//                if (idata == null) return;
+//                ConsumeData(idata);//消费数据
+//            }
+//            catch (Exception ex)
+//            {
+//                NLogger.Error($"串口服务器接收数据异常：{ex.Message}");
+//            }
+//        }
+//    }
+//}

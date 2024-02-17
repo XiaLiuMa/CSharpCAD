@@ -1,0 +1,99 @@
+﻿using Max.BaseKit.Utils;
+using WebApplication1.Models;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// 手动同步控制器
+    /// </summary>
+    [Authorize]
+    public class ManualSyncController : Controller
+    {
+        private readonly ILogger<ManualSyncController> _logger;
+
+        public ManualSyncController(ILogger<ManualSyncController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 启动手动任务
+        /// </summary>
+        /// <param name="cmds"></param>
+        /// <param name="stime"></param>
+        /// <param name="etime"></param>
+        /// <returns></returns>
+        [HttpPost]
+        public ActionResult<ResultMsg<string>> Start(string cmds = "", string stime = "", string etime = "")
+        {
+            if (string.IsNullOrEmpty(cmds)) return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "参数为空" });
+            var cmdArr = cmds.Split(',').ToList();
+            var subTasks = DataMocker.Instance.SubTask_Lst.Where(p => cmdArr.Contains(p.Cmd)).ToList();
+            return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "启动手动任务成功" });
+        }
+
+        /// <summary>
+        /// 查询正在运行的手动任务
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet]
+        public ActionResult<ResultMsg<List<RuningManualTask>>> SearchRuning()
+        {
+            var tlst = RandomUtil.PickAny(DataMocker.Instance.SubTask_Lst, 5);
+            var rlst = new List<RuningManualTask>();
+            foreach (var t in tlst)
+            {
+                rlst.Add(new RuningManualTask()
+                {
+                    Id = Guid.NewGuid().ToString("N"),
+                    Cmd = t.Cmd,
+                    TaskName = t.TaskName,
+                    STime = DateTime.Now.AddDays(-7).ToString("yyyy-MM-dd HH:mm:ss"),
+                    ETime = DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd HH:mm:ss"),
+                    RTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                });
+            }
+            return Ok(new ResultMsg<List<RuningManualTask>>()
+            {
+                Code = StatusType.Success,
+                Msg = "启动手动任务成功",
+                Data = rlst
+            });
+        }
+    }
+
+    public class RuningManualTask
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 命令码
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 任务名称
+        /// </summary>
+        public string TaskName { get; set; }
+        /// <summary>
+        /// 开始时间
+        /// </summary>
+        public string STime { get; set; }
+        /// <summary>
+        /// 结束时间
+        /// </summary>
+        public string ETime { get; set; }
+        /// <summary>
+        /// 运行时间
+        /// </summary>
+        public string RTime { get; set; }
+    }
+}

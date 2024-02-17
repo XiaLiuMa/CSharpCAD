@@ -1,0 +1,221 @@
+﻿using Max.BaseKit;
+using Max.ISolator.Core;
+using Max.ISolator.MinioKit;
+using IsolatorTarget.Storage.Entities;
+using Max.BaseKit.Exts;
+using Max.ISolator.FtpKit;
+using Max.ISolator.Core.Mods;
+
+namespace IsolatorTarget.Business.Services
+{
+    /// <summary>
+    /// 核心监听器：用于给各个服务分发数据
+    /// </summary>
+    public class CoreListener : IListener
+    {
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public void ConsumeData(IsolatorData idata, Action<bool, string> callBack)
+        {
+            var consumeTask = ConfigCacher.I.ConsumeTask_Lst?.Find(p => idata.Cmd.Equals(p.Cmd));
+            if (consumeTask == null)
+            {
+                NLogger.Warn($"未找到{idata.Cmd}命令码对应的消费任务");
+                callBack?.Invoke(false, $"未找到{idata.Cmd}命令码对应的消费任务");
+                return;
+            }
+
+            if (consumeTask.BizType == 1) //日志同步
+            {
+                new LogSyncService().ConsumeData(idata);
+            }
+            else if (consumeTask.BizType == 2) //时间同步
+            {
+                new TimeSyncService().ConsumeData(idata);
+            }
+            else if (consumeTask.BizType == 3) //字符叠加
+            {
+                var serviceIds = consumeTask.ServiceIds.Split(",").ToList();
+                serviceIds?.ForEach(serviceId =>
+                {
+                    new SetCharService().ConsumeData(idata, serviceId);
+                });    
+            }
+            else //数据同步(包含数据库、kafka、RabbitMQ)
+            {
+                var imgTypes = new int[] { 1, 2, 3, 4, 5 };//需要处理的图片类型
+                if (imgTypes.Contains(consumeTask.ImgType))
+                {
+                    idata.Lst = ProcessImg(idata.Lst, consumeTask);//处理图片
+                }
+
+                var serviceIds = consumeTask.ServiceIds.Split(",").ToList();
+                serviceIds?.ForEach(serviceId =>
+                {
+                    try
+                    {
+                        if (serviceId.StartsWith("D")) //数据库消费
+                        {
+                            new DatabaseService().ConsumeData(idata, consumeTask, serviceId);
+                        }
+                        else if (serviceId.StartsWith("K")) //Kafka消费
+                        {
+                            new KafkaService().ConsumeData(idata, consumeTask, serviceId);
+                        }
+                        else if (serviceId.StartsWith("R")) //RabbitMQ消费
+                        {
+                            new RabbitMqService().ConsumeData(idata, consumeTask, serviceId);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"DatabaseService处理隔离器数据异常：{ex.Message}");
+                    }
+                });
+            }
+
+            callBack?.Invoke(true, "消费数据完成");
+        }
+
+        /// <summary>
+        /// 处理图片
+        /// </summary>
+        /// <param name="lst">数据</param>
+        /// <param name="task">消费任务</param>
+        /// <returns></returns>
+        private List<Dictionary<string, object>> ProcessImg(List<Dictionary<string, object>> lst, ConsumeTaskEntity task)
+        {
+            var t_DataLst = new List<Dictionary<string, object>>();//临时数据集(克隆用)
+            t_DataLst.AddRange(lst);
+            lst.Clear();
+            foreach (var item_data in t_DataLst)
+            {
+                var t_Dic = new Dictionary<string, object>();
+                var tpKeys = item_data.Keys.Where(key => key.StartsWith("TP_")).ToList(); //找出含有图片的字段
+                tpKeys?.ForEach(tpKey =>
+                {
+                    item_data.TryGetValue(tpKey, out var tpValue);//获取图片字段的值--base64字符串
+                    string tpmKey = tpKey.Replace("TP_", "TPM_");//图片名字段名
+                    item_data.TryGetValue(tpmKey, out var tpmValue);//获取图片名字段的值--要存储的文件名
+
+                    object rtpValue = default;//处理图片后返回的图片字段的值
+                    switch (task.ImgType)
+                    {
+                        case 1: //图片数据直接入数据库
+                            rtpValue = Convert.FromBase64String((string)tpValue);
+                            break;
+                        case 2: //base64字符串入数据库
+                            rtpValue = (string)tpValue;
+                            break;
+                        case 3: //图片存minio再将url入数据库
+                            rtpValue = SaveFileToMinio(task.ImgServiceId, (string)tpValue, (string)tpmValue);
+                            break;
+                        case 4: //图片上传ftp再将url入数据库
+                            rtpValue = UploadFileToFTP(task.ImgServiceId, (string)tpValue, (string)tpmValue);
+                            break;
+                        case 5: //图片存本地服务再将url入数据库
+                            rtpValue = SaveFileToLocalServer(task.ImgServiceId, (string)tpValue, (string)tpmValue);
+                            break;
+                        default: break;
+                    }
+                    string fieldKey = tpKey.Replace("TP_", "");
+                    item_data.TryAdd(fieldKey, rtpValue);//还原图片字段名到数据中
+
+                    item_data.Remove(tpKey);
+                    item_data.Remove(tpmKey);
+                });
+            }
+            return t_DataLst;
+        }
+
+        /// <summary>
+        /// 保存图片到Minio
+        /// </summary>
+        /// <param name="id">Minio服务标识</param>
+        /// <param name="fData">文件数据base64</param>
+        /// <param name="fName">文件名称</param>
+        /// <returns>返回文件保存地址</returns>
+        private string SaveFileToMinio(string id, string fData, string fName)
+        {
+            var minioEntity = ConfigCacher.I.ImgMinio_Lst.Find(p => id.Equals(p.Id));
+            if (minioEntity == null) return string.Empty;
+            var minioMod = minioEntity.Convert<MimioClientMod>();
+            var minioClient = MinioManager.I.GetObject(minioMod);
+
+            byte[] imageData = Convert.FromBase64String(fData);
+            string t_fname = $@"{fName}.jpg";//文件名称
+            using (MemoryStream filestream = new MemoryStream(imageData))
+            {
+                minioClient?.PutObjectAsync(minioEntity.BucketName, t_fname, filestream).Wait();//同步上传图片(使用异步上传后面会崩掉)
+            }
+
+            MinioManager.I.ReturnObject(minioMod, minioClient);
+
+            return t_fname;
+        }
+
+        /// <summary>
+        /// 上传图片到FTP
+        /// </summary>
+        /// <param name="id">FTP服务标识</param>
+        /// <param name="fData">文件数据base64</param>
+        /// <param name="fName">文件名称</param>
+        /// <returns>返回文件保存地址</returns>
+        private string UploadFileToFTP(string id, string fData, string fName)
+        {
+            var ftpEntity = ConfigCacher.I.ImgFtp_Lst.Find(p => id.Equals(p.Id));
+            if (ftpEntity == null) return string.Empty;
+            var ftpMod = ftpEntity.Convert<FtpClientMod>();
+            var ftpClient = FtpManager.I.GetObject(ftpMod);
+
+            byte[] imageData = Convert.FromBase64String(fData);
+            string fileName = $@"{fName}.jpg";// FTP 服务器上保存的文件名
+
+            ftpClient.UploadFile("", "");
+
+            FtpManager.I.ReturnObject(ftpMod, ftpClient);
+
+            //string ftpServer = "ftp://example.com/";//FTP 服务器地址
+            //string userName = "username";// FTP 服务器的用户名
+            //string password = "password";// FTP 服务器的密码
+
+            //// 创建FTP请求对象
+            //FtpWebRequest ftpRequest = (FtpWebRequest)WebRequest.Create(ftpServer + fileName);
+            //ftpRequest.Method = WebRequestMethods.Ftp.UploadFile;
+            //ftpRequest.Credentials = new NetworkCredential(userName, password);
+
+            //// 获取FTP上传流
+            //using (Stream ftpStream = ftpRequest.GetRequestStream())
+            //{
+            //    ftpStream.Write(imageData, 0, imageData.Length);//将字节数组数据写入FTP上传流中
+            //}
+
+            //Console.WriteLine("文件上传成功！");
+
+            return $"{ftpEntity?.ServerUrl}/{fileName}";//ftp://127.0.0.1:2003/soft/list.txt
+        }
+
+        /// <summary>
+        /// 保存图片到本地服务
+        /// </summary>
+        /// <param name="id">本地服务标识</param>
+        /// <param name="fData">文件数据base64</param>
+        /// <param name="fName">文件名称</param>
+        /// <returns>返回文件保存地址</returns>
+        private string SaveFileToLocalServer(string id, string fData, string fName)
+        {
+            var localEntity = ConfigCacher.I.ImgLocal_Lst.Find(p => id.Equals(p.Id));
+            if (localEntity == null) return string.Empty;
+
+            byte[] imageData = Convert.FromBase64String(fData);
+            if (!Directory.Exists(localEntity.LocalPath)) Directory.CreateDirectory(localEntity.LocalPath);//允许创建多级目录
+            using (var fsread = new FileStream(fName, FileMode.Create, FileAccess.Write, FileShare.None))
+            {
+                fsread.Write(imageData, 0, imageData.Length);
+            }
+            return $"{localEntity?.ServerUrl}/{fName}";//http://127.0.0.1:2003/soft/list.txt
+        }
+    }
+}

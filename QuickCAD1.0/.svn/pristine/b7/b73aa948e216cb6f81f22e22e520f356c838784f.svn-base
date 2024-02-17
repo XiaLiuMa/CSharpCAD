@@ -1,0 +1,224 @@
+﻿using MsDataSimulator.Jobs;
+using MsDataSimulator.Utils;
+using MsDataSimulator.Views.UserPanels;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace MsDataSimulator.Views
+{
+    public partial class MainForm : Form
+    {
+        #region 单例
+        private static MainForm instance;
+        private readonly static object objLock = new object();
+        public static MainForm Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new MainForm();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+        public MainForm()
+        {
+            InitializeComponent();
+        }
+
+        /// <summary>
+        /// 口岸代码
+        /// </summary>
+        public string kadm { get; set; }
+        /// <summary>
+        /// 入境通道列表
+        /// </summary>
+        public List<TdPanel> rjtdPanels = new List<TdPanel>();
+        /// <summary>
+        /// 出境通道列表
+        /// </summary>
+        public List<TdPanel> cjtdPanels = new List<TdPanel>();
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            kadm = UnitData.Instance.KADM;
+            this.Text = $"MS数据模拟器(口岸代码:{kadm})";
+            rjtdPanels.Add(this.rjtdPanel1);
+            rjtdPanels.Add(this.rjtdPanel2);
+            rjtdPanels.Add(this.rjtdPanel3);
+            rjtdPanels.Add(this.rjrgtdPanel);
+            cjtdPanels.Add(this.cjtdPanel1);
+            cjtdPanels.Add(this.cjtdPanel2);
+            cjtdPanels.Add(this.cjtdPanel3);
+            cjtdPanels.Add(this.cjrgtdPanel);
+        }
+
+        /// <summary>
+        /// Ms数据库配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tsMsDbConfig_Click(object sender, EventArgs e)
+        {
+            PzMsDbForm form = new PzMsDbForm();
+            form.Show();
+        }
+
+        /// <summary>
+        /// Ga数据库配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tsGaDbConfig_Click(object sender, EventArgs e)
+        {
+            PzGaDbForm form = new PzGaDbForm();
+            form.Show();
+        }
+
+        /// <summary>
+        /// 是否启动
+        /// </summary>
+        private bool isStarted = false;
+        /// <summary>
+        /// 打开/关闭所有通道
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tdOnOff_Click(object sender, EventArgs e)
+        {
+            isStarted = !isStarted;
+            this.tdOnOff.Text = isStarted ? "关闭所有通道" : "打开所有通道";
+            foreach (var rjtd in rjtdPanels)
+            {
+                if (rjtd.isOpen != isStarted)
+                {
+                    rjtd.isOpen = !isStarted;
+                    rjtd.butOnOff.PerformClick();
+                }
+            }
+            foreach (var cjtd in cjtdPanels)
+            {
+                if (cjtd.isOpen != isStarted)
+                {
+                    cjtd.isOpen = !isStarted;
+                    cjtd.butOnOff.PerformClick();
+                }
+            }
+
+            if (isStarted)
+            {
+                CrjjtgjJob.Instance.Run();
+                Thread.Sleep(2 * 1000);//等待表中有数据后在修改
+                //CrjjtgjlisJob.Instance.Run();
+                //CrjrylisJob.Instance.Run();
+            }
+            else
+            {
+                CrjjtgjJob.Instance.Stop();
+                //CrjjtgjlisJob.Instance.Stop();
+                //CrjrylisJob.Instance.Stop();
+            }
+        }
+
+        /// <summary>
+        /// 刷新通道面板
+        /// </summary>
+        /// <param name="td"></param>
+        /// <param name="type"></param>
+        /// <param name="dic"></param>
+        public void RefreshTdPanel(TdPanel td, string type, Dictionary<string, object> dic)
+        {
+            this.Invoke(new Action(() =>
+            {
+                td.labType.Text = type;
+                td.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+            }));
+        }
+
+        /// <summary>
+        /// 刷新表格面板
+        /// </summary>
+        /// <param name="tabname"></param>
+        /// <param name="dic"></param>
+        public void RefreshTabPanel(string tabname, Dictionary<string, object> dic)
+        {
+            this.Invoke(new Action(() =>
+            {
+                if (tabname.Equals("CZYZCZX"))
+                {
+                    this.czyzczxPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("TDSSJK"))
+                {
+                    this.tdssjkPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("LSRJXK"))
+                {
+                    this.lsrjxkPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CRJJTGJ"))
+                {
+                    this.crjjtgjPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CRJRY"))
+                {
+                    this.crjryPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CHWFWGJTGJ"))
+                {
+                    this.chwfwgjtgjPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CHWFWGRY"))
+                {
+                    this.chwfwgryPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CRJJTGJLIS"))
+                {
+                    this.crjjtgjlisPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("CRJRYLIS"))
+                {
+                    this.crjrylisPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("YBJTGJ"))
+                {
+                    this.ybjtgjPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("YBRJRY"))
+                {
+                    this.ybrjryPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+                else if (tabname.Equals("YBCJRY"))
+                {
+                    this.ybcjryPanel.tBoxMsg.Text = JsonUtil.ObjectToStr(dic);
+                }
+            }));
+        }
+
+        /// <summary>
+        /// 窗体关闭事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            isStarted = true;
+            tdOnOff_Click(sender, e);//关闭所有通道
+        }
+    }
+}

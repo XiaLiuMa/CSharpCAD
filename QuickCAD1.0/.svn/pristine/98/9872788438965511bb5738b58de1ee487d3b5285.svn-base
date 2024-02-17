@@ -1,0 +1,63 @@
+using Max.BaseKit.Utils;
+using MsDataSimulator.ImpTest;
+using System.Collections.Concurrent;
+
+namespace MsDataSimulator
+{
+    internal static class Program
+    {
+        /// <summary>
+        ///  The main entry point for the application.
+        /// </summary>
+        [STAThread]
+        static void Main()
+        {
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
+
+            #region 反射获取所有服务实现类
+            var mServiceLst = new ConcurrentBag<IClass1>();
+            IList<Type> lst = ReflectionUtil.FindSubClasses(typeof(IClass1));
+            foreach (Type t in lst)
+            {
+                var handler = (IClass1)Activator.CreateInstance(t);
+                mServiceLst.Add(handler);
+            }
+            #endregion
+
+
+
+            List<string> ts1 = default;
+            if (!(ts1?.Count > 0))
+            { 
+            
+            }
+            var ts2 = new List<string>();
+            if (!(ts2?.Count > 0))
+            { 
+            
+            }
+            var ts3 = new List<string>() { "" };
+            if (!(ts3?.Count > 0))
+            {
+
+            }
+
+
+            string l1 = default;
+            var cmds1 = l1?.Split(',').ToList();
+            string l2 = "1,2";
+            var cmds2 = l2?.Split(',').ToList();
+
+
+            var t1 = Class2.I.Get1();
+            using (var t2 = Class2.I.Get1())
+            { 
+            
+            }
+
+            Application.Run(new Form1());
+        }
+    }
+}

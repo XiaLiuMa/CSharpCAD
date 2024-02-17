@@ -1,0 +1,647 @@
+﻿using System;
+using Dapper;
+using System.Linq;
+using Max.BaseKit;
+using System.Text;
+using System.Data;
+using Max.BaseKit.Exts;
+using Max.DbTool.Core.Mod;
+using System.Collections.Generic;
+
+namespace Max.DbTool.Core.OnSql
+{
+    /// <summary>
+    /// 基于Dapper的抽象SQL数据库操作
+    /// 1、实体T必须基于Dapper配置。
+    /// 2、Dapper不支持的数据库请单独实现。
+    /// </summary>
+    public abstract class AbsSqlOperate : AbsOperate
+    {
+        public abstract IDbConnection GetConnection();
+
+        /// <summary>
+        /// 尝试连接数据库
+        /// </summary>
+        /// <returns></returns>
+        public override bool TryConnect()
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                try
+                {
+                    conn.Open();
+                    return conn.State == ConnectionState.Open;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"Mysql执行{Config?.ToJson()}的TryConnect异常:{ex.Message}");
+                    return false;
+                }
+                finally
+                {
+                    conn.Close();
+                }
+            }
+        }
+        public override List<string> QueryTableNames()
+        {
+            //TODO:
+            throw new NotImplementedException();
+        }
+        /// <summary>
+        /// 執行SQL【只适用于支持sql的数据库】
+        /// </summary>
+        /// <param name="sqlstr"></param>
+        /// <returns></returns>
+        public override bool ExecuteSql(string sqlstr)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                try
+                {
+                    conn.Open();
+                    sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+                    conn.Execute(sqlstr);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>ExecuteSql异常:{ex.Message}>>SQL:{sqlstr}");
+                    return default;
+                }
+            }
+        }
+        /// <summary>
+        /// 查询SQL【只适用于支持sql的数据库】
+        /// </summary>
+        /// <param name="sqlstr"></param>
+        /// <returns></returns>
+        public override List<Dictionary<string, object>> QuerySql(string sqlstr)
+        {
+            var dicts = new List<Dictionary<string, object>>();
+            using (IDbConnection conn = GetConnection())
+            {
+                try
+                {
+                    conn.Open();
+                    sqlstr = sqlstr.Replace("\r\n", " "); //将换行符替换为空格
+                    var lst = conn.Query(sqlstr)?.ToList();
+                    dicts = DynLstToDictLst(lst);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>QuerySql异常:{ex.Message}>>SQL:{sqlstr}");
+                }
+            }
+            return dicts;
+        }
+        public override bool Insert<T>(T model)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetInsertStr(GetFields<T>());
+                    sql = $"insert into {GetTableName<T>()} ({tuple.Item1}) values ({tuple.Item2})";
+                    conn.Execute(sql, model);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Insert<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Insert(string tname, IDictionary<string, object> data)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetInsertStr(data?.Keys.AsList());
+                    sql = $"insert into {tname} ({tuple.Item1}) values ({tuple.Item2})";
+                    conn.Execute(sql, DictionaryToExpandoObject(data));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Insert异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchInsert<T>(List<T> models)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetInsertStr(GetFields<T>());
+                    sql = $"insert into {GetTableName<T>()} ({tuple.Item1}) values ({tuple.Item2})";
+                    conn.Execute(sql, models);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchInsert<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchInsert(string tname, List<IDictionary<string, object>> datas)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetInsertStr(datas?.FirstOrDefault().Keys.AsList());
+                    sql = $"insert into {tname} ({tuple.Item1}) values ({tuple.Item2})";
+                    conn.Execute(sql, DictionaryToExpandoObject(datas));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchInsert异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Delete<T>(T model)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"delete from {GetTableName<T>()} where {KeysConversion(GetPrimaryKeyNames<T>())}";
+                    conn.Execute(sql, model);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Delete<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Delete(string tname, List<string> keys, IDictionary<string, object> data)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"delete from {tname} where {KeysConversion(keys)}";
+                    conn.Execute(sql, DictionaryToExpandoObject(data));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Delete异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchDelete<T>(List<T> models)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"delete from {GetTableName<T>()} where {KeysConversion(GetPrimaryKeyNames<T>())}";
+                    conn.Execute(sql, models);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchDelete<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchDelete(string tname, List<string> keys, List<IDictionary<string, object>> datas)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"delete from {tname} where {KeysConversion(keys)}";
+                    conn.Execute(sql, DictionaryToExpandoObject(datas));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchDelete异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool DeleteByCondition<T>(params ConditionModel[] conditions)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    string where = ConditionConversion(conditions);
+                    sql = $"delete from {GetTableName<T>()} {where}";
+                    conn.Execute(sql);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>DeleteByCondition<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool DeleteByCondition(string tname, params ConditionModel[] conditions)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    string where = ConditionConversion(conditions);
+                    sql = $"delete from {tname} {where}";
+                    conn.Execute(sql);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>DeleteByCondition异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Clear<T>()
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"truncate table {GetTableName<T>()}";
+                    conn.Execute(sql);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Clear<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Clear(string tname)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    sql = $"truncate table {tname}";
+                    conn.Execute(sql);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Clear异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Update<T>(T model)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetUpdateStr(GetPrimaryKeyNames<T>(), GetFields<T>());
+                    sql = $"update {GetTableName<T>()} set {tuple.Item1} where {tuple.Item2}";
+                    conn.Execute(sql, model);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Update<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool Update(string tname, List<string> keys, IDictionary<string, object> data)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetUpdateStr(keys, data?.Keys.AsList());
+                    sql = $"update {tname} set {tuple.Item1} where {tuple.Item2}";
+                    conn.Execute(sql, DictionaryToExpandoObject(data));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>Update异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchUpdate<T>(List<T> models)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetUpdateStr(GetPrimaryKeyNames<T>(), GetFields<T>());
+                    sql = $"update {GetTableName<T>()} set {tuple.Item1} where {tuple.Item2}";
+                    conn.Execute(sql, models);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchUpdate<T>异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override bool BatchUpdate(string tname, List<string> keys, List<IDictionary<string, object>> datas)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var tuple = GetUpdateStr(keys, datas?.FirstOrDefault().Keys.AsList());
+                    sql = $"update {tname} set {tuple.Item1} where {tuple.Item2}";
+                    conn.Execute(sql, DictionaryToExpandoObject(datas));
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>BatchUpdate异常:{ex.Message}>>SQL:{sql}");
+                    return false;
+                }
+            }
+        }
+        public override T QueryFirst<T>(params object[] values)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    var keys = GetPrimaryKeyNames<T>();
+                    string where = " where 1=1";
+                    for (int i = 0; i < keys.Count; i++)
+                    {
+                        bool isString = (bool)values[i]?.GetType().Equals(typeof(string));
+                        where += isString ? $" and {keys[i]}='{values[i]}'" : $" and {keys[i]}={values[i]}";
+                    }
+                    sql = $"select * from {GetTableName<T>()} {where}";
+                    return conn.Query<T>(sql).ToList().FirstOrDefault();
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>QueryFirst<T>异常:{ex.Message}>>SQL:{sql}");
+                    return default;
+                }
+            }
+        }
+        public override List<T> QueryByCondition<T>(params ConditionModel[] conditions)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    string where = ConditionConversion(conditions);
+                    sql = $"select * from {GetTableName<T>()} {where}";
+                    return conn.Query<T>(sql).ToList();
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>QueryByCondition<T>异常:{ex.Message}>>SQL:{sql}");
+                    return default;
+                }
+            }
+        }
+        public override List<Dictionary<string, object>> QueryByCondition(string table, params ConditionModel[] conditions)
+        {
+            using (IDbConnection conn = GetConnection())
+            {
+                string sql = string.Empty;
+                try
+                {
+                    conn.Open();
+                    string where = ConditionConversion(conditions);
+                    sql = $"select * from {table} {where}";
+                    var lst = conn.Query(sql)?.ToList();
+                    return DynLstToDictLst(lst);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Warn($"{Config?.ToJson()}>>QueryByCondition<T>异常:{ex.Message}>>SQL:{sql}");
+                    return default;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 主键转换成条件字符串
+        /// </summary>
+        /// <param name="keys">主键集</param>
+        /// <returns></returns>
+        private string KeysConversion(List<string> keys)
+        {
+            string whereStr = string.Empty;
+            keys?.ForEach(p => { whereStr += $"{p}=:{p} and "; });
+            return whereStr.TrimEnd().TrimEnd('d', 'n', 'a');
+        }
+        /// <summary>
+        /// 获取插入字符串
+        /// </summary>
+        /// <param name="fields">字段集</param>
+        /// <returns></returns>
+        private Tuple<string, string> GetInsertStr(List<string> fields)
+        {
+            string str1 = string.Empty;
+            string str2 = string.Empty;
+            fields?.ForEach(p =>
+            {
+                str1 += $"{p},";
+                str2 += $":{p},";
+            });
+            str1 = str1.TrimEnd().TrimEnd(',');
+            str2 = str2.TrimEnd().TrimEnd(',');
+            return new Tuple<string, string>(str1, str2);
+        }
+        /// <summary>
+        /// 获取修改字符串
+        /// </summary>
+        /// <param name="keys">主键集</param>
+        /// <param name="fields">字段集</param>
+        /// <returns></returns>
+        private Tuple<string, string> GetUpdateStr(List<string> keys, List<string> fields)
+        {
+            string str1 = string.Empty;
+            string str2 = string.Empty;
+            fields?.ForEach(p =>
+            {
+                str1 += $"{p},";
+                str2 += $":{p},";
+            });
+            str1 = str1.TrimEnd().TrimEnd(',');
+            str2 = str2.TrimEnd().TrimEnd(',');
+            return new Tuple<string, string>(str1, str2);
+        }
+        /// <summary>
+        /// SQL条件转换
+        /// </summary>
+        /// <param name="conditions">条件字典</param>
+        /// <returns></returns>
+        private string ConditionConversion(params ConditionModel[] conditions)
+        {
+            string where = string.Empty;
+            try
+            {
+                foreach (var item in conditions)
+                {
+                    string _filed = item.FieldName;//字段名
+                    switch (item.ConditionType)
+                    {
+                        case ConditionEnum.Equal: //相等
+                            {
+                                var _value = item.ConditionValues?.FirstOrDefault();//第一项
+                                bool isString = _value.GetType().Equals(typeof(string));
+                                where += isString ? $"{_filed}='{_value}' and" : $"{_filed}={_value} and";
+                            }
+                            break;
+                        case ConditionEnum.Greater: //大于等于
+                            {
+                                var _value = item.ConditionValues?.FirstOrDefault();//第一项
+                                bool isString = _value.GetType().Equals(typeof(string));
+                                where += isString ? $"{_filed}>='{_value}' and" : $"{_filed}>={_value} and";
+                            }
+                            break;
+                        case ConditionEnum.Less: //小于等于
+                            {
+                                var _value = item.ConditionValues?.FirstOrDefault();//第一项
+                                bool isString = _value.GetType().Equals(typeof(string));
+                                where += isString ? $"{_filed}<='{_value}' and" : $"{_filed}<={_value} and";
+                            }
+                            break;
+                        case ConditionEnum.Between: //区间(全封闭)
+                            {
+                                var _value1 = item.ConditionValues?.Skip(0).Take(1);//第一项
+                                bool isString1 = _value1.GetType().Equals(typeof(string));
+                                where += isString1 ? $"{_filed}>='{_value1}' and" : $"{_filed}>={_value1} and";
+                                var _value2 = item.ConditionValues?.Skip(1).Take(1);//第二项
+                                bool isString2 = _value2.GetType().Equals(typeof(string));
+                                where += isString2 ? $"{_filed}<='{_value2}' and" : $"{_filed}<={_value2} and";
+                            }
+                            break;
+                        case ConditionEnum.In: //包含
+                            {
+                                string inStr = string.Empty;
+                                foreach (var initem in item.ConditionValues)
+                                {
+                                    bool isString = initem.GetType().Equals(typeof(string));
+                                    inStr += isString ? $"'{initem}'," : $"{initem},"; ;
+                                }
+                                where += $"{_filed} in ({inStr.TrimEnd(',')})";
+                            }
+                            break;
+                        case ConditionEnum.Like: break;
+                        case ConditionEnum.LikeLeft: break;
+                        case ConditionEnum.LikeRight: break;
+                        case ConditionEnum.LikeMiddle: break;
+                    }
+                }
+                where = where.TrimEnd('d', 'n', 'a');
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"{Config?.Id}==MongoOperate>>ConditionConversion异常:{ex.Message}");
+            }
+            return where;
+        }
+
+        /// <summary>
+        /// 定制化：List<dynamic>转List<Dictionary<string,object>>
+        /// 支持中文转码和图片处理
+        /// </summary>
+        /// <param name="dt">DataTable数据</param>
+        /// <returns></returns>
+        protected List<Dictionary<string, object>> DynLstToDictLst(List<dynamic> datas)
+        {
+            var rLst = new List<Dictionary<string, object>>();
+            try
+            {
+                if (datas.Count <= 0) return rLst;
+                foreach (var data in datas)
+                {
+                    var idic = data as IDictionary<string, object>;
+                    var dic = new Dictionary<string, object>();
+                    foreach (var item in idic)
+                    {
+                        if ((bool)(typeof(byte[]).Equals(item.Value?.GetType())))//字节数组类型
+                        {
+                            if (item.Key.StartsWith("TP_"))//图片不能转
+                            {
+                                dic.Add(item.Key, Convert.ToBase64String(item.Value as byte[]));
+                            }
+                            else
+                            {
+                                Encoding gbk = Encoding.GetEncoding("GB2312");
+                                string temstr = gbk.GetString(item.Value as byte[]);
+                                dic.Add(item.Key, temstr);
+                            }
+                        }
+                        else if ((bool)(typeof(string).Equals(item.Value?.GetType())))   //字符串需要去除空格
+                        {
+                            dic.Add(item.Key, ((string)item.Value).Trim());
+                        }
+                        else
+                        {
+                            dic.Add(item.Key, item.Value);//原始方案
+                        }
+                    }
+                    rLst.Add(dic);
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn($"DynLstToDictLst异常:{ex.Message}");
+            }
+            return rLst;
+        }
+    }
+}

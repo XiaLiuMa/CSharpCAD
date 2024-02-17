@@ -1,0 +1,379 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>子任务Deail</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+        .inline-div {
+            display: inline-block;
+            margin-right: 10px; /* 可根据需要调整间距 */
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form layuimini-form">
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">命令码</label>
+            <div class="layui-input-block">
+                <input id="cmd" name="cmd" type="text" placeholder="请输入命令码" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">任务名称</label>
+            <div class="layui-input-block">
+                <input id="taskName" name="taskName" type="text" placeholder="请输入任务名称" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">任务描述</label>
+            <div class="layui-input-block">
+                <input id="taskDes" name="taskDes" type="text" placeholder="请输入任务描述" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">业务类型</label>
+            <div class="layui-input-block">
+                <select id="bizType" name="bizType" lay-verify="required" lay-search="">
+                    <option value="0" selected>数据同步</option>
+                    <option value="1">日志同步</option>
+                    <option value="2">时间同步</option>
+                    <option value="3">字符叠加</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">表主键</label>
+            <div class="layui-input-block">
+                <input id="keys" name="keys" type="text" placeholder="请输入表主键" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label required">图片存储类型</label>
+            <div class="layui-input-block">
+                <select id="imgType" name="imgType" lay-verify="required" lay-search="">
+                    <option value="0" selected>无需处理图片</option>
+                    <option value="1">图片数据入库</option>
+                    <option value="2">base64字符串入库</option>
+                    <option value="3">存Minio地址入库</option>
+                    <option value="4">存FTP地址入库</option>
+                    <option value="5">存本地服务地址入库</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">图片存储服务标识</label>
+            <div class="layui-input-block">
+                <select id="imgServiceId" name="imgServiceId" lay-search="">
+                    <option value="">请选择</option>
+                </select>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">服务标识集</label>
+            <div class="layui-input-block">
+                <div class="inline-div">
+                    <div id="db_transfer" name="db_transfer" class="layui-transfer"></div>
+                </div>
+                <div class="inline-div">
+                    <div id="kafka_transfer" name="kafka_transfer" class="layui-transfer"></div>
+                </div>
+                <div class="inline-div">
+                    <div id="rmq_transfer" name="rmq_transfer" class="layui-transfer"></div>
+                </div>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">映射Json</label>
+            <div class="layui-input-block">
+                <textarea id="mappingJson" name="mappingJson" class="layui-textarea" placeholder="请输入映射Json"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item" id="saveBtn">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" id="saveBtn1">确认保存</button>
+            </div>
+        </div>
+
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>说明</h3><br>
+            <h4>入款到保险箱</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+            <br><h4>入款到现金</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+        </div>
+    </div>
+    </div>
+    <script src="/lib/jquery-3.4.1/jquery.js" charset="utf-8"></script>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod = parent.parentMod;//全局变量，子页面获取父页面传来的参数。
+        var subPageState = parent.subPageState;//全局变量，子页面状态('look','add','edit')
+        layui.use(['form', 'transfer'], function () {
+            var $ = layui.$;
+            var form = layui.form;
+            var transfer = layui.transfer;
+            var layer = layui.layer;
+            var apiUrl; //接口地址
+
+            Init();//页面初始化
+
+            function Init() {
+                RenderTpfwSelect();
+                RenderDbTransfer();
+                RenderKafkaTransfer();
+                RenderRmqTransfer();
+                switch (subPageState) {
+                    case 'look': { //查看
+                        $('#saveBtn').hide();//隐藏，不占位
+                        $("#cmd").val(parentMod.cmd);
+                        $('#cmd').attr("disabled", true);
+                        $("#taskName").val(parentMod.taskName);
+                        $('#taskName').attr("disabled", true);
+                        $("#taskDes").val(parentMod.taskDes);
+                        $('#taskDes').attr("disabled", true);
+                        $("#bizType").val(parentMod.bizType);
+                        $('#bizType').attr("disabled", true);
+                        $("#keys").val(parentMod.keys);
+                        $('#keys').attr("disabled", true);
+                        $("#imgType").val(parentMod.imgType);
+                        $('#imgType').attr("disabled", true);
+                        $("#imgServiceId").val(parentMod.imgServiceId);
+                        $('#imgServiceId').attr("disabled", true);
+                        $('#db_transfer').attr("disabled", true);
+                        $('#kafka_transfer').attr("disabled", true);
+                        $('#rmq_transfer').attr("disabled", true);
+                        $("#mappingJson").val(parentMod.mappingJson);
+                        $('#mappingJson').attr("disabled", true);
+                        // $(#dbDescribe').addClass("layui-disabled").attr("disabled", true);//禁用并变灰
+                        form.render("select");
+                    } break;
+                    case 'add': { //新增
+                        apiUrl = '/ConsumeTask/Add';
+                        //$('#saveBtn').show();
+                    } break;
+                    case 'edit': { //编辑
+                        apiUrl = '/ConsumeTask/Update';
+                        $("#cmd").val(parentMod.cmd);
+                        $("#taskName").val(parentMod.taskName);
+                        $("#taskDes").val(parentMod.taskDes);
+                        $("#bizType").val(parentMod.bizType);
+                        $("#keys").val(parentMod.keys);
+                        $("#imgType").val(parentMod.imgType);
+                        $("#imgServiceId").val(parentMod.imgServiceId);
+                        $("#mappingJson").val(parentMod.mappingJson);
+                        form.render("select");
+                    } break;
+                    default: break;
+                }
+            }
+
+            //渲染图片服务选择框
+            function RenderTpfwSelect() {
+                $.ajax({
+                    type: 'GET',
+                    url: '/ConsumeTask/SearchImgServices', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (group) {
+                                    var optGroup = $('<optgroup></optgroup>').attr('label', group.groupName);//创建分组
+                                    group.options.forEach(function (option) {
+                                        var optionElem = $('<option></option>').val(option.id).text(option.title);//创建选项
+                                        optGroup.append(optionElem);
+                                    });
+                                    $('#imgServiceId').append(optGroup);
+                                });
+                                form.render("select"); //渲染select
+                            }
+                        }
+                    },
+                    error: function () {
+                        layer.msg('请求接口失败');
+                        if (err.status == 401) {
+                            parent.location.href = "/home/login";
+                        }
+                    }
+                });
+            }
+
+            //渲染数据库穿梭框
+            function RenderDbTransfer() {
+                var db_transfer_data = []; //数据库transfer数据
+                $.ajax({
+                    type: 'GET',
+                    url: '/UseDb/SearchAll', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (item) {
+                                    db_transfer_data.push({ "value": item.id, "title": item.dbDescribe });
+                                });
+                            }
+                        }
+
+                        var transfer_check_data = []; //transfer选中的数据
+                        if (subPageState == 'look' || subPageState == 'edit') {
+                            transfer_check_data = parentMod.serviceIds.split(",");
+                        }
+
+                        // 初始化Transfer组件
+                        transfer.render({
+                            elem: '#db_transfer',
+                            title: ['待选数据库', '已选数据库'],
+                            data: db_transfer_data,
+                            id: 'db_transfer',
+                            value: transfer_check_data // 设置默认选中的数据，根据实际需求进行设置
+                        });
+                    },
+                    error: function () {
+                        layer.msg('请求接口失败');
+                        if (err.status == 401) {
+                            parent.location.href = "/home/login";
+                        }
+                    }
+                });
+            }
+
+            //渲染Kafka穿梭框
+            function RenderKafkaTransfer() {
+                var kafka_transfer_data = []; //Kafka transfer数据
+                $.ajax({
+                    type: 'GET',
+                    url: '/KafkaProduce/SearchAll', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (item) {
+                                    kafka_transfer_data.push({ "value": item.id, "title": item.iDescribe });
+                                });
+                            }
+                        }
+
+                        var transfer_check_data = []; //transfer选中的数据
+                        if (subPageState == 'look' || subPageState == 'edit') {
+                            transfer_check_data = parentMod.serviceIds.split(",");
+                        }
+
+                        // 初始化Transfer组件
+                        transfer.render({
+                            elem: '#kafka_transfer',
+                            title: ['待选Kafka', '已选Kafka'],
+                            data: kafka_transfer_data,
+                            id: 'kafka_transfer',
+                            value: transfer_check_data // 设置默认选中的数据，根据实际需求进行设置
+                        });
+                    },
+                    error: function () {
+                        layer.msg('请求接口失败');
+                        if (err.status == 401) {
+                            parent.location.href = "/home/login";
+                        }
+                    }
+                });
+            }
+
+            //渲染RabbitMQ穿梭框
+            function RenderRmqTransfer() {
+                var rmq_transfer_data = []; //RabbitMQ transfer数据
+                $.ajax({
+                    type: 'GET',
+                    url: '/RmqProduce/SearchAll', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (item) {
+                                    rmq_transfer_data.push({ "value": item.id, "title": item.iDescribe });
+                                });
+                            }
+                        }
+
+                        var transfer_check_data = []; //transfer选中的数据
+                        if (subPageState == 'look' || subPageState == 'edit') {
+                            transfer_check_data = parentMod.serviceIds.split(",");
+                        }
+
+                        // 初始化Transfer组件
+                        transfer.render({
+                            elem: '#rmq_transfer',
+                            title: ['待选RabbitMQ', '已选RabbitMQ'],
+                            data: rmq_transfer_data,
+                            id: 'rmq_transfer',
+                            value: transfer_check_data // 设置默认选中的数据，根据实际需求进行设置
+                        });
+                    },
+                    error: function () {
+                        layer.msg('请求接口失败');
+                        if (err.status == 401) {
+                            parent.location.href = "/home/login";
+                        }
+                    }
+                });
+            }
+
+            //监听提交
+            form.on('submit(saveBtn)', function (data) {
+                var serviceIds = ""; //存储选中的transfer
+
+                var db_transfer_check_data = transfer.getData('db_transfer');
+                db_transfer_check_data.forEach(function (item) {
+                    serviceIds += item.value + ",";
+                });
+
+                var kafka_transfer_check_data = transfer.getData('kafka_transfer');
+                kafka_transfer_check_data.forEach(function (item) {
+                    serviceIds += item.value + ",";
+                });
+
+                var rmq_transfer_check_data = transfer.getData('rmq_transfer');
+                rmq_transfer_check_data.forEach(function (item) {
+                    serviceIds += item.value + ",";
+                });
+
+                data.field.serviceIds = serviceIds.substring(0, serviceIds.lastIndexOf(','));
+
+                $.ajax({
+                    type: 'POST',
+                    url: apiUrl, //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    data: data.field,//form数据
+                    success: function (res) {//函数参数 "data" 为请求成功服务端返回的数据
+                        if (res.code == 0) {
+                            layer.msg(res.msg);
+                            layer.close(index);
+                        }
+                    },
+                    error: function (err) {
+                        layer.msg('请求接口失败');
+                        if (err.status == 401) {
+                            parent.location.href = "/home/login";
+                        }
+                    }
+                });
+                window.parent.location.reload();
+                var iframeIndex = parent.layer.getFrameIndex(window.name);
+                parent.layer.close(iframeIndex);//关闭iframe
+                //parent.RefreshTable();//刷新父页面表格
+                return false;
+            });
+        });
+    </script>
+</body>
+</html>

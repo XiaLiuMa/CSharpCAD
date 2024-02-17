@@ -1,0 +1,21 @@
+﻿using Dapper.Contrib.Extensions;
+
+namespace IsolatorOrigin.Storage.Entities
+{
+    [Table("TaskRunTime")]
+    /// <summary>
+    /// 任务运行时间实体
+    /// </summary>
+    public class TaskRunTimeEntity
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id("命令码_数据库标识")
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 运行时间("yyyy-MM-dd HH:mm:ss")
+        /// </summary>
+        public string RunTime { get; set; }
+    }
+}

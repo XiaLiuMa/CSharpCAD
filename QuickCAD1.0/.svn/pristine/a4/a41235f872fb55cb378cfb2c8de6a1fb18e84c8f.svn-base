@@ -1,0 +1,40 @@
+﻿using System;
+using Dapper.Contrib.Extensions;
+
+namespace DataSyncTarget.Config.Entities
+{
+    [Table("TargetKafkaPdr")]
+    [Serializable]
+    /// <summary>
+    /// 目标Kafka生产者
+    /// </summary>
+    public class KafkaPdr
+    {
+        [Key]
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 服务地址
+        /// </summary>
+        public string BootstrapServers { get; set; }
+        /// <summary>
+        /// 生产用Topic
+        /// </summary>
+        public string ScTopic { get; set; }
+        /// <summary>
+        /// 消费用Group
+        /// </summary>
+        public string XfGroup { get; set; }
+        /// <summary>
+        /// 消费用Topic
+        /// </summary>
+        public string XfTopic { get; set; }
+        /// <summary>
+        /// 最大消息大小(M)
+        /// </summary>
+        public double? MaxSize { get; set; }
+    }
+}
+

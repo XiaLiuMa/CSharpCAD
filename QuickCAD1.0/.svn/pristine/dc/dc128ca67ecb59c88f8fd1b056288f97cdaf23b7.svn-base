@@ -1,0 +1,117 @@
+﻿using Max.BaseKit;
+using Max.ISolator.SeriaPortPkg;
+using RJCP.IO.Ports;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Max.SerialPort
+{
+    public class SerialPortManager
+    {
+        #region 单例
+        private static SerialPortManager instance;
+        private readonly static object objLock = new object();
+        public static SerialPortManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new SerialPortManager();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        public SerialPortManager()
+        {
+            SerialPortStreams = new ConcurrentBag<SerialPortStreamEx>();
+        }
+        #endregion
+
+        public ConcurrentBag<SerialPortStreamEx> SerialPortStreams { get; set; }
+
+        /// <summary>
+        /// 获取系统端口号【辅助功能：注意linux下串口好是文件路径的形式】
+        /// </summary>
+        /// <returns></returns>
+        public static string[] GetPortNames()
+        {
+            List<string> serailports = new List<string>();
+            serailports.AddRange(SerialPortStream.GetPortNames());
+            serailports.Sort();
+            return serailports.ToArray();
+        }
+
+        /// <summary>
+        /// 批量产生串口客户端
+        /// </summary>
+        /// <param name="serialPortParams"></param>
+        public void GenerateSerialClient(List<SerialPortCfg> serialPortParams)
+        {
+            if (serialPortParams == null) return;
+            Parallel.ForEach(serialPortParams, p =>
+            {
+                try
+                {
+                    StopBits stopBits = StopBits.One;
+                    switch (p.StopBit)
+                    {
+                        case 1: stopBits = StopBits.One; break;
+                        case 2: stopBits = StopBits.One5; break;
+                        case 3: stopBits = StopBits.Two; break;
+                    }
+                    Parity parity = (Parity)Enum.Parse(typeof(Parity), p.Parity);
+                    SerialPortStreamEx serialPortStream = new SerialPortStreamEx(p.PortName, p.BaudRate, p.DataBit, parity, stopBits);
+
+                    this.SerialPortStreams.Add(serialPortStream);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"串口初始化失败:{ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// 随机获取一个空闲的串口客户端
+        /// </summary>
+        /// <returns></returns>
+        public SerialPortStreamEx GetFreeSerialPort()
+        {
+            if (SerialPortStreams.Count <= 0) return null;
+            Random rd = new Random();
+            int index = rd.Next(SerialPortStreams.Count);
+            var model = SerialPortStreams.ToArray()[index];
+            return model;
+
+            #region 该方法无法判断串口是否空闲
+            //foreach (SerialPortStreamEx item in SerialPortStreams)
+            //{
+            //    if (item.BytesToWrite == 0)
+            //        return item;
+            //} 
+            #endregion
+        }
+
+        /// <summary>
+        /// 为所有的串口客户端注册消息接收事件
+        /// </summary>
+        /// <param name="onDataReceived"></param>
+        public void RegisterAllReceivedEvents(Action<byte[]> onDataReceived)
+        {
+            foreach (SerialPortStreamEx item in SerialPortStreams)
+            {
+                item.OnMessageReceived += onDataReceived;
+            }
+        }
+    }
+}

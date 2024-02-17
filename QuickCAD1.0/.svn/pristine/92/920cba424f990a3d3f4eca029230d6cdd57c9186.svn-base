@@ -1,0 +1,334 @@
+﻿using MsDataSimulator.Comm;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Linq;
+using System.Text;
+
+namespace MsDataSimulator.Jobs
+{
+    /// <summary>
+    /// Orcal操作工具
+    /// </summary>
+    public class OrcalUtil
+    {
+        /// <summary>
+        /// Orcal操作对象
+        /// </summary>
+        private static OracleOperate sqlOperate = new OracleOperate()
+        {
+            DbCon = @"DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=127.0.0.1)(PORT=1521)))(CONNECT_DATA=(SERVER=DEDICATED)(SID=ORCL)));PASSWORD=123456;PERSIST SECURITY INFO=True;USER ID=qgtg; enlist=dynamic;"
+        };
+
+        /// <summary>
+        /// 执行SQL语句
+        /// </summary>
+        /// <param name="cmdText"></param>
+        /// <returns></returns>
+        public static bool RunSQL(string cmdText)
+        {
+            int num = sqlOperate.RunSQL(cmdText);
+            bool flag = num == -1 ? false : true;
+            return flag;
+        }
+
+        /// <summary>
+        /// 查询数据
+        /// </summary>
+        /// <param name="cmdText"></param>
+        /// <returns></returns>
+        public static List<Dictionary<string, object>> Select(string cmdText)
+        {
+            var lst = new List<Dictionary<string, object>>();
+            try
+            {
+                var ds = new DataSet();
+                sqlOperate.RunSQL(cmdText, ref ds);
+                if (ds != null && ds.Tables.Count > 0)
+                {
+                    foreach (DataRow dr in ds.Tables[0].Rows)
+                    {
+                        var data = new Dictionary<string, object>();
+                        foreach (DataColumn dc in ds.Tables[0].Columns)
+                        {
+                            #region 原始方案
+                            //data.Add(dc.ColumnName.ToUpper(), dr[dc]); 
+                            #endregion
+
+                            #region 新方案
+                            if (dr[dc].GetType().Equals(typeof(byte[])))  //字节数组类型
+                            {
+                                if (dc.ColumnName.StartsWith("TP_"))    //图片不能转
+                                {
+                                    data.Add(dc.ColumnName.ToUpper(), dr[dc]);
+                                }
+                                else
+                                {
+                                    System.Text.Encoding gbk = System.Text.Encoding.GetEncoding("GB2312");
+                                    string str = gbk.GetString(dr[dc] as byte[]);
+                                    data.Add(dc.ColumnName.ToUpper(), str);
+                                }
+                            }
+                            else
+                            {
+                                data.Add(dc.ColumnName.ToUpper(), dr[dc]);
+                            }
+                            #endregion
+                        }
+                        lst.Add(data);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Orcal查询数据错误{ex.ToString()}>>");
+            }
+            return lst;
+        }
+
+
+        /// <summary>
+        /// 插入数据
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static bool Insert(string table, Dictionary<string, object> data)
+        {
+            bool flag = false;
+            try
+            {
+                string keystr = ""; //字段
+                string valstr = ""; //值
+                foreach (var item in data)
+                {
+                    keystr += item.Key + ",";
+                    if (item.Value.GetType().Equals(typeof(string)))
+                    {
+                        valstr += $"'{item.Value}',";
+                    }
+                    else
+                    {
+                        valstr += $"{item.Value},";
+                    }
+                }
+                string sqlstr = $"insert into {table} ({keystr.TrimEnd(',')}) values ({valstr.TrimEnd(',')})";
+                int num = sqlOperate.RunSQL(sqlstr);
+                flag = num == -1 ? false : true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Orcal插入数据错误{table}>>" + ex.ToString());
+            }
+            return flag;
+        }
+
+        /// <summary>
+        /// 单条数据合并(有则修改，没有则插入)
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="keys"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static bool Merger(string table, string[] keys, Dictionary<string, object> data)
+        {
+            #region 合并方案说明
+            //MERGE INTO BJ_YW_T_CZYZCZX t1 using (SELECT 'LD026' AS CZY from dual) t2 ON(t1.CZY = t2.CZY)
+            //WHEN matched THEN
+            //UPDATE SET t1.KADM = '123'
+            //WHEN NOT matched THEN
+            //INSERT(CZY, ZCSJ, ZXSJ, BMDM, GZZIP, TDH, KADM) VALUES('123','123','123','123','123','123','123') 
+            #endregion
+
+            string wherestr1 = "SELECT ";//条件1
+            string wherestr2 = "";//条件2
+            foreach (string key in keys)
+            {
+                wherestr1 += (data[key].GetType().Equals(typeof(string))) ? $"'{((string)data[key]).Trim()}' AS {key}," : $"{data[key]} AS {key},";
+                wherestr2 += $"t1.{key}=t2.{key} AND";
+            }
+            string wherestr = $"({wherestr1.TrimEnd(',')} FROM dual) t2 ON ({wherestr2.TrimEnd(new char[] { 'D', 'N', 'A' })}) ";//合并条件
+
+            string updatestr = "WHEN matched THEN UPDATE SET ";//修改语句
+            string insertkey = "";//插入语句key
+            string insertval = "";//插入语句value
+            foreach (var dic in data)
+            {
+                insertkey += $"{dic.Key},";
+                if (dic.Value.GetType().Equals(typeof(System.DBNull)))
+                {
+                    if (!keys.Contains(dic.Key))
+                    {
+                        updatestr += $"t1.{dic.Key}=NULL,";
+                    }
+                    insertval += "NULL,";
+                }
+                else
+                {
+                    if (!keys.Contains(dic.Key))
+                    {
+                        updatestr += (dic.Value.GetType().Equals(typeof(string))) ? $"t1.{dic.Key}='{dic.Value}'," : $"t1.{dic.Key}={dic.Value},";
+                    }
+                    insertval += (dic.Value.GetType().Equals(typeof(string))) ? $"'{dic.Value}'," : $"{dic.Value},";
+                }
+            }
+            string insertstr = $"WHEN NOT matched THEN INSERT({insertkey.TrimEnd(',')}) VALUES ({insertval.Substring(0, insertval.LastIndexOf(","))})";//插入语句
+
+            string sqlstr = $"merge INTO {table} t1 using {wherestr} {updatestr.TrimEnd(',')} {insertstr}";//查询语句
+
+            return RunSQL(sqlstr);
+        }
+
+        #region 当前方案(主要用于Mysql)
+
+        /// <summary>
+        /// 根据统计日期批量删除
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="tjrqs"></param>
+        /// <returns></returns>
+        public static bool BatchDeleteByTjrqs(string table, string[] keys, List<Dictionary<string, object>> datas)
+        {
+            try
+            {
+                string sqlwhere = "";
+                List<string> tjrqs = new List<string>();
+                datas.ForEach(p =>
+                {
+                    string tjrq = p["tjrq"].ToString();
+                    if (!tjrqs.Contains(tjrq))
+                    {
+                        tjrqs.Add(tjrq);
+                    }
+                });
+                tjrqs.ForEach(p =>
+                {
+                    sqlwhere += $"'{p}',";
+                });
+
+                var sql = new StringBuilder();
+                sql.Append($"delete from {table} where tjrq in {sqlwhere.TrimEnd(',')};");
+                int i = sqlOperate.RunSQL(sql.ToString());
+                if (i > 0) return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Orcal根据日期批量删除错误{table}>>" + ex.ToString());
+            }
+            return false;
+        }
+
+
+        //批量删除方案
+        //delete from bj_yw_t_crjrydk where (WYBS='201911301041360770201' and CRRQSJ='20191130104136') or (WYBS='201911301041370930101' and CRRQSJ='20191130104137')
+
+        /// <summary>
+        /// 根据主键批量删除
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="keys"></param>
+        /// <param name="datas"></param>
+        /// <returns></returns>
+        public static bool BatchDelete(string table, string[] keys, List<Dictionary<string, object>> datas)
+        {
+            try
+            {
+                string sqlwhere = "";
+                datas.ForEach(p =>
+                {
+                    string where = $"(";
+                    foreach (var key in keys)
+                    {
+                        if (p[key].GetType().Equals(typeof(string)))
+                        {
+                            p[key].ToString().Replace("'", "\'").Replace(",", @"\,"); //处理特殊字符
+                        }
+                        where += p[key].GetType().Equals(typeof(string)) ? $"{key}='{p[key]}' and " : $"{key}={p[key]} and";
+                    }
+                    where = where.TrimEnd('d').TrimEnd('n').TrimEnd('a') + ") or";   //去除and
+                    sqlwhere += where;
+                });
+                sqlwhere = sqlwhere.TrimEnd('r').TrimEnd('o');  //去除or
+
+                var sql = new StringBuilder();
+                sql.Append($"delete from {table} where {sqlwhere};");
+                int i = sqlOperate.RunSQL(sql.ToString());
+                if (i > 0) return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Orcal批量删除错误{table}>>" + ex.ToString());
+            }
+            return false;
+        }
+
+
+
+        //批量更新方案
+        //replace into gqks_t_czyzczx (CZY,ZCSJ,ZXSJ,BMDM,GZZIP,TDH,KADM) values ('202','20190914153320','张飞','张飞','张飞','张飞','张飞'),('202','20190918162832','张飞','张飞','张飞','张飞','张飞');
+
+        /// <summary>
+        /// 批量更新(有就修改，没有就插入)
+        /// </summary>
+        /// <param name="table"></param>
+        /// <param name="keys"></param>
+        /// <param name="datas"></param>
+        /// <returns></returns>
+        public static bool BatchUpdate(string table, string[] keys, List<Dictionary<string, object>> datas)
+        {
+            try
+            {
+                var fields = datas.FirstOrDefault().Keys.ToList();//字段s
+                string field = "";  //要修改的字段
+                fields.ForEach(p => { field += p + ","; });
+                string vale = "";   //要修改的值
+                datas.ForEach(p =>
+                {
+                    string tempstr = "";
+                    var values = p.Values?.ToList();
+                    if (values != null && values.Count > 0)
+                    {
+                        values.ForEach(p1 =>
+                        {
+                            if (p1 == null)
+                            {
+                                tempstr += "null,";
+                            }
+                            else
+                            {
+                                var p2 = p1.GetType().Equals(typeof(string)) ? $"'{p1}'" : p1;
+                                if (p2.GetType().Equals(typeof(string)))
+                                {
+                                    #region 处理特殊字符
+                                    if (p2.ToString().Contains(","))
+                                    {
+                                        p2 = p2.ToString().Replace(",", @"\,"); //处理字符串中的逗号
+                                    }
+                                    string strtemp = p2.ToString().Trim('\'');   //去除首尾单引号
+                                    if (strtemp.Contains("'"))
+                                    {
+                                        p2 = $"'{strtemp.Replace("'", @"\'")}'";    //处理字符串中的单引号
+                                    }
+                                    #endregion
+                                }
+                                tempstr += p2 + ",";
+                            }
+                        });
+                        vale += $"({tempstr.TrimEnd(',')}),";
+                    }
+                });
+
+                var sql = new StringBuilder();
+                sql.Append($"replace into {table} ({field.TrimEnd(',')}) values {vale.TrimEnd(',')};");
+                int i = sqlOperate.RunSQL(sql.ToString());
+                if (i > 0) return true;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Orcal批量更新错误{table}>>" + ex.ToString());
+            }
+            return false;
+        }
+        #endregion
+    }
+}

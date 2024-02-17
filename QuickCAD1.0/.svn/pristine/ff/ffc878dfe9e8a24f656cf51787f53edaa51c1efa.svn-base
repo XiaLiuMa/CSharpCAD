@@ -1,0 +1,12 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace SetCharLib.Common
+{
+    public class BaseConfig
+    {
+        public bool IsTgtp { get; set; }
+        public string ZPLJ { get; set; }
+    }
+}

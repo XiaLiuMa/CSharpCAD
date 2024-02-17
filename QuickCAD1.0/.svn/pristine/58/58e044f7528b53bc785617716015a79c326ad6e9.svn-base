@@ -1,0 +1,122 @@
+﻿//using DataSyncTarget.Config;
+//using Microsoft.AspNetCore.Mvc;
+//using System.Collections.Generic;
+//using DataSyncTarget.Config.Entities;
+//using Max.DbTool.SqlExtend.Mod;
+
+//namespace DataSyncTarget.WebApi
+//{
+//    /// <summary>
+//    /// 任务命令码管理
+//    /// </summary>
+//    [Route("app/res_dbcmd/[action]")]
+//    public class Res_dbcmdController : Controller
+//    {
+//        /// <summary>
+//        /// 查询DbCmd
+//        /// </summary>
+//        /// <param name="condition"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult query(string condition)
+//        {
+//            string t_where = $"and (Tname like '%{condition}%') or (Cmd like '%{condition}%')";
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : t_where;
+//            string where = $"1=1 {qwhere} ORDER BY Cmd";
+//            var list = dal.Select(where);
+//            return Json(list);
+//        }
+
+//        /// <summary>
+//        /// 分页查询DbCmd
+//        /// </summary>
+//        /// <param name="condition"></param>
+//        /// <param name="page"></param>
+//        /// <param name="rows"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult limit(string condition, string page, string rows)
+//        {
+//            int count = 0;
+//            List<DbCmd> list = new List<DbCmd>();
+//            string t_where = $"and (Tname like '%{condition}%') or (Cmd like '%{condition}%')";
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : t_where;
+//            string where = $"1=1 {qwhere} ORDER BY Cmd";
+//            var flag = dal.SqliteSelectPage(where, int.Parse(page), int.Parse(rows), out list, out count);
+//            OutPage<DbCmd> outpage = new OutPage<DbCmd>()
+//            {
+//                Count = count,
+//                Datas = list
+//            };
+//            return Json(outpage);
+//        }
+
+//        /// <summary>
+//        /// 新增DbCmd
+//        /// </summary>
+//        /// <param name="cmd"></param>
+//        /// <param name="tname"></param>
+//        /// <param name="keys"></param>
+//        /// <param name="dbs"></param>
+//        /// <param name="des"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult add(string cmd, string tname, string keys, string dbs, string des)
+//        {
+//            DbCmd db = new DbCmd()
+//            {
+//                Cmd = cmd,
+//                Tname = tname,
+//                Keys = keys,
+//                DbId = dbs,
+//                Bz = des
+//            };
+//            var _flag = dal.Add(db);
+//            if (_flag) DbCmdManger.Instance.RefreshLst();
+//            return Json(_flag);
+//        }
+
+//        /// <summary>
+//        /// 修改DbCmd
+//        /// </summary>
+//        /// <param name="cmd"></param>
+//        /// <param name="tname"></param>
+//        /// <param name="keys"></param>
+//        /// <param name="dbs"></param>
+//        /// <param name="des"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult alert(string cmd, string tname, string keys, string dbs, string des)
+//        {
+//            DbCmd db = new DbCmd()
+//            {
+//                Cmd = cmd,
+//                Tname = tname,
+//                Keys = keys,
+//                DbId = dbs,
+//                Bz = des
+//            };
+//            var _flag = dal.Update(db);
+//            if (_flag) DbCmdManger.Instance.RefreshLst();
+//            return Json(_flag);
+//        }
+
+//        /// <summary>
+//        /// 删除DbCmd
+//        /// </summary>
+//        /// <param name="ids"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult delete(string[] ids)
+//        {
+//            var flags = new List<bool>();
+//            foreach (var id in ids)
+//            {
+//                flags.Add(dal.Delete(id));
+//            }
+//            var flag = flags.Contains(true) ? true : false;
+//            if (flag) DbCmdManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+//    }
+//}

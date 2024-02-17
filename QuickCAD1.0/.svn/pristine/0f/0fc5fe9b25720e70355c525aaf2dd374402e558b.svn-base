@@ -1,0 +1,64 @@
+﻿using Max.DbToolkit.SqlExtend.Mod;
+using System;
+
+namespace GaCharSet.Config.Entities
+{
+    /// <summary>
+    /// 坐标信息表
+    /// </summary>
+    public class CamPoint : BaseEntity
+    {
+        public Int64 Id { get; set; }
+        /// <summary>
+        /// 坐标名称
+        /// </summary>
+        public string Zbmc { get; set; }
+        /// <summary>
+        /// 第1行X坐标
+        /// </summary>
+        public string Line1X { get; set; }
+        /// <summary>
+        /// 第1行Y坐标
+        /// </summary>
+        public string Line1Y { get; set; }
+        /// <summary>
+        /// 第2行X坐标
+        /// </summary>
+        public string Line2X { get; set; }
+        /// <summary>
+        /// 第2行Y坐标
+        /// </summary>
+        public string Line2Y { get; set; }
+        /// <summary>
+        /// 第3行X坐标
+        /// </summary>
+        public string Line3X { get; set; }
+        /// <summary>
+        /// 第3行Y坐标
+        /// </summary>
+        public string Line3Y { get; set; }
+        /// <summary>
+        /// 第4行X坐标
+        /// </summary>
+        public string Line4X { get; set; }
+        /// <summary>
+        /// 第4行Y坐标
+        /// </summary>
+        public string Line4Y { get; set; }
+
+        public override string[] GetKeyValues()
+        {
+            return new string[] { "Id" };
+        }
+
+        public override string[] GetDataBaseAuto()
+        {
+            return new string[] { "Id" };
+        }
+
+        public override string GetTableName()
+        {
+            return "CamPoint";
+        }
+    }
+}

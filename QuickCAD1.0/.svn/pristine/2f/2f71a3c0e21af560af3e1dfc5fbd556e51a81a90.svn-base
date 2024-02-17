@@ -1,0 +1,141 @@
+﻿//using Max.DbTool.SqlExtend.Mod;
+//using Microsoft.AspNetCore.Mvc;
+//using DataSyncSource.Comm;
+//using DataSyncSource.Config;
+//using DataSyncSource.Config.Entities;
+//using System.Collections.Generic;
+
+//namespace DataSyncSource.WebApi
+//{
+//    /// <summary>
+//    /// 子任务管理
+//    /// </summary>
+//    [Route("app/res_zrwpz/[action]")]
+//    public class Res_zrwpzController : Controller
+//    {
+//        private SubTaskDal dal = new SubTaskDal();
+
+//        /// <summary>
+//        /// 查询SubTask
+//        /// </summary>
+//        /// <param name="query"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult query(string condition)
+//        {
+//            string t_where = $"and (Jname like '%{condition}%') or (Cmd like '%{condition}%')";
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : t_where;
+//            string where = $"1=1 {qwhere} ORDER BY Cmd";
+//            var list = dal.Select(where);
+//            return Json(list);
+//        }
+
+//        /// <summary>
+//        /// 分页查询SubTask
+//        /// </summary>
+//        /// <param name="condition"></param>
+//        /// <param name="page"></param>
+//        /// <param name="rows"></param>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult limit(string condition, string page, string rows)
+//        {
+//            int count = 0;
+//            List<SubTask> list = new List<SubTask>();
+//            string t_where = $"and (Jname like '%{condition}%') or (Cmd like '%{condition}%')";
+//            string qwhere = string.IsNullOrEmpty(condition) ? "" : t_where;
+//            string where = $"1=1 {qwhere} ORDER BY Cmd";
+//            var flag = dal.SqliteSelectPage(where, int.Parse(page), int.Parse(rows), out list, out count);
+//            OutPage<SubTask> outpage = new OutPage<SubTask>()
+//            {
+//                Count = count,
+//                Datas = list
+//            };
+//            return Json(outpage);
+//        }
+
+//        /// <summary>
+//        ///  新增SubTask
+//        /// </summary>
+//        /// <param name="cmd"></param>
+//        /// <param name="jname"></param>
+//        /// <param name="fid"></param>
+//        /// <param name="rwlx"></param>
+//        /// <param name="ycsc"></param>
+//        /// <param name="dbs"></param>
+//        /// <param name="sta"></param>
+//        /// <param name="des"></param>
+//        /// <param name="sqltxt"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult add(string cmd, string jname, string fid, string rwlx, string ycsc, string dbs, string sta, string des, string sqltxt)
+//        {
+//            SubTask db = new SubTask()
+//            {
+//                Cmd = cmd,
+//                Jname = jname,
+//                JobId = fid,
+//                Rwlx = rwlx,
+//                Ycsc = ycsc,
+//                Dbs = dbs,
+//                State = sta,
+//                Description = des,
+//                SqlTxt = sqltxt
+//            };
+//            var flag = dal.Add(db);
+//            if (flag) SubTaskManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 修改SubTask
+//        /// </summary>
+//        /// <param name="cmd"></param>
+//        /// <param name="jname"></param>
+//        /// <param name="fid"></param>
+//        /// <param name="rwlx"></param>
+//        /// <param name="ycsc"></param>
+//        /// <param name="dbs"></param>
+//        /// <param name="sta"></param>
+//        /// <param name="des"></param>
+//        /// <param name="sqltxt"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult alert(string cmd, string jname, string fid, string rwlx, string ycsc, string dbs, string sta, string des, string sqltxt)
+//        {
+//            SubTask db = new SubTask()
+//            {
+//                Cmd = cmd,
+//                Jname = jname,
+//                JobId = fid,
+//                Rwlx = rwlx,
+//                Ycsc = ycsc,
+//                Dbs = dbs,
+//                State = sta,
+//                Description = des,
+//                SqlTxt = sqltxt
+//            };
+//            var flag = dal.Update(db);
+//            if (flag) SubTaskManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+
+//        /// <summary>
+//        /// 删除SubTask
+//        /// </summary>
+//        /// <param name="ids"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult delete(string[] ids)
+//        {
+//            var flags = new List<bool>();
+//            foreach (var id in ids)
+//            {
+//                flags.Add(dal.Delete(id));
+//            }
+//            var flag = flags.Contains(true) ? true : false;
+//            if (flag) SubTaskManger.Instance.RefreshLst();
+//            return Json(flag);
+//        }
+//    }
+//}

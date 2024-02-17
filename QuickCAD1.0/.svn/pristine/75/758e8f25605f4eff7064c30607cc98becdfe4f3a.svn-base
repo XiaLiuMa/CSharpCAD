@@ -1,0 +1,38 @@
+﻿//using System.Data;
+//using System.Collections.Generic;
+
+//namespace Max.DbTool.Imp
+//{
+//    /// <summary>
+//    /// 提供达梦数据库操作实现
+//    /// </summary>
+//    public class DamengOperate : ISqlOperate
+//    {
+//        public DbConfig Config { get; set; }
+
+//        public bool Execute(string sqlstr)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public DataTable Query(string sqlstr)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public bool BatchCover(string tname, List<Dictionary<string, object>> dlst, string[] keys = null)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public bool BatchDelete(string tname, string[] fileds, List<Dictionary<string, object>> dlst)
+//        {
+//            throw new System.NotImplementedException();
+//        }
+
+//        public void Dispose()
+//        {
+//            SqlOperateManger.I.Still(Config, this);
+//        }
+//    }
+//}

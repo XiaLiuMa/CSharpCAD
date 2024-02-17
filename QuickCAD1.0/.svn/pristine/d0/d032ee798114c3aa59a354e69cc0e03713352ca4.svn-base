@@ -1,0 +1,310 @@
+﻿using SetCharLib.HikVision;
+using SetCharLib.Mod;
+using Max.BaseKit;
+using Max.BaseKit.Utils;
+
+namespace SetCharLib.SetCharacter
+{
+    public class HikExxSetCharacter : WLSetCharacter
+    {
+        public HikExxSetCharacter(WLZFDJDYGX dygx)
+            : base(dygx)
+        {
+            if (!HikNetSdk.IsInitSdk)
+            {
+                HikNetSdk.NET_DVR_Init();
+                HikNetSdk.IsInitSdk = true;
+            }
+            if (!this.bLogin)
+            {
+                this.Login();
+            }
+        }
+
+        public bool Login()
+        {
+            bool result;
+            lock (HikNetSdk.dctLogins)
+            {
+                string key = this.wlzfdjdygx.WLSB.IPADDRESS + "," + this.wlzfdjdygx.WLSB.PORT;
+                if (!HikNetSdk.dctLogins.TryGetValue(key, out this.m_login))
+                {
+                    HikNetSdk.NET_DVR_DEVICEINFO_V30 m_deviceInfo = default(HikNetSdk.NET_DVR_DEVICEINFO_V30);
+                    if (this.wlzfdjdygx != null && !this.bLogin)
+                    {
+                        this.m_login = HikNetSdk.NET_DVR_Login_V30(this.wlzfdjdygx.WLSB.IPADDRESS, (ushort)this.wlzfdjdygx.WLSB.PORT, this.wlzfdjdygx.WLSB.USER_NAME, this.wlzfdjdygx.WLSB.USER_PWD, ref m_deviceInfo);
+                        if (this.m_login == -1)
+                        {
+                            uint error = HikNetSdk.NET_DVR_GetLastError();
+                            NLogger.Error($"设备登录失败，IP为：{this.wlzfdjdygx.WLSB.IPADDRESS}，错误号为：{error}");
+                            result = false;
+                        }
+                        else
+                        {
+                            this.bLogin = true;
+                            HikNetSdk.dctLogins.Add(key, this.m_login);
+                            result = true;
+                        }
+                    }
+                    else
+                    {
+                        result = false;
+                    }
+                }
+                else
+                {
+                    if (this.m_login == -1)
+                    {
+                        System.Threading.Thread.Sleep(500);
+                        this.m_login = HikNetSdk.dctLogins[key];
+                    }
+                    this.bLogin = true;
+                    result = true;
+                }
+            }
+            return result;
+        }
+        public override bool ClearLKXX(string zjhm)
+        {
+            if (!base.ClearLKXX(zjhm))
+            {
+                return true;
+            }
+            if (!this.bLogin)
+            {
+                return false;
+            }
+            HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString = default(HikNetSdk.NET_DVR_SHOWSTRING_V30);
+            uint uiBufferSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(m_ShowString);
+            m_ShowString.uiSize = uiBufferSize;
+            byte[] m_byShowString = StructUtil.StructToBytes(m_ShowString);
+            uint uiReturn = 0u;
+            bool bGetConfig = HikNetSdk.NET_DVR_GetDVRConfig(this.m_login, 1030u, this.wlzfdjdygx.WLSB.CHANNEL, m_byShowString, uiBufferSize, ref uiReturn);
+            if (bGetConfig)
+            {
+                m_ShowString = (HikNetSdk.NET_DVR_SHOWSTRING_V30)StructUtil.BytesToStruct(m_byShowString, m_ShowString.GetType());
+            }
+            if (m_ShowString.struStringInfo == null)
+            {
+                return false;
+            }
+            m_ShowString.struStringInfo[1].usShowString = 0;
+            m_ShowString.struStringInfo[1].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[1].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[1].usStringSize = 0;
+            m_ShowString.struStringInfo[1].strString = "";
+            m_ShowString.struStringInfo[2].usShowString = 0;
+            m_ShowString.struStringInfo[2].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[2].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[2].usStringSize = 0;
+            m_ShowString.struStringInfo[2].strString = "";
+            m_ShowString.struStringInfo[3].usShowString = 0;
+            m_ShowString.struStringInfo[3].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[3].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[3].usStringSize = 0;
+            m_ShowString.struStringInfo[3].strString = "";
+            if (!HikNetSdk.NET_DVR_SetDVRConfig(this.m_login, 1031u, this.wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+            {
+                uint error = HikNetSdk.NET_DVR_GetLastError();
+               NLogger.Error($"字符清空失败，错误号为：{error}");
+                return false;
+            }
+            return true;
+        }
+        public override bool ClearAll()
+        {
+            if (!this.bLogin)
+            {
+                return false;
+            }
+            HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString = default(HikNetSdk.NET_DVR_SHOWSTRING_V30);
+            uint uiBufferSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(m_ShowString);
+            m_ShowString.uiSize = uiBufferSize;
+            byte[] m_byShowString = StructUtil.StructToBytes(m_ShowString);
+            uint uiReturn = 0u;
+            bool bGetConfig = HikNetSdk.NET_DVR_GetDVRConfig(this.m_login, 1030u, this.wlzfdjdygx.WLSB.CHANNEL, m_byShowString, uiBufferSize, ref uiReturn);
+            if (bGetConfig)
+            {
+                m_ShowString = (HikNetSdk.NET_DVR_SHOWSTRING_V30)StructUtil.BytesToStruct(m_byShowString, m_ShowString.GetType());
+            }
+            if (m_ShowString.struStringInfo == null)
+            {
+                return false;
+            }
+            m_ShowString.struStringInfo[0].usShowString = 0;
+            m_ShowString.struStringInfo[0].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[0].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[0].usStringSize = 0;
+            m_ShowString.struStringInfo[0].strString = "";
+            m_ShowString.struStringInfo[1].usShowString = 0;
+            m_ShowString.struStringInfo[1].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[1].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[1].usStringSize = 0;
+            m_ShowString.struStringInfo[1].strString = "";
+            m_ShowString.struStringInfo[2].usShowString = 0;
+            m_ShowString.struStringInfo[2].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[2].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[2].usStringSize = 0;
+            m_ShowString.struStringInfo[2].strString = "";
+            m_ShowString.struStringInfo[3].usShowString = 0;
+            m_ShowString.struStringInfo[3].usShowStringTopLeftX = 0;
+            m_ShowString.struStringInfo[3].usShowStringTopRightY = 0;
+            m_ShowString.struStringInfo[3].usStringSize = 0;
+            m_ShowString.struStringInfo[3].strString = "";
+            if (!HikNetSdk.NET_DVR_SetDVRConfig(this.m_login, 1031u, this.wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+            {
+                uint error = HikNetSdk.NET_DVR_GetLastError();
+                NLogger.Error($"字符清空失败，错误号为：{error}");
+                return false;
+            }
+            return true;
+        }
+
+        public override bool SetCharacter(DjMessage djmsg)
+        {
+            base.SetCharacter(djmsg);
+            if (this.wlzfdjdygx == null)
+            {
+                return false;
+            }
+            if (!this.bLogin)
+            {
+                return false;
+            }
+            HikNetSdk.NET_DVR_SHOWSTRING_V30 m_ShowString = default(HikNetSdk.NET_DVR_SHOWSTRING_V30);
+            uint uiBufferSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(m_ShowString);
+            m_ShowString.uiSize = uiBufferSize;
+            byte[] m_byShowString = StructUtil.StructToBytes(m_ShowString);
+            uint uiReturn = 0u;
+            bool bGetConfig = HikNetSdk.NET_DVR_GetDVRConfig(this.m_login, 1030u, this.wlzfdjdygx.WLSB.CHANNEL, m_byShowString, uiBufferSize, ref uiReturn);
+            if (bGetConfig)
+            {
+                m_ShowString = (HikNetSdk.NET_DVR_SHOWSTRING_V30)StructUtil.BytesToStruct(m_byShowString, m_ShowString.GetType());
+            }
+            if (m_ShowString.struStringInfo == null)
+            {
+                return false;
+            }
+
+            #region 叠加第1行(Czybm+Czydm+Czyxm)
+            string strCmd = string.Empty;
+            strCmd += string.IsNullOrEmpty(djmsg.Czybm) ? "" : $"{djmsg.Czybm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czydm) ? "" : $" {djmsg.Czydm}";
+            strCmd += string.IsNullOrEmpty(djmsg.Czyxm) ? "" : $" {djmsg.Czyxm}";
+
+            m_ShowString.struStringInfo[0].usShowString = 1;
+            m_ShowString.struStringInfo[0].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line1X;
+            m_ShowString.struStringInfo[0].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line1Y;
+            m_ShowString.struStringInfo[0].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd).Length;
+            m_ShowString.struStringInfo[0].strString = strCmd;
+            #endregion
+
+            #region 叠加第2行(Lkxm+Lkzjhm)
+            string strCmd1 = string.Empty;
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkxm) ? "" : $"{djmsg.Lkxm}";
+            strCmd1 += string.IsNullOrEmpty(djmsg.Lkzjhm) ? "" : $" {djmsg.Lkzjhm}";
+
+            m_ShowString.struStringInfo[1].usShowString = 1;
+            m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line2X;
+            m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line2Y;
+            m_ShowString.struStringInfo[1].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd1).Length;
+            m_ShowString.struStringInfo[1].strString = strCmd1;
+            #endregion
+
+            #region 叠加第3行(Jtgj+CSRQ)
+            string strCmd2 = string.Empty;
+            strCmd2 += string.IsNullOrEmpty(djmsg.Lkgj) ? "" : $"{djmsg.Lkgj}";
+            strCmd2 += string.IsNullOrEmpty(djmsg.CSRQ) ? "" : $" {djmsg.CSRQ}";
+
+            m_ShowString.struStringInfo[2].usShowString = 1;
+            m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line3X;
+            m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line3Y;
+            m_ShowString.struStringInfo[2].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd2).Length;
+            m_ShowString.struStringInfo[2].strString = strCmd2;
+            #endregion
+
+            #region 叠加第4行(Jtgj+Lkpjxx)
+            string strCmd3 = string.Empty;
+            strCmd3 += string.IsNullOrEmpty(djmsg.Jtgj) ? "" : $"{djmsg.Jtgj}";
+            strCmd3 += string.IsNullOrEmpty(djmsg.Lkpjxx) ? "" : $" {djmsg.Lkpjxx}";
+
+            m_ShowString.struStringInfo[3].usShowString = 1;
+            m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)wlzfdjdygx.ZBXX.Line4X;
+            m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)wlzfdjdygx.ZBXX.Line4Y;
+            m_ShowString.struStringInfo[3].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd3).Length;
+            m_ShowString.struStringInfo[3].strString = strCmd3;
+            #endregion
+
+            #region 废弃
+            //if (djmsg.Czybm != null || djmsg.Czybm != "0")
+            //{
+            //    m_ShowString.struStringInfo[1].usShowString = 1;
+            //    m_ShowString.struStringInfo[1].usShowStringTopLeftX = (ushort)this.wlzfdjdygx.ZBXX.Line2X;
+            //    m_ShowString.struStringInfo[1].usShowStringTopRightY = (ushort)this.wlzfdjdygx.ZBXX.Line2Y;
+            //    #region 新方案202006082040
+            //    string strCmd = string.Empty;
+            //    strCmd += string.IsNullOrEmpty(djmsg.Czybm) ? "" : $"{djmsg.Czybm}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.Czydm) ? "" : $" {djmsg.Czydm}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.Czyxm) ? "" : $" {djmsg.Czyxm}";
+            //    #endregion
+            //    m_ShowString.struStringInfo[1].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd).Length;
+            //    m_ShowString.struStringInfo[1].strString = strCmd;
+            //}
+            //if (!string.IsNullOrEmpty(djmsg.Lkxm) && djmsg.Lkxm != "0")
+            //{
+            //    m_ShowString.struStringInfo[2].usShowString = 1;
+            //    m_ShowString.struStringInfo[2].usShowStringTopLeftX = (ushort)this.wlzfdjdygx.ZBXX.Line3X;
+            //    m_ShowString.struStringInfo[2].usShowStringTopRightY = (ushort)this.wlzfdjdygx.ZBXX.Line3Y;
+            //    #region 新方案202006082040
+            //    string strCmd = string.Empty;
+            //    strCmd += string.IsNullOrEmpty(djmsg.Lkxm) ? "" : $"{djmsg.Lkxm}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.Lkzjhm) ? "" : $" {djmsg.Lkzjhm}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.CSRQ) ? "" : $" {djmsg.CSRQ}";
+            //    #endregion
+            //    m_ShowString.struStringInfo[2].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd).Length;
+            //    m_ShowString.struStringInfo[2].strString = strCmd;
+            //}
+            //if (!string.IsNullOrEmpty(djmsg.Lkzjhm) && djmsg.Lkzjhm != "0")
+            //{
+            //    m_ShowString.struStringInfo[3].usShowString = 1;
+            //    m_ShowString.struStringInfo[3].usShowStringTopLeftX = (ushort)this.wlzfdjdygx.ZBXX.Line4X;
+            //    m_ShowString.struStringInfo[3].usShowStringTopRightY = (ushort)this.wlzfdjdygx.ZBXX.Line4Y;
+            //    #region 新方案202006082040
+            //    string strCmd = string.Empty;
+            //    strCmd += string.IsNullOrEmpty(djmsg.Lkgj) ? "" : $"{djmsg.Lkgj}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.Jtgj) ? "" : $" {djmsg.Jtgj}";
+            //    strCmd += string.IsNullOrEmpty(djmsg.Lkpjxx) ? "" : $" {djmsg.Lkpjxx}";
+            //    #endregion
+            //    m_ShowString.struStringInfo[3].usStringSize = (ushort)System.Text.Encoding.Default.GetBytes(strCmd).Length;
+            //    m_ShowString.struStringInfo[3].strString = strCmd;
+            //} 
+            #endregion
+
+            if (!HikNetSdk.NET_DVR_SetDVRConfig(this.m_login, 1031u, this.wlzfdjdygx.WLSB.CHANNEL, StructUtil.StructToBytes(m_ShowString), uiBufferSize))
+            {
+                if (SetCharacterFactory.IsTgtp)
+                {
+                    string sJpegPicFileName;
+                    //图片保存路径和文件名 the path and file name to save
+                    sJpegPicFileName = SetCharacterFactory.ztlj + djmsg.WYBS + ".jpg";
+
+                    HikNetSdk.NET_DVR_JPEGPARA lpJpegPara = new HikNetSdk.NET_DVR_JPEGPARA();
+                    lpJpegPara.wPicQuality = 0; //图像质量 Image quality
+                    lpJpegPara.wPicSize = 0xff; //抓图分辨率 Picture size: 2- 4CIF，0xff- Auto(使用当前码流分辨率)，抓图分辨率需要设备支持，更多取值请参考SDK文档
+
+                    if (!HikNetSdk.NET_DVR_CaptureJPEGPicture(this.m_login, this.wlzfdjdygx.WLSB.CHANNEL, ref lpJpegPara, sJpegPicFileName))
+                    {
+                        uint error = HikNetSdk.NET_DVR_GetLastError();
+                        NLogger.Error($"抓图失败，错误号为：{error}");
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+        public override bool Dispose()
+        {
+            return this.ClearAll();
+        }
+    }
+}

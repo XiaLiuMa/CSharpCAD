@@ -1,0 +1,61 @@
+﻿using System;
+using SetCharLib.Mod;
+using SetCharLib.Helper;
+
+namespace SetCharLib.SetCharacter
+{
+    public class Max1800SetCharacter : MNSetCharacter
+    {
+
+        public Max1800SetCharacter(MNZFDJDYGX dygx)
+            : base(dygx)
+        {
+
+        }
+        public override bool ClearLKXX(string zjhm)
+        {
+            try
+            {
+                byte[] cmd = MV1800Helper.GetClearLineOnScreenMsg(MNZFDJDYGX.MNSB.JKTDH, MNZFDJDYGX.ZBXX.Line3X, MNZFDJDYGX.ZBXX.Line3Y);
+                SerialClass.Write(cmd);
+
+                byte[] cmd1 = MV1800Helper.GetClearLineOnScreenMsg(MNZFDJDYGX.MNSB.JKTDH, MNZFDJDYGX.ZBXX.Line4X, MNZFDJDYGX.ZBXX.Line4Y);
+                SerialClass.Write(cmd1);
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        public override bool ClearAll()
+        {
+            byte[] cmd = MV1800Helper.GetClearLineOnScreenMsg(MNZFDJDYGX.MNSB.JKTDH, MNZFDJDYGX.ZBXX.Line2X, MNZFDJDYGX.ZBXX.Line2Y);
+            SerialClass.Write(cmd);
+
+            byte[] cmd1 = MV1800Helper.GetClearLineOnScreenMsg(MNZFDJDYGX.MNSB.JKTDH, MNZFDJDYGX.ZBXX.Line3X, MNZFDJDYGX.ZBXX.Line3Y);
+            SerialClass.Write(cmd1);
+
+            byte[] cmd2 = MV1800Helper.GetClearLineOnScreenMsg(MNZFDJDYGX.MNSB.JKTDH, MNZFDJDYGX.ZBXX.Line4X, MNZFDJDYGX.ZBXX.Line4Y);
+            SerialClass.Write(cmd2);
+
+            return true;
+        }
+
+        public override bool SetCharacter(DjMessage djmsg)
+        {
+            byte[] cmd = MV1800Helper.GetDisplayMetafileOnVideoMsg(MNZFDJDYGX.MNSB.JKTDH, djmsg.Lkzjhm + " " + djmsg.Lkxm, MNZFDJDYGX.ZBXX.Line2X, MNZFDJDYGX.ZBXX.Line2Y);
+            SerialClass.Write(cmd);
+
+            byte[] cmd1 = MV1800Helper.GetDisplayMetafileOnVideoMsg(MNZFDJDYGX.MNSB.JKTDH, djmsg.Lkpjxx, MNZFDJDYGX.ZBXX.Line3X, MNZFDJDYGX.ZBXX.Line3Y);
+            SerialClass.Write(cmd1);
+
+            byte[] cmd2 = MV1800Helper.GetDisplayMetafileOnVideoMsg(MNZFDJDYGX.MNSB.JKTDH, djmsg.Czydm + " " + djmsg.Czyxm, MNZFDJDYGX.ZBXX.Line4X, MNZFDJDYGX.ZBXX.Line4Y);
+            SerialClass.Write(cmd2);
+
+            return true;
+        }
+    }
+}

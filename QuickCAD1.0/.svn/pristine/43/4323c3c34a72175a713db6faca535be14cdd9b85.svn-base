@@ -1,0 +1,14 @@
+﻿using Microsoft.AspNetCore.Mvc;
+
+namespace DataSyncTarget.WebApi
+{
+    [Route("app/home/[action]")]
+    public class HomeController : Controller
+    {
+        [HttpGet]
+        public ActionResult toindex()
+        {
+            return new RedirectResult($@"/home/home.html"); //页面跳转
+        }
+    }
+}

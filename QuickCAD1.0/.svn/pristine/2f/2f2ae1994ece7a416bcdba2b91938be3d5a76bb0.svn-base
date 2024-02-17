@@ -1,0 +1,70 @@
+﻿using System;
+using SetCharLib.Mod;
+
+namespace SetCharLib.SetCharacter
+{
+    /// <summary>
+    /// 网络字符叠加抽象类
+    /// </summary>
+    public abstract class WLSetCharacter : ISetCharacter
+    {
+        /// <summary>
+        /// 当前字符叠加是否已登录
+        /// </summary>
+        public bool bLogin = false;
+
+        /// <summary>
+        /// 当前字符叠加登陆ID
+        /// </summary>
+        public int m_login = -1;
+
+        /// <summary>
+        /// 字符叠加对应关系
+        /// </summary>
+        public WLZFDJDYGX wlzfdjdygx;
+
+        public string lastzjhm;
+
+        public WLSetCharacter(WLZFDJDYGX dygx)
+        {
+            wlzfdjdygx = dygx;
+        }
+
+        /// <summary>
+        /// 清除字符叠加旅客信息
+        /// </summary>
+        /// <returns></returns>
+        public virtual bool ClearLKXX(string zjhm)
+        {
+            if (zjhm != lastzjhm)
+            {
+                return false;
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        /// <summary>
+        /// 清除字符叠加所有信息
+        /// </summary>
+        /// <returns></returns>
+        public abstract bool ClearAll();
+
+        /// <summary>
+        /// 设置字符叠加信息
+        /// </summary>
+        /// <param name="djmsg"></param>
+        public virtual bool SetCharacter(DjMessage djmsg) {
+            lastzjhm = djmsg.Lkzjhm;
+            return true;
+        }
+
+        /// <summary>
+        /// 清空相关信息
+        /// </summary>
+        /// <returns></returns>
+        public abstract bool Dispose();
+    }
+}

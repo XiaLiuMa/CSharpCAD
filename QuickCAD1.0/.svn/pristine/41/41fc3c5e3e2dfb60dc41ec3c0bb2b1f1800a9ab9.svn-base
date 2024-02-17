@@ -1,0 +1,81 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Security.Claims;
+using WebApplication1.Models;
+using System.ComponentModel.DataAnnotations;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// 日志管理控制器
+    /// </summary>
+    [Authorize]
+    public class LogMgtController : Controller
+    {
+        private readonly ILogger<LogMgtController> _logger;
+
+        public LogMgtController(ILogger<LogMgtController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 分页搜索
+        /// </summary>
+        /// <param name="page"></param>
+        /// <param name="limit"></param>
+        /// <param name="state"></param>
+        /// <returns></returns>
+        [HttpGet]
+        public ResultPaging<LogVMod> PagingSearch(int page = 1, int limit = 10, string state = "")
+        {
+            var rd = new ResultPaging<LogVMod>();
+            rd.Count = 35;
+            rd.Data = new List<LogVMod>();
+            for (int i = 0; i < 10; i++)
+            {
+                rd.Data.Add(new LogVMod()
+                {
+                    BelongSystem = "数据同步资源端",
+                    LogType = "INFO",
+                    LogFileName = $"{DateTime.Now.ToString("yyyy-MM-dd")} {i}.log",
+                    LogFullFileName = @$"C:/{DateTime.Now.ToString("yyyy-MM-dd")} {i}.log"
+                });
+            }
+            return rd;
+        }
+
+        public IActionResult Detail()
+        {
+            return View();
+        }
+    }
+
+    public class LogVMod
+    {
+        /// <summary>
+        /// 所属系统
+        /// </summary>
+        public string BelongSystem { get; set; }
+        /// <summary>
+        /// 日志类型
+        /// </summary>
+        public string LogType { get; set; }
+        /// <summary>
+        /// 日子文件名称
+        /// </summary>
+        public string LogFileName { get; set; }
+        /// <summary>
+        /// 日子全文件名称
+        /// </summary>
+        public string LogFullFileName { get; set; }
+    }
+}

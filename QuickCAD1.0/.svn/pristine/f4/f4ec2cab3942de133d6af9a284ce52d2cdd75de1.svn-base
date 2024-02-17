@@ -1,0 +1,35 @@
+﻿using System.Collections.Generic;
+
+namespace DataSyncVerificationApp
+{
+    /// <summary>
+    /// 隔离器数据模型
+    /// </summary>
+    public class IsolatorData
+    {
+        /// <summary>
+        /// 数据ID，特别用于GA端文件解析时
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 命令标识
+        /// </summary>
+        public string Cmd { get; set; }
+        /// <summary>
+        /// 任务名称
+        /// </summary>
+        public string Rwmc { get; set; }
+        /// <summary>
+        /// 触发类型('Z'/'S':自动/手动)
+        /// </summary>
+        public char Cflx { get; set; } = 'Z';
+        /// <summary>
+        /// 操作类型('U'/'D'/'R':覆盖/删除/先删除再覆盖)
+        /// </summary>
+        public char Czlx { get; set; } = 'U';
+        /// <summary>
+        /// 要操作的数据
+        /// </summary>
+        public List<Dictionary<string, object>> Lst { get; set; }
+    }
+}

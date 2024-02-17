@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<AppConfig xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--WEB服务IP地址-->
+	<WebIp>127.0.0.1</WebIp>
+	<!--WEB服务端口号-->
+	<WebPort>52302</WebPort>
+	<!--程序名称-->
+	<AppName>Ga数据同步服务</AppName>
+	<!--进程名称(同一个服务器上运行多个此程序时修改)-->
+	<ProcessName>DataSyncTarget</ProcessName>
+	<!--自动重启定时时长(单位天，支持小数),<=0表示不启用自动重启，默认值为-1-->
+	<AutoRestartTimes>-1</AutoRestartTimes>
+	<!--日志保存时长(天)-->
+	<LogDays>7</LogDays>
+	<!--同步类型(1:网闸,2:串口,3:串口服务器)-->
+	<SyncType>1</SyncType>
+	<!--块大小(单个文件或单条消息的大小，单位M，不建议设置太小，起码要保证大于单条数据的大小，默认设置2M)-->
+	<BlockSize>2</BlockSize>
+	<!--网闸模式配置-->
+	<NetBrake>
+		<!--文件同步物理地址-->
+		<SyncPath>D:\SjtbTemp\GaSyncPath</SyncPath>
+		<!--文件扫描物理地址-->
+		<ScanPath>D:\SjtbTemp\MsSyncPath</ScanPath>
+		<!--文件消费并发大小-->
+		<ConcurrencySize>5</ConcurrencySize>
+		<!--是否启用文件备份-->
+		<BackupEnable>true</BackupEnable>
+		<!--文件扫描物理地址-->
+		<BackupPath>D:\SjtbTemp\BackupPath</BackupPath>
+		<!--是否启用图片本地保存-->
+		<LocalImgEnable>false</LocalImgEnable>
+		<!--图片本地保存物理地址-->
+		<LocalImgPath>D:\SjtbTemp\LocalImgPath</LocalImgPath>
+	</NetBrake>
+	<!--串口模式配置，支持多个共存-->
+	<SerialPorts>
+		<SerialPort>
+			<PortName>COM7</PortName>
+			<BaudRate>115200</BaudRate>
+			<DataBit>8</DataBit>
+			<StopBit>1</StopBit>
+			<Parity>None</Parity>
+		</SerialPort>
+	</SerialPorts>
+	<!--串口服务器模式配置，支持多个共存-->
+	<SerialServers>
+		<SerialServer>
+			<ServerIP>127.0.0.1</ServerIP>
+			<ServerPort>8007</ServerPort>
+		</SerialServer>
+	</SerialServers>
+	
+	<!--图片存储配置-->
+	<ImgStoreCfg>
+		<!--存储类型(1:数据库存储,2:本地存储,3:Minio文件服务器存储)-->
+		<StoreType>1</StoreType>
+		<AccessKey>admin</AccessKey>
+		<SecretKey>12345678</SecretKey>
+		<BucketName>zhzz</BucketName>
+	</ImgStoreCfg>
+	
+		
+	<!--文件服务器配置-->
+	<MimioConfig>
+		<!--<Endpoint>127.0.0.1:8899</Endpoint>-->
+		<Endpoint>172.31.51.252:9999</Endpoint>
+		<AccessKey>admin</AccessKey>
+		<SecretKey>12345678</SecretKey>
+		<BucketName>zhzz</BucketName>
+	</MimioConfig>
+</AppConfig>
+

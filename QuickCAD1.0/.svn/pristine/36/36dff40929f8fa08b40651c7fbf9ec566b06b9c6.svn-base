@@ -1,0 +1,156 @@
+﻿using Max.BaseKit.Utils;
+using Max.BaseKit;
+using Max.BaseKit.Exts;
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Threading;
+using Max.BaseKit.Customs;
+using Max.ISolator.Core.Mods;
+using System.Reflection;
+
+namespace Max.ISolator.Core
+{
+    public class MaxIsolator
+    {
+        #region 单例
+        private static MaxIsolator i;
+        private readonly static object objLock = new object();
+        public static MaxIsolator I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new MaxIsolator();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 监听器集合
+        /// </summary>
+        public List<IListener> IListener_Lst { get; private set; }
+        /// <summary>
+        /// 隔离器字典
+        /// </summary>
+        public ConcurrentDictionary<string, IIsolator> IIsolator_Dic { get; private set; }
+        /// <summary>
+        /// 隔离器回调函数
+        /// </summary>
+        public Action<int> OnCallback { get; private set; }
+
+        /// <summary>
+        /// 初始化
+        /// </summary>
+        /// <param name="programName">程序名称，用于反射是指定dll</param>
+        /// <param name="callback">隔离器回调函数</param>
+        public void Init(string programName, Action<int> callback)
+        {
+            this.OnCallback = callback;
+            IListener_Lst = new List<IListener>();
+            IIsolator_Dic = new ConcurrentDictionary<string, IIsolator>();
+
+            #region 反射获取所有服务实现类
+            Assembly assembly = Assembly.LoadFrom($"{programName}.dll");
+            var classes = assembly.GetTypes().Where(t => typeof(IListener).IsAssignableFrom(t));
+            foreach (var cl in classes)
+            {
+                var handler = Activator.CreateInstance(cl) as IListener;
+                IListener_Lst.Add(handler);
+            }
+            #endregion
+        }
+
+        /// <summary>
+        /// 启动
+        /// </summary>
+        public void BootUp()
+        {
+            foreach (var item in IIsolator_Dic)
+            {
+                item.Value?.BootUp(); //启动隔离器
+            }
+        }
+
+        /// <summary>
+        /// 解析&消费文件
+        /// </summary>
+        private void ParsingAndConsumeFile()
+        {
+            //Task.Factory.StartNew(() =>
+            //{
+            //    foreach (var fname in ConsumingFiles.GetConsumingEnumerable())
+            //    {
+            //        IsolatorData idata = default;
+            //        if (!File.Exists(fname)) break;
+            //        if (fname.IsFileInUsing(600))
+            //        {
+            //            NLogger.Warn($"{fname}文件10分钟内还是占用状态，该文件放弃消费。");
+            //            break;
+            //        }
+            //        //触发类型@优先级@执行时间(精确到毫秒)@命令码@任务名@开始时间_结束时间_切片序号_数据条数
+            //        //0@1@20240105122336888@123@Test01@20240101000000_20250101000000_1_238.txt
+            //        string[] strs = fname.Split('@');
+            //        if (strs == null || strs.Length < 6) break;
+            //        string datastr = FileUtil.StreamRead(fname, null);
+            //        idata = JsonUtil.StrToObject<IsolatorData>(datastr);
+            //        if (idata != null) idata.Id = fname;//用文件名作为数据Id
+            //        if (idata == null)
+            //        {
+            //            //ConsumeFileCompleteEvent(fname);//对于空文件或者不符合协议的文件直接消费完成
+            //            return;
+            //        }
+
+            //        //消费数据
+            //        IListener_Lst?.ForEach(listener =>
+            //        {
+            //            listener.ConsumeData(idata, (p1, p2) =>
+            //            {
+
+            //            });
+            //        });
+
+            //        if (MaxIsolator.I.IsBackupConsume)
+            //        {
+            //            var sfPath = fname;//源文件路径
+            //            var dfPath = fname.Replace(MaxIsolator.I.ConsumeCachePath, MaxIsolator.I.ConsumeBackupPath);//目标文件路径
+            //            FileUtil.StreamMove(fname, dfPath);//移动到备份路径
+            //        }
+            //        else
+            //        {
+            //            File.Delete(fname);//删除文件
+            //        }
+            //    }
+            //});
+        }
+
+        /// <summary>
+        /// 停止
+        /// </summary>
+        public void ShutDown()
+        {
+
+        }
+
+        /// <summary>
+        /// 销毁
+        /// </summary>
+        public void Dispose()
+        {
+
+        }
+    }
+}

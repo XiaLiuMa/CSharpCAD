@@ -1,0 +1,98 @@
+﻿using Max.ISolator.Core.Syncers;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// MaxISolator回调
+    /// </summary>
+    /// <param name="p">(1:表示可能处于堵塞状态)</param>
+    public delegate void MaxISolatorCallback(int p);
+    public class MaxISolator
+    {
+        #region 单例
+        private static MaxISolator i;
+        private readonly static object objLock = new object();
+        public static MaxISolator I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new MaxISolator();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 是否初始化
+        /// </summary>
+        public bool IsInit { get; private set; } = false;
+        /// <summary>
+        /// 文件缓存路径
+        /// </summary>
+        public string CachePath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 是否压缩数据
+        /// </summary>
+        public bool IsZip { get; private set; } = false;
+        /// <summary>
+        /// 是否备份文件
+        /// </summary>
+        public bool IsBackup { get; private set; } = false;
+        /// <summary>
+        /// 文件备份路径
+        /// </summary>
+        public string BackupPath { get; private set; } = string.Empty;
+        /// <summary>
+        /// 数量大小(单个文件可容纳多少条数据，单位M)
+        /// </summary>
+        public int ItemSize { get; private set; }
+        /// <summary>
+        /// 容积大小(单个文件可容纳多大的数据，单位M)
+        /// </summary>
+        public int BulkSize { get; private set; }
+
+
+        /// <summary>
+        /// 同步助手字典
+        /// </summary>
+        public ConcurrentDictionary<string, ISyncer> ISyncer_Lst { get; private set; } = new ConcurrentDictionary<string, ISyncer>();
+
+        /// <summary>
+        /// 隔离器回调
+        /// </summary>
+        public MaxISolatorCallback Callback { get; set; }
+
+        
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        /// <param name="itype">隔离器类型(1:网闸,2:串口,3:串口服务器)</param>
+        /// <param name="isize">块大小(单个文件或单条消息的大小，单位M)</param>
+        /// <param name="iparam">隔离器初始化参数(注意：类型不同参数不同)</param>
+        /// <param name="callback">隔离器回调函数</param>
+        public void InitISolator(int itype, int isize, string iparam, MaxISolatorCallback callback)
+        {
+            Callback = callback;
+            
+        }
+
+        /// <summary>
+        /// 销毁隔离器
+        /// </summary>
+        public void DisposeISolator()
+        {
+
+        }
+    }
+}

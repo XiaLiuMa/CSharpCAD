@@ -1,0 +1,82 @@
+﻿<!DOCTYPE html>
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>后台管理系统登陆页</title>
+    <link rel="stylesheet" href="../comm/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../comm/css/globle.css" />
+    <link rel="stylesheet" href="login.css" />
+</head>
+
+<body>
+    <main>
+        <header class="login_head">
+            <div class="row login_head_content margin0">
+                <div class="col-2 ">
+                    <img src="../comm/img/图层2.png" height="70px"></div>
+                <div class="col-8 login_head_title">XXXX系统</div>
+            </div>
+        </header>
+        <section>
+            <div class="pagecontent">
+                <div class="login_section_logo">
+                    <img src="../comm/img/1.png" width="100%">
+                </div>
+                <div class="login_section_form">
+                    <div class="login_section_form_head">用户登陆</div>
+                    <div class="login_section_form_body">
+                        <form method="post">
+                            <div class="row margin0">
+                                <div class="form_unit">
+                                    <label>账号：</label><input name="uname" class="login_section_form_input" value="admin" />
+                                </div>
+                                <div class="form_unit">
+                                    <label>密码：</label><input name="pwd" type="password" class="login_section_form_input" value="max123456" />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary login_btn">登陆</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script type="text/javascript" src="../comm/js/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="../comm/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="../comm/js/mygloble.js"></script>
+    <script>
+        $(".login_head_title").text(appname);
+        $(".login_btn").on("click", function() {
+            var uname = $("input[name='uname']").val();
+            var pwd = $("input[name='pwd']").val();
+            console.log(location.href);
+
+            $.ajax({
+                url: "http://" + params + "/app/user/login",
+                type: "Post",
+                data: {
+                    uname: uname,
+                    pwd: pwd
+                },
+                dataType: 'json',
+                success: function(res) {
+                    if (res == false) //登录失败
+                    {
+                        alert("用户名或密码错误！");
+                    } else //登录成功，本地存储token
+                    {
+                        localStorage.setItem("mytoken", res); //本地存储token
+                        window.location.href = "../home/home.html";
+                    }
+                }
+            })
+        });
+        $(function() {
+            $('.pagecontent').css('height', document.documentElement.clientHeight - 70 + 'px');
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,78 @@
+.login_head {
+    height: 70px;
+    width: 100%;
+    background: #185cda;
+    min-width: 1280px;
+}
+
+.login_head_content div {
+    display: inline-block;
+    vertical-align: top
+}
+
+.login_head_title {
+    padding-left: 50px;
+    font-size: 30px;
+    color: white;
+    line-height: 70px;
+    height: 70px;
+}
+
+.pagecontent {
+    position: relative;
+    width: 100%;
+    min-width: 1280px;
+    background: #00318c;
+}
+
+.login_section_logo {
+    position: absolute;
+    top: 20%;
+    left: 16.66%;
+    width: 30%;
+    height: auto;
+}
+
+.login_section_form {
+    position: absolute;
+    top: 20%;
+    right: 16.66%;
+    width: 320px;
+    height: 360px;
+    background: #fff;
+    border-radius: 10px;
+}
+
+.login_section_form_head {
+    font-size: 28px;
+    text-align: center;
+    padding-top: 30px;
+}
+
+.login_section_form_body {
+    padding: 30px;
+    font-size: 18px;
+}
+
+    .login_section_form_body div {
+        display: inline-block;
+    }
+
+.login_section_form_input {
+    width: 200px;
+    background: #f3f3f3;
+    border: 0;
+}
+
+.form_unit {
+    padding: 20px 0;
+}
+
+.login_btn {
+    position: absolute;
+    bottom: 30px;
+    left: 30px;
+    width: 270px;
+    background: #2961f0;
+    font-size: 18px;
+}

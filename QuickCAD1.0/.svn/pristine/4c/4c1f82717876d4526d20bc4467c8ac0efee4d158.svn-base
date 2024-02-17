@@ -1,0 +1,46 @@
+﻿//using Max.DbTool.SqlExtend.Mod;
+
+//namespace DataSyncSource.Config.Entities
+//{
+//    /// <summary>
+//    /// 通道对应MS库关系(哪个通道以哪个库为主库)
+//    /// </summary>
+//    public class TdMsk : BaseEntity
+//    {
+//        /// <summary>
+//        /// 通道号(kadm|tdh)
+//        /// </summary>
+//        public string Mstdh { get; set; }
+//        /// <summary>
+//        /// 数据库标识
+//        /// </summary>
+//        public string Dbid { get; set; }
+        
+//        /// <summary>
+//        /// 主键
+//        /// </summary>
+//        /// <returns></returns>
+//        public override string[] GetKeyValues()
+//        {
+//            return new string[] { "Mstdh" };
+//        }
+
+//        /// <summary>
+//        /// 数据库自增字段
+//        /// </summary>
+//        /// <returns></returns>
+//        public override string[] GetDataBaseAuto()
+//        {
+//            return new string[] { "" };
+//        }
+
+//        /// <summary>
+//        /// 表名
+//        /// </summary>
+//        /// <returns></returns>
+//        public override string GetTableName()
+//        {
+//            return "TdMsk";
+//        }
+//    }
+//}

@@ -1,0 +1,115 @@
+﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
+using System.Security.Claims;
+using WebApplication1.Models;
+
+namespace WebApplication1.Controllers
+{
+    /// <summary>
+    /// Home控制器
+    /// </summary>
+    [Authorize]
+    public class HomeController : Controller
+    {
+        private readonly ILogger<HomeController> _logger;
+
+        public HomeController(ILogger<HomeController> logger)
+        {
+            _logger = logger;
+        }
+
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public IActionResult Home()
+        {
+            return View();
+        }
+
+        [AllowAnonymous]
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        /// <summary>
+        /// 获取验证码
+        /// </summary>
+        /// <returns></returns>
+        [AllowAnonymous]
+        public ActionResult GetValidateCode()
+        {
+            ValidateCode vCode = new ValidateCode();
+            string[] code = vCode.CreateValidateCode(5);
+            string strcode = string.Empty;
+            for (int i = 0; i < code.Length; i++)
+            {
+                strcode += code[i];
+            }
+            HttpContext.Session.Set("ValidateCode", System.Text.Encoding.UTF8.GetBytes(strcode));
+            byte[] bytes = vCode.CreateValidateGraphic(code);
+            return File(bytes, @"image/jpeg");
+        }
+
+        /// <summary>
+        /// 授权登录
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost]
+        [AllowAnonymous]
+        public async Task<ActionResult<ResultMsg<string>>> AuthorLogin(string userName, string password, string validateCode)
+        {
+            //string getValidateCode = HttpContext.Session.GetString("ValidateCode");
+            //if (validateCode != getValidateCode)
+            //{
+            //    return Ok(new ResultMessage<string>() { Code = StatusType.NotFound, Msg = "验证码错误" });
+            //}
+            //LoginModel user = _userPermissionService.GetUserInfo(userName, password);
+            LoginModel user = new LoginModel()
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                UserName = "admin",
+                Password = "123456",
+                Name = "888888"
+            };
+            if (user == null)
+            {
+                return Ok(new ResultMsg<string>() { Code = StatusType.NotFound, Msg = "用户名或密码错误" });
+            }
+            var claims = new List<Claim>(){
+                    new Claim(ClaimTypes.Sid,user.Id.ToString()),
+                    new Claim(ClaimTypes.Name,user.Name.ToString()),
+                    new Claim(ClaimTypes.Role,"Login")  //普通方式登录
+                };
+            var userPrincipal = new ClaimsPrincipal(new ClaimsIdentity(claims, "Customer"));
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, userPrincipal, new AuthenticationProperties
+            {
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(200),
+                IsPersistent = false,
+                AllowRefresh = false
+            });
+            return Ok(new ResultMsg<string>() { Code = StatusType.Success, Msg = "登录成功" });
+        }
+
+        /// <summary>
+        /// 退出登录
+        /// </summary>
+        /// <returns></returns>
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Redirect("/Home/Login");
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        }
+    }
+}

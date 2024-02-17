@@ -1,0 +1,63 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.SerialPort;
+using Newtonsoft.Json;
+using System;
+using System.Text;
+
+namespace Max.ISolator.Core.Handlers
+{
+    /// <summary>
+    /// 串口模式数据监听助手
+    /// </summary>
+    public class SerialPortHandler : CommHandler
+    {
+        #region 单例
+        private static SerialPortHandler instance;
+        private readonly static object objLock = new object();
+        public static SerialPortHandler Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new SerialPortHandler();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 注册串口监听事件
+        /// </summary>
+        public void SubscribeSerialPort()
+        {
+            SerialPortManager.Instance.RegisterAllReceivedEvents(OnDataReceived);
+        }
+
+        private void OnDataReceived(byte[] bytes)
+        {
+            try
+            {
+                if (bytes == null || bytes.Length <= 0) return;
+                byte[] jy_bytes = ZipUtil.Decompress(bytes);//解压
+                string datastr = Encoding.UTF8.GetString(jy_bytes);
+                IsolatorData idata = JsonConvert.DeserializeObject<IsolatorData>(datastr);
+                NLogger.Debug($"串口接收到{idata.Cmd}数据...");
+                if (idata == null) return;
+                ConsumeData(idata);//消费数据
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"接收串口数据解析异常>>{ex.Message}");
+            }
+        }
+    }
+}

@@ -1,0 +1,195 @@
+var json = [];
+//nameList与widthList的数组长度要一致
+var nameList = ['', '编号', '坐标名称', '第一行X坐标', '第一行Y坐标', '第二行X坐标', '第二行Y坐标', '第三行X坐标', '第三行Y坐标', '第四行X坐标', '第四行Y坐标'] //table的列名
+var widthList = [5, 10, 100, 50, 50, 50, 50, 50, 50, 50, 50] //table每列的宽度
+
+$(function() {
+    UpdataPage(); // 加载页面时初始化表格
+    SxjzbQuery(); //初始化表格数据
+
+    // 点击查询按钮
+    $("#select").on("click", function() {
+        SxjzbQuery();
+    });
+
+    // 点击删除按钮
+    $("#delete").on("click", function() {
+        if ($("input[name='checktr']:checked").length <= 0) {
+            alert("请至少选择其中一项数据进行删除！")
+            return false;
+        }
+        var delArr = [];
+        // 删除选择的列表项
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                var a = $(this).parents("tr").find("td").eq(1).text();
+                delArr.push(a);
+            }
+        });
+        $.ajax({
+            url: "http://" + params + "/app/res_sxjzb/delete",
+            headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+            type: "post",
+            data: {
+                ids: delArr
+            },
+            async: false,
+            error: function() {
+                console.log("错误");
+            },
+            success: function(res) {
+                // 如果请求成功，将返回的json数组赋给数组json
+                if (res == true) {
+                    SxjzbQuery();
+                    location.reload();
+                } else {
+                    alert(res)
+                }
+            }
+        })
+    });
+
+    // 点击添加按钮
+    $("#add").on("click", function() {
+        $("#confirm").attr("czlx", "0");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击修改按钮
+    $("#update").on("click", function() {
+        if ($("input[name='checktr']:checked").length != 1) {
+            alert("请选择其中一项数据进行修改！")
+            return false;
+        }
+        $(".trcheck").each(function(i, item) {
+            if ($(this).prop('checked')) {
+                $("input[name='zid']").val(json[i].id);
+                $("input[name='zbmc']").val(json[i].zbmc);
+                $("input[name='line1x']").val(json[i].line1X);
+                $("input[name='line1y']").val(json[i].line1Y);
+                $("input[name='line2x']").val(json[i].line2X);
+                $("input[name='line2y']").val(json[i].line2Y);
+                $("input[name='line3x']").val(json[i].line3X);
+                $("input[name='line3y']").val(json[i].line3Y);
+                $("input[name='line4x']").val(json[i].line4X);
+                $("input[name='line4y']").val(json[i].line4Y);
+            }
+        })
+        $("#confirm").attr("czlx", "1");
+        $(".peizhi").css("display", "block");
+    });
+
+    // 点击关闭按钮
+    $(".close").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+    // 点击确定按钮
+    $("#confirm").on("click", function() {
+        var zid = $("input[name='zid']").val();
+        var zbmc = $("input[name='zbmc']").val();
+        var line1x = $("input[name='line1x']").val();
+        var line1y = $("input[name='line1y']").val();
+        var line2x = $("input[name='line2x']").val();
+        var line2y = $("input[name='line2y']").val();
+        var line3x = $("input[name='line3x']").val();
+        var line3y = $("input[name='line3y']").val();
+        var line4x = $("input[name='line4x']").val();
+        var line4y = $("input[name='line4y']").val();
+
+        if ($(this).attr("czlx") == "0") {
+            //添加操作
+            $.ajax({
+                url: "http://" + params + "/app/res_sxjzb/add",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    zbmc: zbmc,
+                    line1x: line1x,
+                    line1y: line1y,
+                    line2x: line2x,
+                    line2y: line2y,
+                    line3x: line3x,
+                    line3y: line3y,
+                    line4x: line4x,
+                    line4y: line4y
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    // console.log(res);
+                    // 如果请求成功，将返回的json数组赋给数组json
+                    if (res == true) {
+                        SxjzbQuery();
+                        // location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            });
+        } else {
+            //修改操作
+            $.ajax({
+                url: "http://" + params + "/app/res_sxjzb/alert",
+                headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+                type: "post",
+                data: {
+                    zid: zid,
+                    zbmc: zbmc,
+                    line1x: line1x,
+                    line1y: line1y,
+                    line2x: line2x,
+                    line2y: line2y,
+                    line3x: line3x,
+                    line3y: line3y,
+                    line4x: line4x,
+                    line4y: line4y
+                },
+                async: false,
+                error: function() {
+                    console.log("错误");
+                },
+                success: function(res) {
+                    // 如果请求成功，将返回的json数组赋给数组json
+                    if (res == true) {
+                        SxjzbQuery();
+                        location.reload();
+                    } else {
+                        alert(res)
+                    }
+                }
+            });
+        }
+        $(".peizhi").css("display", "none");
+    });
+    // 点击取消按钮
+    $("#cancel").on("click", function() {
+        $(".peizhi").css("display", "none");
+        $(".pz-content input[type='text']").val("");
+    });
+});
+
+
+/**数据查询 */
+function SxjzbQuery() {
+    var condition = $("input[name='condition']").val();
+    $.ajax({
+        url: "http://" + params + "/app/res_sxjzb/query",
+        headers: { "Authorization": localStorage.getItem("mytoken") }, //本地token
+        type: "get",
+        data: {
+            condition: condition
+                // condition: condition,
+                // page: 1,
+                // rows: 10
+        },
+        async: false,
+        success: function(res) {
+            console.log(res);
+            json = (res == null) ? [] : res;
+            reloadpage();
+        }
+    });
+}

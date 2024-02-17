@@ -1,0 +1,86 @@
+﻿using MsDataSimulator.Comm;
+using MsDataSimulator.Config;
+using MsDataSimulator.Config.Mods;
+using MsDataSimulator.Views;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Data;
+using System.Drawing;
+using System.Linq;
+using System.Text;
+using System.Windows.Forms;
+
+namespace MsDataSimulator.Views
+{
+    public partial class PzMsDbForm : Form
+    {
+        public PzMsDbForm()
+        {
+            InitializeComponent();
+        }
+        private DbModel msorcal = new DbModel();
+        private List<string> tabs = new List<string>();
+        private void PzMsDbForm_Load(object sender, EventArgs e)
+        {
+            msorcal = CfgHandler.Instance.MsOrcal;
+            this.orcalip.Text = msorcal.ip;
+            this.orcalport.Text = msorcal.port;
+            this.orcalname.Text = msorcal.name;
+            this.orcaluser.Text = msorcal.user;
+            this.orcalpwd.Text = msorcal.pwd;
+
+            string tables = "";//表名
+            var strs = msorcal.tabs.Split(',').ToList(); ;
+            strs.ForEach(p =>
+            {
+                tabs.Add(p.Trim());
+                tables += p.Trim() + "\r\n";
+            });
+            this.txtOrcalTabs.Text = tables;
+        }
+
+        /// <summary>
+        /// 保存Orcal配置
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void butOrcalConfig_Click(object sender, EventArgs e)
+        {
+            msorcal.ip = this.orcalip.Text.Trim();
+            msorcal.port = this.orcalport.Text.Trim();
+            msorcal.name = this.orcalname.Text.Trim();
+            msorcal.user = this.orcaluser.Text.Trim();
+            msorcal.pwd = this.orcalpwd.Text.Trim();
+            CfgHandler.Instance.SaveMsOrcal(msorcal);
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+
+        /// <summary>
+        /// 清空Orcal指定的table的数据
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void btnClearOrcalTabs_Click(object sender, EventArgs e)
+        {
+            this.txtOrcalLogs.Text = "";    //先清空日志
+            this.txtOrcalLogs.Text += "清空中。。。\r\n";
+            OracleOperate orcal = new OracleOperate();
+            orcal.DbCon = $@"DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={msorcal.ip})(PORT={msorcal.port})))(CONNECT_DATA=(SERVER=DEDICATED)(SID={msorcal.name})));PASSWORD={msorcal.pwd};PERSIST SECURITY INFO=True;USER ID={msorcal.user}; enlist=dynamic;";
+            tabs.ForEach(p =>
+            {
+                try
+                {
+                    orcal.RunSQL($"truncate table {p}");
+                    this.txtOrcalLogs.Text += $"{p.Trim()}清空完成...\r\n";
+                }
+                catch (Exception ex)
+                {
+                    this.txtOrcalLogs.Text += $"{p.Trim()}清空失败【{ex.ToString()}】\r\n";
+                }
+            });
+            this.txtOrcalLogs.Text += "全部清空完成！\r\n";
+            new TipForm("操作完成！", 800).ShowDialog();
+        }
+    }
+}

@@ -1,0 +1,254 @@
+﻿using Max.BaseKit.Utils;
+using IsolatorOrigin.Controllers;
+using IsolatorOrigin.Storage.Entities;
+
+namespace IsolatorOrigin.Storage
+{
+    /// <summary>
+    /// 数据模拟器
+    /// </summary>
+    public class DataMocker
+    {
+        #region 单例
+        private static DataMocker? instance;
+        private readonly static object objLock = new object();
+        public static DataMocker Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new DataMocker();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        //public List<GatekeeperEntity> GatekeeperEntity_Lst { get; set; }
+        //public List<SerialPortEntity> SerialPortEntity_Lst { get; set; }
+        //public List<SerialServerEntity> SerialServerEntity_Lst { get; set; }
+        //public List<UseDbEntity> UseDbEntity_Lst { get; set; }
+        //public List<ProduceTaskEntity> ProduceTaskEntity_Lst { get; set; }
+        //public List<CronJobEntity> CronJobEntity_Lst { get; set; }
+        //public List<TaskRunTimeEntity> TaskRunTimeEntity_Lst { get; set; }
+        //public List<LogVMod> LogVMod_Lst { get; set; }
+
+        //public DataMocker()
+        //{
+        //    GatekeeperEntity_Lst = new List<GatekeeperEntity>();
+        //    MockerGatekeeperEntity();
+        //    SerialPortEntity_Lst = new List<SerialPortEntity>();
+        //    MockerSerialPortEntity();
+        //    SerialServerEntity_Lst = new List<SerialServerEntity>();
+        //    MockerSerialServerEntity();
+        //    UseDbEntity_Lst = new List<UseDbEntity>();
+        //    MockerSurceDb();
+        //    ProduceTaskEntity_Lst = new List<ProduceTaskEntity>();
+        //    MockerProduceTaskEntity();
+        //    CronJobEntity_Lst = new List<CronJobEntity>();
+        //    MockerCronJob();
+        //    TaskRunTimeEntity_Lst = new List<TaskRunTimeEntity>();
+        //    MockerTaskRunTime();
+        //    LogVMod_Lst = new List<LogVMod>();
+        //    MockerLogVMod();
+        //}
+
+        //public void MockerSurceDb()
+        //{
+        //    var dbtypes = new List<string>() { "MYSQL", "ORACLE", "MONGO", "DAMENG", "GBASE" };
+        //    for (int i = 0; i < 36; i++)
+        //    {
+        //        string dbtype = dbtypes.PickOne();
+        //        string connstr = dbtype.Equals("ORACLE") ? "DATA SOURCE=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST={db.DbIp})(PORT={db.DbPort})))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME={db.DbName})));PASSWORD={db.Pwd};PERSIST SECURITY INFO=True;USER ID={db.Uname};enlist=dynamic;Pooling=false;Connection Timeout=300;" : dbtype.Equals("MONGO") ? "mongodb://fred:foobar@localhost/baz" : dbtype.Equals("DAMENG") ? "Server={db.DbIp};Port={db.DbPort};User ID={db.Uname};Password={db.Pwd};Database={db.DbName}" : dbtype.Equals("GBASE") ? "Protocol=onsoctcp;Db_locale=zh_CN.utf8;Client_locale=zh_CN.utf8;Host={db.DbIp};Service={db.DbPort};Database={db.DbName};Uid={db.Uname};Pwd={db.Pwd};{db.Ext}" : "Server={db.DbIp};Port={db.DbPort};Database={db.DbName};Charset=utf8;Uid={db.Uname};Pwd={db.Pwd};SSL Mode=None";
+        //        UseDbEntity_Lst.Add(new UseDbEntity()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            Cddm = $"01{i}",
+        //            ConnStr = connstr,
+        //            Concurrency = RandomUtil.Next(1, 50),
+        //            DbType = dbtype,
+        //            DbDescribe = $"测试用{dbtype}数据库01{i}"
+        //        });
+        //    }
+        //    UseDbEntity_Lst = UseDbEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        ///// <summary>
+        ///// 根据主键Id搜索UseDbEntity
+        ///// </summary>
+        ///// <param name="ids"></param>
+        ///// <returns></returns>
+        //public List<UseDbEntity>? SearchUseDbByIds(string ids = "")
+        //{
+        //    if (string.IsNullOrEmpty(ids)) return default;
+        //    var idArr = ids.Split(',').ToList();
+        //    return UseDbEntity_Lst.FindAll(p => idArr.Contains(p.Id)).ToList();
+        //}
+
+        //public void MockerProduceTaskEntity()
+        //{
+        //    var rwtypes = new List<string>() { "AJCJob", "CCGJob", "CDKJob", "TCGJob", "TDKJob" };//任务类型
+        //    var qptypes = new List<string>() { "Y", "M", "D", "H" };//切片类型
+        //    for (int i = 0; i < 36; i++)
+        //    {
+        //        string rwtype = rwtypes.PickOne();
+        //        string sqlstr = rwtype.Equals("CCGJob") ? "SELECT * FROM TAB01 WHERE CRRQSJ >= '{0}' AND CRRQSJ <= '{1}'" : rwtype.Equals("CDKJob") ? "SELECT * FROM TAB01{0} WHERE CRRQSJ >= '{1}' AND CRRQSJ <= '{2}'" : rwtype.Equals("TCGJob") ? "SELECT SUBSTRING(CRRQSJ,0,{0}) AS CRRQ,SUM(COL1) AS NUM FROM TAB01 WHERE CRRQSJ >= '{1}' AND CRRQSJ <= '{2}' GROUP BY SUBSTRING(CRRQSJ,0,{0})" : rwtype.Equals("TDKJob") ? "SELECT SUBSTRING(CRRQSJ,0,{0}) AS CRRQ,SUM(COL1) AS NUM FROM TAB01{1} WHERE CRRQSJ >= '{2}' AND CRRQSJ <= '{3}' GROUP BY SUBSTRING(CRRQSJ,0,{0})" : "SELECT * FROM TAB01";
+        //        string qpstr = rwtype.Equals("AJCJob") ? "" : qptypes.PickOne();
+        //        var dbs = UseDbEntity_Lst.PickAny(RandomUtil.Next(3, 10));
+
+        //        #region 模拟网闸类型
+        //        var isolatorIds = new List<string>();
+        //        var isolators1 = GatekeeperEntity_Lst.PickAny(RandomUtil.Next(1, 3));
+        //        isolators1?.ForEach(p => isolatorIds.Add(p.Id));
+        //        var isolators2 = SerialPortEntity_Lst.PickAny(RandomUtil.Next(1, 3));
+        //        isolators2?.ForEach(p => isolatorIds.Add(p.Id));
+        //        var isolators3 = SerialServerEntity_Lst.PickAny(RandomUtil.Next(1, 3));
+        //        isolators3?.ForEach(p => isolatorIds.Add(p.Id));
+        //        isolatorIds = isolatorIds.PickAny(RandomUtil.Next(1, 3));
+        //        string isolatorssstr = string.Empty;
+        //        isolatorIds?.ForEach(p => { isolatorssstr += $"{p},"; });
+        //        #endregion
+
+        //        string dbsstr = string.Empty;
+        //        dbs?.ForEach(p => { dbsstr += $"{p.Id},"; });
+        //        ProduceTaskEntity_Lst.Add(new ProduceTaskEntity()
+        //        {
+        //            Cmd = $"D&01{i}",
+        //            TaskName = $"TEST01{i}",
+        //            TaskDes = $"测试表TEST01{i}",
+        //            TaskType = rwtype,
+        //            PriorityLevel = RandomUtil.Next(1, 5),
+        //            CutType = qpstr,
+        //            CzType = "R",
+        //            TaskState = new List<bool>() { true, false }.PickOne(),
+        //            DelayTime = RandomUtil.Next(60, 180),
+        //            Isolators = isolatorssstr.TrimEnd(','),
+        //            Dbs = dbsstr.TrimEnd(','),
+        //            SqlStr = sqlstr
+        //        });
+        //    }
+        //    ProduceTaskEntity_Lst = ProduceTaskEntity_Lst.OrderBy(p => p.Cmd).ToList();
+        //}
+
+        ///// <summary>
+        ///// 根据主键Id搜索ProduceTaskEntity
+        ///// </summary>
+        ///// <param name="ids"></param>
+        ///// <returns></returns>
+        //public List<ProduceTaskEntity>? SearchProduceTaskByIds(string ids = "")
+        //{
+        //    if (string.IsNullOrEmpty(ids)) return default;
+        //    var idArr = ids.Split(',').ToList();
+        //    return ProduceTaskEntity_Lst.FindAll(p => idArr.Contains(p.Cmd)).ToList();
+        //}
+
+        //public void MockerCronJob()
+        //{
+        //    for (int i = 0; i < 36; i++)
+        //    {
+        //        var ProduceTaskEntitys = ProduceTaskEntity_Lst.PickAny(RandomUtil.Next(3, 10));
+        //        string stbTasksstr = string.Empty;
+        //        ProduceTaskEntitys.ForEach(p => { stbTasksstr += $"{p.Cmd},"; });
+        //        int ttime = RandomUtil.Next(1, 3);
+        //        CronJobEntity_Lst.Add(new CronJobEntity()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            JobDes = $"定时任务TEST01{i}",
+        //            SubCmds = stbTasksstr.TrimEnd(','),
+        //            CronExpr = $"0 1/{ttime} * * * ? ",
+        //            CronDes = $"每{ttime}分钟执行一次"
+        //        });
+        //    }
+        //    CronJobEntity_Lst = CronJobEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        //public void MockerGatekeeperEntity()
+        //{
+        //    for (int i = 0; i < 3; i++)
+        //    {
+        //        GatekeeperEntity_Lst.Add(new GatekeeperEntity()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            BuildPath = @$"D:\SjtbTemp\BuildPath{i}",
+        //            SyncPath = @$"D:\SjtbTemp\SyncPath{i}",
+        //            ScanPath = @$"D:\SjtbTemp\ScanPath{i}"
+        //        });
+        //    }
+        //    GatekeeperEntity_Lst = GatekeeperEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        //public void MockerSerialPortEntity()
+        //{
+        //    for (int i = 0; i < 3; i++)
+        //    {
+        //        SerialPortEntity_Lst.Add(new SerialPortEntity()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            PortName = $"COM{2 + i}",
+        //            BaudRate = 115200,
+        //            DataBit = 8,
+        //            StopBit = 1,
+        //            Parity = "None"
+        //        });
+        //    }
+        //    SerialPortEntity_Lst = SerialPortEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        //public void MockerSerialServerEntity()
+        //{
+        //    for (int i = 0; i < 3; i++)
+        //    {
+        //        SerialServerEntity_Lst.Add(new SerialServerEntity()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            ServerIP = "127.0.0.1",
+        //            ServerPort = RandomUtil.Next(8000, 15000)
+        //        });
+        //    }
+        //    SerialServerEntity_Lst = SerialServerEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        //public void MockerTaskRunTime()
+        //{
+        //    ProduceTaskEntity_Lst?.ForEach(p =>
+        //    {
+        //        UseDbEntity_Lst?.ForEach(t =>
+        //        {
+        //            TaskRunTimeEntity_Lst.Add(new TaskRunTimeEntity()
+        //            {
+        //                Id = $"{p.Cmd}_{t.Id}",
+        //                RunTime = DateTime.Now.AddHours(-6).ToString("yyyy-MM-dd HH:mm:ss")
+        //            });
+        //        });
+        //    });
+        //    TaskRunTimeEntity_Lst = TaskRunTimeEntity_Lst.OrderBy(p => p.Id).ToList();
+        //}
+
+        //public void MockerLogVMod()
+        //{
+        //    for (int i = 0; i < 87; i++)
+        //    {
+        //        string belongSystem = new List<string> { "数据同步资源端", "数据同步目标端" }.PickOne();
+        //        string logType = new List<string> { "INFO", "WARING", "ERROR" }.PickOne();
+        //        DateTime randomTime = RandomUtil.RandomTime(new DateTime(2023, 1, 1, 0, 0, 0), new DateTime(2023, 12, 31, 23, 59, 59));
+        //        LogVMod_Lst.Add(new LogVMod()
+        //        {
+        //            Id = Guid.NewGuid().ToString("N"),
+        //            BelongSystem = belongSystem,
+        //            LogType = logType,
+        //            UpdateTime = randomTime.ToString("yyyy-MM-dd HH:mm:ss"),
+        //            LogFileName = $"{logType}_{randomTime.ToString("yyyy-MM-dd")}_{i}.log",
+        //            LogFullFileName = @$"C:/{belongSystem}/{logType}_{randomTime.ToString("yyyy-MM-dd")}_{i}.log"
+        //        });
+        //    }
+        //    LogVMod_Lst = LogVMod_Lst.OrderBy(p => p.Id).ToList();
+        //}
+    }
+}

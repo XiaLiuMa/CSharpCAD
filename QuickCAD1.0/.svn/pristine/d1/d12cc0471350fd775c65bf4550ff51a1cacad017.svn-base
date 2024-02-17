@@ -1,0 +1,71 @@
+﻿using System;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.KafkaPkg
+{
+    public class KafkaManager
+    {
+        #region 单例
+        private static KafkaManager instance;
+        private readonly static object objLock = new object();
+        public static KafkaManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    lock (objLock)
+                    {
+                        if (instance == null)
+                        {
+                            instance = new KafkaManager();
+                        }
+                    }
+                }
+                return instance;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 生产者
+        /// </summary>
+        private readonly ConcurrentDictionary<KafkaProducerCfg, KafkaProducer> _Producers = new ConcurrentDictionary<KafkaProducerCfg, KafkaProducer>();
+        /// <summary>
+        /// 消费者
+        /// </summary>
+        private readonly ConcurrentDictionary<KafkaConsumerCfg, KafkaConsumer> _Consumers = new ConcurrentDictionary<KafkaConsumerCfg, KafkaConsumer>();
+
+        /// <summary>
+        /// 消费者注册
+        /// </summary>
+        /// <param name="config">消费者配置</param>
+        /// <param name="callBack">消费者回调</param>
+        public void Subscribe(KafkaConsumerCfg config, Action<string> callBack)
+        {
+            _Consumers.TryGetValue(config, out var consumer);
+            if (consumer == null)
+            {
+                _Consumers.TryAdd(config, new KafkaConsumer(config));
+                _Consumers.TryGetValue(config, out consumer);
+                consumer.Subscribe(callBack);
+            }
+        }
+
+        /// <summary>
+        /// 生产者发布
+        /// </summary>
+        /// <param name="config">生产者配置</param>
+        /// <param name="data">生产的数据</param>
+        public void Publich(KafkaProducerCfg config, string data)
+        {
+            _Producers.TryGetValue(config, out var producer);
+            if (producer == null)
+            {
+                _Producers.TryAdd(config, new KafkaProducer(config));
+                _Producers.TryGetValue(config, out producer);
+                producer.Publich(data);
+            }
+        }
+    }
+}

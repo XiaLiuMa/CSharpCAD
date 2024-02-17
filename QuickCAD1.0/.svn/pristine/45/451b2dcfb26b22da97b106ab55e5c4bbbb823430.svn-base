@@ -1,0 +1,43 @@
+﻿using System;
+using Newtonsoft.Json;
+
+namespace Max.BaseKit.Exts
+{
+    /// <summary>
+    /// 对象扩展
+    /// </summary>
+    public static class ObjectExt
+    {
+        /// <summary>
+        /// 字符包含判断(全包含、半包含)
+        /// </summary>
+        /// <param name="str">待判断字符串</param>
+        /// <param name="AllInclusive">false：半包含，true：全包含</param>
+        /// <param name="args">参与判断的字符</param>
+        /// <returns></returns>
+        public static string ToJson(this object obj)
+        {
+            return JsonConvert.SerializeObject(obj);
+        }
+
+        /// <summary>
+        /// 对象转换
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public static T Convert<T>(this object obj)
+        {
+            T t = default(T);
+            try
+            {
+                t = JsonConvert.DeserializeObject<T>(JsonConvert.SerializeObject(obj));
+            }
+            catch (Exception ex)
+            {
+                NLogger.Warn(ex.Message);
+            }
+            return t ;
+        }
+    }
+}

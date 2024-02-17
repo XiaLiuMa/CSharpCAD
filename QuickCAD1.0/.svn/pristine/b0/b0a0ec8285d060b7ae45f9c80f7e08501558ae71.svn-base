@@ -1,0 +1,21 @@
+﻿namespace IsolatorOrigin.Storage.Entities
+{
+    /// <summary>
+    /// 串口服务器实体
+    /// </summary>
+    public class SerialServerEntity
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// IP
+        /// </summary>
+        public string ServerIP { get; set; }
+        /// <summary>
+        /// 端口号
+        /// </summary>
+        public int ServerPort { get; set; }
+    }
+}

@@ -1,0 +1,210 @@
+﻿using BaseComm;
+using System;
+using BaseComm.Utils;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.IO;
+using Max.DbToolkit;
+using Max.DbToolkit.SqlCore.Imp;
+using Max.ISolator.Mods;
+using Oracle.ManagedDataAccess.Client;
+using System.Data;
+
+namespace MsDataExport
+{
+    public class AsGlobal
+    {
+        private static AppConfig _Config;
+        /// <summary>
+        /// App系统配置
+        /// </summary>
+        public static AppConfig Config
+        {
+            get
+            {
+                if (_Config == null)
+                {
+                    string filepath = $@"{AppContext.BaseDirectory}/MsDataExport.xml";
+                    _Config = XmlUtils.Load<AppConfig>(filepath);
+                }
+                return _Config;
+            }
+            set
+            {
+                _Config = value;
+            }
+        }
+
+        /// <summary>
+        /// 初始化系统
+        /// </summary>
+        public static void Init()
+        {
+            NLogger.Info($"启动数据导出。。。");
+            if (Config == null || Config?.DbConfigs.Count<=0 )
+            {
+                NLogger.Warn($"App配置为空");
+                return;
+            }
+            if (Config.DbConfigs==null || Config.DbConfigs.Count <= 0)
+            {
+                NLogger.Warn($"数据库配置为空");
+                return;
+            }
+            if (Config.ExConfigs == null || Config.ExConfigs.Count <= 0)
+            {
+                NLogger.Warn($"导出配置为空");
+                return;
+            }
+
+            foreach (var exItem in Config.ExConfigs)
+            {
+                try
+                {
+                    NLogger.Info($"开始导出{exItem.Cmd}命令码的数据");
+                    if (string.IsNullOrEmpty(exItem.DbId))
+                    {
+                        NLogger.Warn($"{exItem.Cmd}命令码的数据库Id配置为空");
+                        continue;
+                    }
+                    List<string> dbIds = exItem.DbId.Split(',').ToList();
+                    foreach (var dbId in dbIds)
+                    {
+                        try
+                        {
+                            NLogger.Info($"开始导出{dbId}数据库{exItem.Cmd}命令码的数据");
+                            var dbItem = Config.DbConfigs.Find(p => dbId.Equals(p.Id));
+                            if (Config.ExportType.Equals("1"))
+                                ExportFun1(exItem,dbItem);
+                            else if (Config.ExportType.Equals("2")) 
+                                ExportFun2(exItem, dbItem);
+                            NLogger.Info($"导出{dbId}数据库{exItem.Cmd}命令码的数据完成");
+                        }
+                        catch (Exception ex)
+                        {
+                            NLogger.Error($"导出{exItem.Cmd}命令码的数据异常2：{ex.Message}");
+                        }
+                    }
+                    NLogger.Info($"导出{exItem.Cmd}命令码的数据完成");
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"导出{exItem.Cmd}命令码的数据异常1：{ex.Message}");
+                }
+            }
+        }
+
+        private  static void ExportFun1(ExConfig exConfig,DbConfig dbConfig)
+        {
+            try
+            {
+                var msk =  new OracleOperate(){DbFlag = dbConfig.Id,DbConStr = dbConfig.ConnectStr};
+                var datalst = SqlUtil.Select(exConfig.SqlStr, msk);
+                if (datalst==null || datalst.Count<=0)
+                {
+                    NLogger.Info($"方式1获取{dbConfig.Id}数据库{exConfig.Cmd}命令码的数据为空");
+                    return;
+                }
+                ExportToFile(exConfig, datalst);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"导出方式1获取{dbConfig.Id}数据库{exConfig.Cmd}命令码的数据异常：{ex.Message}");
+            }
+        }
+
+        private static void ExportFun2(ExConfig exConfig, DbConfig dbConfig)
+        {
+            DataTable dt = new DataTable();
+            using (var connect = new OracleConnection(dbConfig.ConnectStr))
+            {
+                try
+                {
+                    connect.Open();
+                    using (var da = new OracleDataAdapter(exConfig.SqlStr, connect))
+                    {
+                        da.Fill(dt);
+                        da.Dispose();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"导出方式2获取{dbConfig.Id}数据库{exConfig.Cmd}命令码的数据异常：{ex.Message}");
+                }
+                finally
+                {
+                    connect.Close();
+                    connect.Dispose();
+                }
+            }
+
+            if (dt ==null || dt.Rows==null || dt.Rows.Count <= 0)
+            {
+                NLogger.Info($"方式2获取{dbConfig.Id}数据库{exConfig.Cmd}命令码的数据为空");
+                return;
+            }
+
+            List<Dictionary<string, object>> lst = new List<Dictionary<string, object>>();
+            try
+            {
+                foreach (DataRow dr in dt.Rows)
+                {
+                    var data = new Dictionary<string, object>();
+                    foreach (DataColumn dc in dt.Columns)
+                    {
+                        if (dr[dc].GetType().Equals(typeof(byte[])))//字节数组类型
+                        {
+                            if (dc.ColumnName.StartsWith("TP_"))//图片不能转
+                            {
+                                data.Add(dc.ColumnName, Convert.ToBase64String(dr[dc] as byte[]));
+                            }
+                            else
+                            {
+                                Encoding gbk = Encoding.GetEncoding("GB2312");
+                                string temstr = gbk.GetString(dr[dc] as byte[]);
+                                data.Add(dc.ColumnName, temstr);
+                            }
+                        }
+                        else if (dr[dc].GetType().Equals(typeof(string)))   //字符串需要去除空格
+                        {
+                            data.Add(dc.ColumnName, ((string)dr[dc]).Trim());
+                        }
+                        else
+                        {
+                            data.Add(dc.ColumnName, dr[dc]);//原始方案
+                        }
+                    }
+                    lst.Add(data);
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"导出方式2中，DataTable转换成List异常：{ex.Message}");
+            }
+            if(lst?.Count>0) ExportToFile(exConfig, lst);
+        }
+
+        private static void ExportToFile(ExConfig exConfig, List<Dictionary<string, object>> dLst)
+        {
+            if (dLst == null || dLst.Count <= 0) return;
+            try
+            {
+                var idata = new IsolatorData() { Cmd = exConfig.Cmd, Czlx = 'U', Cflx = 'S',Rwmc= exConfig.Rwmc, Lst= dLst };
+                string fid = $"{DateTime.Now.ToString("yyyyMMddHHmmssfff")}_{Guid.NewGuid().ToString("N")}_{idata.Lst.Count}";
+                string bfile = $@"{Config.ExportPath}\\{idata.Cmd}@{idata.Rwmc}@{idata.Cflx}D_{fid}.txt";
+                using (FileStream fs = new FileStream(bfile, FileMode.OpenOrCreate))
+                {
+                    byte[] datas = Encoding.Default.GetBytes(JsonUtil.ObjectToStr(idata));
+                    fs.Write(datas, 0, datas.Length);
+                    fs.Close();
+                    fs.Dispose();
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"生产{exConfig.Cmd}数据文件异常:{ex.Message}");
+            }
+        }
+    }
+}

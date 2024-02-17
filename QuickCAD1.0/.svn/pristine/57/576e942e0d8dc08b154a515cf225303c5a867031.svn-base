@@ -1,0 +1,109 @@
+﻿using Max.ISolator.Core;
+using Max.ISolator.Core.Isolators;
+using Max.BaseKit.Exts;
+using Max.ISolator.Core.Mods;
+using Max.BaseKit;
+using System.Diagnostics;
+using SetCharLib.SetCharacter;
+using IsolatorTarget.Business.Services;
+
+namespace IsolatorTarget.Business
+{
+    /// <summary>
+    /// 业务主导入口
+    /// </summary>
+    public class BusinessLeader
+    {
+        #region 单例
+        private static BusinessLeader i;
+        private readonly static object objLock = new object();
+        public static BusinessLeader I
+        {
+            get
+            {
+                if (i == null)
+                {
+                    lock (objLock)
+                    {
+                        if (i == null)
+                        {
+                            i = new BusinessLeader();
+                        }
+                    }
+                }
+                return i;
+            }
+        }
+        #endregion
+
+        /// <summary>
+        /// 启动
+        /// </summary>
+        public void BootUp()
+        {
+            SetCharService.I.Reset();
+            InitISolator();
+        }
+
+        /// <summary>
+        /// 初始化隔离器
+        /// </summary>
+        public void InitISolator()
+        {
+            string programName = $"{AppContext.BaseDirectory}{Path.GetFileNameWithoutExtension(Process.GetCurrentProcess().MainModule.FileName)}";
+            MaxIsolator.I.Init(programName, (p) => { });//初始化隔离器工具
+
+            ConfigCacher.I.GatekeeperCacher.EntityList?.ForEach(p => //加入网闸隔离器
+            {
+                if (!p.IsUsable) return;
+                var commConfig = p.Convert<IsolatorConfig>();
+                if (commConfig != null)
+                {
+                    MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new GatekeeperIsolator(p.Id, p.SyncPath, p.ScanPath, commConfig));
+                }
+                else
+                {
+                    NLogger.Warn("加入网闸隔离器失败，请检查配置信息。");
+                }
+            });
+            ConfigCacher.I.SerialPortCacher.EntityList?.ForEach(p => //加入串口隔离器
+            {
+                if (!p.IsUsable) return;
+                var commConfig = p.Convert<IsolatorConfig>();
+                if (commConfig != null)
+                {
+                    MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialPortIsolator(p.Id, p.PortName, p.BaudRate, p.DataBit, p.StopBit, p.Parity, commConfig));
+                }
+                else
+                {
+                    NLogger.Warn("加入串口隔离器失败，请检查配置信息。");
+                }
+            });
+            ConfigCacher.I.SerialServerCacher.EntityList?.ForEach(p => //加入串口服务器隔离器
+            {
+                if (!p.IsUsable) return;
+                var commConfig = p.Convert<IsolatorConfig>();
+                if (commConfig != null)
+                {
+                    MaxIsolator.I.IIsolator_Dic.TryAdd(p.Id, new SerialServerIsolator(p.Id, p.ServerIP, p.ServerPort, commConfig));
+                }
+                else
+                {
+                    NLogger.Warn("加入串口服务器隔离器失败，请检查配置信息。");
+                }
+            });
+
+            MaxIsolator.I.BootUp();//启动隔离器
+        }
+
+        /// <summary>
+        /// 停止
+        /// </summary>
+        public void ShutDown()
+        {
+            MaxIsolator.I.ShutDown(); //关闭隔离器
+            SetCharService.I.Reset();
+            SetCharacterFactory.ClearALLWL();//清除字符叠加
+        }
+    }
+}

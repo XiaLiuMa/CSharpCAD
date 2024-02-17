@@ -1,0 +1,198 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>定时器Deail</title>
+    <meta name="renderer" content="webkit">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/css/layui.css" media="all">
+    <link rel="stylesheet" href="/css/public.css" media="all">
+    <link rel="stylesheet" href="/lib/layui-v2.9.2/exts/cron/cron.css" media="all">
+    <style>
+        body {
+            background-color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <div class="layui-form layuimini-form">
+        <div class="layui-form-item layui-form-text layui-hide">
+            <label class="layui-form-label">主键Id</label>
+            <div class="layui-input-block">
+                <input id="id" name="id" type="text" placeholder="主键Id" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">定时器描述</label>
+            <div class="layui-input-block">
+                <input id="jobDes" name="jobDes" type="text" placeholder="定时器描述" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">生产任务</label>
+            <div class="layui-input-block">
+                <div id="sub_transfer" name="subCmds" class="layui-transfer"></div>
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">表达式</label>
+            <div class="layui-input-block">
+                <input id="cronExpr" name="cronExpr" type="text" placeholder="0 1/3 * * * ? " class="layui-input" />
+            </div>
+        </div>
+        <div class="layui-form-item layui-form-text">
+            <label class="layui-form-label">表达式描述</label>
+            <div class="layui-input-block">
+                <input id="cronDes" name="cronDes" type="text" placeholder="表达式描述" value="" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item" id="saveBtn">
+            <div class="layui-input-block">
+                <button class="layui-btn layui-btn-normal" lay-submit lay-filter="saveBtn" id="saveBtn1">确认保存</button>
+            </div>
+        </div>
+        <hr>
+        <div style="color: #666;margin-top: 30px;margin-bottom: 40px;padding-left: 30px;">
+            <h3>说明</h3><br>
+            <h4>入款到保险箱</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+            <br><h4>入款到现金</h4>
+            <p>如果需要，这里可以放一些关于产品的常见问题说明。</p>
+        </div>
+    </div>
+    </div>
+    <script src="/lib/jquery-3.4.1/jquery.js" charset="utf-8"></script>
+    <script src="/lib/layui-v2.9.2/layui.js" charset="utf-8"></script>
+    <script>
+        var parentMod = parent.parentMod;//全局变量，子页面获取父页面传来的参数。
+        var subPageState = parent.subPageState;//全局变量，子页面状态('look','add','edit')
+        layui.config({ base: "/lib/layui-v2.9.2/exts/" }).
+            extend({ cron: 'cron/cron' }).
+            use(['form', 'transfer', 'laydate', 'cron'], function () {
+                var $ = layui.$;
+                var form = layui.form;
+                var transfer = layui.transfer;
+                var layer = layui.layer;
+                var laydate = layui.laydate;
+                var laycron = layui.cron;
+                var apiUrl; //接口地址
+                var transfer_data = []; //transfer数据
+
+                $.ajax({
+                    type: 'GET',
+                    url: '/ProduceTask/SearchAll', //接口地址
+                    cache: false, //是否使用缓存
+                    dataType: "json",//数据类型
+                    success: function (res) {
+                        if (res.code == 0) {
+                            if (res.data.length > 0) {
+                                res.data.forEach(function (item) {
+                                    transfer_data.push({ "value": item.cmd, "title": item.taskName });
+                                });
+                            }
+                        }
+
+                        var transfer_check_data = []; //transfer选中的数据
+                        if (subPageState == 'look' || subPageState == 'edit') {
+                            transfer_check_data = parentMod.subCmds.split(",");
+                        }
+
+                        // 初始化Transfer组件
+                        transfer.render({
+                            elem: '#sub_transfer',
+                            title: ['待选数据', '已选数据'],
+                            data: transfer_data,
+                            id: 'sub_transfer',
+                            value: transfer_check_data // 设置默认选中的数据，根据实际需求进行设置
+                        });
+                    },
+                    error: function () {
+                        layer.msg('请求接口失败');
+                    }
+                });
+
+                laydate.render({
+                    elem: '#runTime',
+                    type: 'datetime'
+                });
+
+                laycron.render({
+                    elem: "#cronExpr", // 绑定元素
+                    //run: "../static/json/run.json", // 获取最近运行时间的接口
+                    done: function (cronStr) {
+                        console.log(cronStr);
+                    },
+                });
+
+                Init();//页面初始化
+
+                //页面初始化
+                function Init() {
+                    // InitTransferData();
+                    switch (subPageState) {
+                        case 'look': { //查看
+                            $('#saveBtn').hide();//隐藏，不占位
+                            $("#id").val(parentMod.id);
+                            $('#id').attr("disabled", true);
+                            $("#jobDes").val(parentMod.jobDes);
+                            $('#jobDes').attr("disabled", true);
+                            $('#sub_transfer').attr("disabled", true);
+                            $("#cronExpr").val(parentMod.cronExpr);
+                            $('#cronExpr').attr("disabled", true);
+                            $("#cronDes").val(parentMod.cronDes);
+                            $('#cronDes').attr("disabled", true);
+                            // $(#dbDescribe').addClass("layui-disabled").attr("disabled", true);//禁用并变灰
+                        } break;
+                        case 'add': { //新增
+                            apiUrl = '/CroJob/Add';
+                            //$('#saveBtn').show();
+                        } break;
+                        case 'edit': { //编辑
+                            apiUrl = '/CroJob/Update';
+                            $("#id").val(parentMod.id);
+                            $("#jobDes").val(parentMod.jobDes);
+                            $("#cronExpr").val(parentMod.cronExpr);
+                            $("#cronDes").val(parentMod.cronDes);
+                        } break;
+                        default: break;
+                    }
+                }
+
+                //监听提交
+                form.on('submit(saveBtn)', function (data) {
+                    var cmdsstr = ""; //存储选中的transfer
+                    var transfer_check_data = transfer.getData('sub_transfer');
+                    transfer_check_data.forEach(function (item) {
+                        cmdsstr += item.value + ",";
+                    });
+                    data.field.subCmds = cmdsstr.substring(0, cmdsstr.lastIndexOf(','));
+
+                    $.ajax({
+                        type: 'POST',
+                        url: apiUrl, //接口地址
+                        cache: false, //是否使用缓存
+                        dataType: "json",//数据类型
+                        data: data.field,//form数据
+                        success: function (res) {//函数参数 "data" 为请求成功服务端返回的数据
+                            if (res.code == 0) {
+                                layer.msg(res.msg);
+                                layer.close(index);
+                            }
+                        },
+                        //error: function (err) {
+                        //    if (err.status == 401) {
+                        //        parent.location.href = "/home/login";
+                        //    }
+                        //}
+                    });
+                    window.parent.location.reload();
+                    var iframeIndex = parent.layer.getFrameIndex(window.name);
+                    parent.layer.close(iframeIndex);//关闭iframe
+                    //parent.RefreshTable();//刷新父页面表格
+                    return false;
+                });
+            });
+    </script>
+</body>
+</html>

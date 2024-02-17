@@ -1,0 +1,46 @@
+﻿using MongoDB.Bson;
+using MongoDB.Driver;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace MsDataSimulator.Comm
+{
+    public class MongoOperate
+    {
+        private IMongoClient _client;
+        private IMongoDatabase _database;
+
+        public MongoOperate(string ip, string port, string user, string pwd, string name)
+        {
+            #region 使用实例
+            //string _connection = "mongodb://fred:foobar@localhost/baz";
+            //string _database = "baz"; 
+            #endregion
+
+            #region 解决防火墙还是跨域问题？
+            string mongoDbAuthMechanism = "SCRAM-SHA-1";
+            MongoInternalIdentity internalIdentity = new MongoInternalIdentity("admin", user);
+            PasswordEvidence passwordEvidence = new PasswordEvidence(pwd);
+            MongoCredential mongoCredential = new MongoCredential(mongoDbAuthMechanism, internalIdentity, passwordEvidence);
+            List<MongoCredential> credentials = new List<MongoCredential>() { mongoCredential };
+            MongoClientSettings settings = new MongoClientSettings();
+            settings.Credentials = credentials;
+            MongoServerAddress address = new MongoServerAddress(ip);
+            settings.Server = address;
+            #endregion
+
+            _client = new MongoClient(settings);
+            _database = _client.GetDatabase(name);
+        }
+
+        public void DeleteTable(string table)
+        {
+            _database.DropCollection(table);
+        }
+    }
+}

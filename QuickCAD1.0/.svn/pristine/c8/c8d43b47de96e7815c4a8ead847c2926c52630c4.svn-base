@@ -1,0 +1,65 @@
+﻿using Max.BaseKit.Customs;
+using System.Collections.Concurrent;
+
+namespace Max.ISolator.Core
+{
+    /// <summary>
+    /// 隔离器接口
+    /// </summary>
+    public interface IIsolator
+    {
+        /// <summary>
+        /// 隔离器编号
+        /// </summary>
+        string Id { get; set; }
+        /// <summary>
+        /// 生产文件缓存路径
+        /// </summary>
+        string ProduceCachePath { get; set; }
+        /// <summary>
+        /// 是否备份生产文件
+        /// </summary>
+        bool IsBackupProduce { get; set; }
+        /// <summary>
+        /// 生产文件备份路径
+        /// </summary>
+        string ProduceBackupPath { get; set; }
+        /// <summary>
+        /// 数据生产管道大小，用于控制消费并行数
+        /// </summary>
+        int ProduceChannelSize { get; set; }
+        /// <summary>
+        /// 数量大小(单个文件可容纳多少条数据)
+        /// </summary>
+        int ItemSize { get; set; }
+        /// <summary>
+        /// 容积大小(单个文件可容纳多大的数据，单位M)
+        /// </summary>
+        int BulkSize { get; set; }
+        /// <summary>
+        /// 是否压缩数据
+        /// </summary>
+        bool IsZip { get; set; }
+        /// <summary>
+        /// 待生产的文件集
+        /// </summary>
+        CustomConcurrentList<string> WaitProduceFiles { get; set; }
+        /// <summary>
+        /// 正在生产的文件集(队列：先入先出)
+        /// </summary>
+        BlockingCollection<string> ProducingFiles { get; set; }
+        /// <summary>
+        /// 启动隔离器
+        /// </summary>
+        void BootUp();
+        /// <summary>
+        /// 生产数据
+        /// </summary>
+        /// <param name="data"></param>
+        void ProduceData(IsolatorData data);
+        /// <summary>
+        /// 停止隔离器
+        /// </summary>
+        void ShutDown();
+    }
+}

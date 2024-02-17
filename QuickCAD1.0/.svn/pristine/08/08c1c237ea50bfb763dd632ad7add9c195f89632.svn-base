@@ -1,0 +1,493 @@
+﻿using Max.BaseKit;
+using Max.BaseKit.Utils;
+using Max.BaseKit.Exts;
+using IsolatorOrigin.Storage.Entities;
+using Max.ISolator.Core;
+using IsolatorOrigin.Storage;
+using Max.ISolator.Core.Mods;
+using Max.BaseKit.Customs;
+
+namespace IsolatorOrigin.Business
+{
+    /// <summary>
+    /// 任务核心处理逻辑
+    /// </summary>
+    public static class JobKernel
+    {
+        /// <summary>
+        /// 执行日志同步
+        /// </summary>
+        /// <param name="task">生产任务</param>
+        /// <param name="time1">开始时间("yyyy-MM-dd HH:mm:ss")</param>
+        /// <param name="time2">结束时间("yyyy-MM-dd HH:mm:ss")</param>
+        /// <param name="isAuto">是否是自动任务触发(默认true：自动触发)</param>
+        public static void RunSyncLog(ProduceTaskEntity task, string time1, string time2, bool isAuto = true)
+        {
+            if (task == null || string.IsNullOrEmpty(time1) || string.IsNullOrEmpty(time1)) return;
+            try
+            {
+                var dateTime1 = Convert.ToDateTime(time1);
+                var dateTime2 = Convert.ToDateTime(time2);
+                if (dateTime1 > dateTime2) return;
+
+                var datalst = new List<Dictionary<string, object>>();
+                var stime = dateTime1.ToString("yyyyMMddHHmmss");
+                var etime = dateTime2.ToString("yyyyMMddHHmmss");
+                var nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");//当前时间，精确到毫秒
+                int cfbs = isAuto ? 0 : 1;//触发标识(0:自动任务,1:手动任务)
+                var originPath = $"{AppContext.BaseDirectory}logs/";//源头端日志
+                if (Directory.Exists(originPath)) Directory.CreateDirectory(originPath);
+                var originFiles = FileUtil.FindFiles(new DirectoryInfo(originPath), null, "*.log");
+                originFiles?.ForEach(f =>
+                {
+                    if (f.LastWriteTime < dateTime1 || f.LastWriteTime > dateTime2) return;
+                    var tdic = new Dictionary<string, object>();
+                    tdic.Add("FileName", f.Name);//文件名
+                    tdic.Add("FileBase64Str", FileUtil.StreamReadToBase64(f.FullName));//文件base64字符串数据
+                    datalst.Add(tdic);
+                });
+                SyncData(task.Cmd, task.TaskName, "", cfbs, task.CzType, stime, etime, task.Isolators, task.PriorityLevel, nowStr, datalst);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunSyncLog》异常，【{task?.ToJson()}；{time1}；{time2}；{isAuto}】，异常信息：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行时间同步
+        /// Mysql获取数据库系统时间：SELECT NOW() as SystemTime
+        /// Oracle获取数据库系统时间：SELECT SYSDATE AS SystemTime FROM DUAL
+        /// </summary>
+        /// <param name="task">生产任务</param>
+        /// <param name="isAuto">是否是自动任务触发(默认true：自动触发)</param>
+        public static void RunSyncTime(ProduceTaskEntity task, bool isAuto = true)
+        {
+            if (task == null) return;
+            try
+            {
+                int cfbs = isAuto ? 0 : 1;//触发标识(0:自动任务,1:手动任务)
+                var datalst = new List<Dictionary<string, object>>();
+                var nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");//当前时间，精确到毫秒
+                var dbidArry = task.Dbs?.TrimEnd(",")?.Split(',');
+                if (dbidArry == null || dbidArry.Length > 1) //同步本地系统时间
+                {
+                    var tdic = new Dictionary<string, object>();
+                    tdic.Add("SystemTime", SystemUtil.GetSystemTime().ToString("yyyy-MM-dd HH:mm:ss"));//系统时间
+                    datalst.Add(tdic);
+                }
+                else //同步指定数据库系统时间
+                {
+                    using (var dbOperate = DbConfiger.I.GetDbOperaterById(dbidArry[0]))
+                    {
+                        datalst = dbOperate?.QuerySql(task.SqlStr.RemoveWarp());
+                        if (datalst == null || datalst.Count <= 0) return;
+                    }
+                }
+                SyncData(task.Cmd, task.TaskName, "", cfbs, "", "", "", task.Isolators, task.PriorityLevel, nowStr, datalst);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunSyncTime》异常，【{task?.ToJson()}；{isAuto}】，异常信息：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行字符叠加(开启多线程可以同时同步多个数据库，不需要等待)
+        /// 示例(SQL直接过滤掉过期旅客)：SELECT(a.KADM || a.TDH || a.GZZZT || a.CZYDM || a.CZYZCSJ || a.WYBS || d.PJNR) AS ID,(a.KADM || '|' || a.TDH) AS MSTDH, a.GZZZT, a.CZYDM, utl_raw.cast_to_raw(a.CZYXM) AS CZYXM,utl_raw.cast_to_raw(b.BMMC) AS BMMC,c.WYBS,c.ZJHM,utl_raw.cast_to_raw(c.XM) AS XM,c.CSRQ,c.GJDQDM,c.CRRQSJ,utl_raw.cast_to_raw(c.JTGJBS) AS JTGJBS,d.PJNR FROM bj_yw_t_tdssjk a LEFT JOIN bj_yw_t_bmdm b ON b.bmdm = a.zcbm LEFT JOIN bj_yw_t_crjry c ON c.wybs = a.wybs AND c.CRRQSJ >= to_char(SYSDATE - INTERVAL '3' MINUTE , 'yyyyMMddHHmmss') LEFT JOIN bj_yw_t_crjpj d ON d.wybs = a.wybs WHERE a.rq = to_char(SYSDATE, 'yyyymmdd')
+        /// </summary>
+        /// <param name="task">生产任务</param>
+        /// <param name="dbid">数据库id</param>
+        public static void RunSetChar(ProduceTaskEntity task, string dbid)
+        {
+            Task.Factory.StartNew(() =>
+            {
+                if (task == null || string.IsNullOrEmpty(dbid)) return;
+                try
+                {
+                    string runTime = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                    var db = ConfigCacher.I.UseDbCacher.Find(t => dbid.Equals(t.Id));
+                    if (db == null) return;
+
+                    List<Dictionary<string, object>> datalst = default;
+                    using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                    {
+                        datalst = dbOperate?.QuerySql(task.SqlStr);
+                    }
+                    if (datalst == null || datalst.Count <= 0) return;
+
+                    var tlst = new List<Dictionary<string, object>>();
+                    #region 过滤掉缓存中未发生变化的数据
+                    datalst?.ForEach(dic =>
+                    {
+                        try
+                        {
+                            dic.TryGetValue("MSTDH", out var mstdh);//梅沙通道号("口岸代码|通道号")
+                            bool flag = CacheHelper.CheckDataChanged((string)mstdh, dic);//缓存中数据是否发生变化
+                            if (flag) tlst.Add(dic);
+                            CacheHelper.UpdateCacheData((string)mstdh, dic, null);//源头端设置为永不过期 
+                        }
+                        catch (Exception ex)
+                        {
+                            NLogger.Warn($"分析字符叠加数据{dic.ToJson()}异常，异常信息：{ex.Message}");
+                        }
+                    });
+                    #endregion
+                    if (tlst.Count <= 0) return;
+
+                    SyncData(task.Cmd, task.TaskName, db.Cddm, 0, task.CzType, "0", "0", task.Isolators, task.PriorityLevel, runTime, tlst);
+                }
+                catch (Exception ex)
+                {
+                    NLogger.Error($"RunSetChar异常，参数：【{task?.ToJson()}】，异常信息：{ex.Message}");
+                }
+            });
+        }
+
+        /// <summary>
+        /// 执行数据同步
+        /// </summary>
+        /// <param name="task">子任务</param>
+        /// <param name="db">数据库</param>
+        /// <param name="time1">开始时间("yyyy-MM-dd HH:mm:ss")</param>
+        /// <param name="time2">结束时间("yyyy-MM-dd HH:mm:ss")</param>
+        /// <param name="isAuto">是否是自动任务触发(默认true：自动触发)</param>
+        public static void RunDataSync(ProduceTaskEntity task, UseDbEntity db, string time1, string time2, bool isAuto = true)
+        {
+            int cfbs = isAuto ? 0 : 1;//触发标识(0:自动任务,1:手动任务)
+            string dkbs = isAuto ? "" : "DK";//大库标识(""：小表；"DK"：DK表)
+            switch (task.TaskType)
+            {
+                case "ACG": //A类常规任务：无参数，全表查询
+                    RunAJob(task, db, cfbs);
+                    break;
+                case "ADK": //A类大库任务：[DK标识]，全表查询
+                    RunAJob(task, db, cfbs, dkbs);
+                    break;
+                case "CCG": //C类常规任务：[开始时间,结束时间]，时间段查询
+                    RunCJob(task, db, cfbs, time1, time2);
+                    break;
+                case "CDK": //C类大库任务：[DK标识,开始时间,结束时间]，区分DK的时间段查询
+                    RunCJob(task, db, cfbs, time1, time2, dkbs);
+                    break;
+                case "TCG": //T类常规任务：[统计维度,开始时间,结束时间]，时间段统计
+                    {
+                        var tjlxs = task.CutType.Split(',').ToList();//统计类型集
+                        if (tjlxs.Contains("Y")) RunTJob(task, db, cfbs, "Y", TimeSection(time1, time2, "", "Y"));//年统计，不需要切片
+                        if (tjlxs.Contains("M")) RunTJob(task, db, cfbs, "M", TimeSection(time1, time2, "Y", "M"));//月统计，按年切片
+                        if (tjlxs.Contains("D")) RunTJob(task, db, cfbs, "D", TimeSection(time1, time2, "M", "D"));//天统计，按月切片
+                        if (tjlxs.Contains("H")) RunTJob(task, db, cfbs, "H", TimeSection(time1, time2, "D", "H"));//时统计，按天切片
+                    }
+                    break;
+                case "TDK": //T类大库任务：[DK标识,统计维度,开始时间,结束时间]，区分DK的时间段统计
+                    {
+                        var tjlxs = task.CutType.Split(',').ToList();//统计类型集
+                        if (tjlxs.Contains("Y")) RunTJob(task, db, cfbs, "Y", TimeSection(time1, time2, "", "Y"), dkbs);//年统计，不需要切片
+                        if (tjlxs.Contains("M")) RunTJob(task, db, cfbs, "M", TimeSection(time1, time2, "Y", "M"), dkbs);//月统计，按年切片
+                        if (tjlxs.Contains("D")) RunTJob(task, db, cfbs, "D", TimeSection(time1, time2, "M", "D"), dkbs);//天统计，按月切片
+                        if (tjlxs.Contains("H")) RunTJob(task, db, cfbs, "H", TimeSection(time1, time2, "D", "H"), dkbs);//时统计，按天切片
+                    }
+                    break;
+                case "LIS": //LIS表任务：[开始时间,结束时间]，时间段查询
+                    RunLisJob(task, db, cfbs, time1, time2);
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 运行A类任务
+        /// </summary>
+        /// <param name="task">子任务</param>
+        /// <param name="db">数据库</param>
+        /// <param name="cfbs">触发标识(0:自动任务,1:手动任务)</param>
+        /// <param name="dkbs">大库标识，非必填，为null时是常规，不为空时是大库</param>
+        private static void RunAJob(ProduceTaskEntity task, UseDbEntity db, int cfbs, string dkbs = "")
+        {
+            try
+            {
+                NLogger.Debug($"A类{task.Cmd}执行{cfbs}的{dkbs}任务");
+                string sqlstr = task.SqlStr;//sql语句
+                sqlstr = string.IsNullOrEmpty(dkbs) ? string.Format(sqlstr) : string.Format(sqlstr, dkbs);
+                List<Dictionary<string, object>> datalst = default;
+                using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                {
+                    datalst = dbOperate?.QuerySql(sqlstr);
+                }
+                if (datalst == null || datalst.Count <= 0) return;
+                string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                SyncData(task.Cmd, task.TaskName, db.Cddm, cfbs, task.CzType, "0", "0", task.Isolators, task.PriorityLevel, nowStr, datalst);
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunAJob>>{task?.ToJson()}任务{cfbs}采集{db?.ToJson()}异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 运行C类任务
+        /// </summary>
+        /// <param name="task">子任务</param>
+        /// <param name="db">数据库</param>
+        /// <param name="cfbs">触发标识(0:自动任务,1:手动任务)</param>
+        /// <param name="time1">开始时间</param>
+        /// <param name="time2">结束时间</param>
+        /// <param name="dkbs">大库标识，非必填，为null时是C类常规，不为空时是C类大库</param>
+        private static void RunCJob(ProduceTaskEntity task, UseDbEntity db, int cfbs, string time1, string time2, string dkbs = "")
+        {
+            try
+            {
+                List<Tuple<string, string>> timeTuples = TimeSection(time1, time2, task.CutType, "");//时间切片
+                NLogger.Info($"C类常规{task.Cmd}执行{cfbs}的{dkbs}任务:{time1}-{time2}划分{timeTuples?.Count}个区间。");
+                if (timeTuples == null || timeTuples.Count <= 0) return;
+                foreach (var item in timeTuples)
+                {
+                    string stime = item.Item1;//开始时间
+                    string etime = item.Item2;//结束时间
+                    try
+                    {
+                        NLogger.Debug($"C类{task.Cmd}执行{cfbs}的{dkbs}任务,查询时间{stime}-{etime}");
+                        string sqlstr = task.SqlStr;//sql语句
+                        sqlstr = string.IsNullOrEmpty(dkbs) ? string.Format(sqlstr, stime, etime) : string.Format(sqlstr, dkbs, stime, etime);
+                        List<Dictionary<string, object>> datalst = default;
+                        using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                        {
+                            datalst = dbOperate?.QuerySql(sqlstr);
+                        }
+                        if (datalst == null || datalst.Count <= 0) continue;
+                        string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                        SyncData(task.Cmd, task.TaskName, db.Cddm, cfbs, task.CzType, stime, etime, task.Isolators, task.PriorityLevel, nowStr, datalst);
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"RunCJob>>{task.Cmd}-{task.TaskName}任务{cfbs}执行{stime}-{etime}异常：{ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunCJob>>{task?.ToJson()}任务{cfbs}执行异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 运行T类任务
+        /// </summary>
+        /// <param name="task">子任务</param>
+        /// <param name="db">数据库</param>
+        /// <param name="cfbs">触发标识(0:自动任务,1:手动任务)</param>
+        /// <param name="timeTuples">时间切片[{开始时间,结束时间}]</param>
+        /// <param name="dkbs">大库标识，非必填，为null时是T类常规，不为空时是T类大库</param>
+        private static void RunTJob(ProduceTaskEntity task, UseDbEntity db, int cfbs, string tjlx, List<Tuple<string, string>> timeTuples, string dkbs = "")
+        {
+            try
+            {
+                if (timeTuples == null || timeTuples.Count <= 0) return;
+                foreach (var item in timeTuples)
+                {
+                    string stime = item.Item1;//开始时间
+                    string etime = item.Item2;//结束时间
+                    try
+                    {
+                        NLogger.Debug($"T类{task.Cmd}执行{cfbs}任务,查询时间{stime}-{etime}");
+                        string sqlstr = task.SqlStr;//sql语句
+                        int tjlxNum = LxToNum(tjlx);//统计类型(数字)
+                        sqlstr = string.IsNullOrEmpty(dkbs) ? string.Format(sqlstr, tjlxNum, stime, etime) : string.Format(sqlstr, dkbs, tjlxNum, stime, etime);
+                        List<Dictionary<string, object>> datalst = default;
+                        using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                        {
+                            datalst = dbOperate?.QuerySql(sqlstr);
+                        }
+                        if (datalst == null || datalst.Count <= 0) continue;
+                        string nowStr = DateTime.Now.ToString("yyyyMMddHHmmssffffff");
+                        SyncData(task.Cmd, task.TaskName, db.Cddm, cfbs, task.CzType, stime, etime, task.Isolators, task.PriorityLevel, nowStr, datalst);
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"RunTJob>>{task.Cmd}-{task.TaskName}任务{cfbs}执行{stime}-{etime}异常：{ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunTJob>>{task.Cmd}-{task.TaskName}任务{cfbs}执行异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 运行LIS类任务
+        /// SQL语句："SELECT a.WYBS,a.BGYY,a.CRRQSJ AS YCRRQSJ,b.* FROM BJ_YW_T_CRJRYLIS a LEFT JOIN BJ_YW_T_CRJRY b ON b.WYBS =a.WYBS WHERE a.BGCZSJ >='{0}' AND a.BGCZSJ <='{1}'"
+        /// </summary>
+        /// <param name="task">子任务</param>
+        /// <param name="db">数据库</param>
+        /// <param name="cfbs">触发标识(0:自动任务,1:手动任务)</param>
+        /// <param name="time1">开始时间</param>
+        /// <param name="time2">结束时间</param>
+        private static void RunLisJob(ProduceTaskEntity task, UseDbEntity db, int cfbs, string time1, string time2)
+        {
+            try
+            {
+                List<Tuple<string, string>> timeTuples = TimeSection(time1, time2, task.CutType, "");//时间切片
+                NLogger.Info($"LIS类{task.Cmd}执行{cfbs}任务:{time1}-{time2}划分{timeTuples?.Count}个区间。");
+                if (timeTuples == null || timeTuples.Count <= 0) return;
+                foreach (var item in timeTuples)
+                {
+                    string stime = item.Item1;//开始时间
+                    string etime = item.Item2;//结束时间
+                    try
+                    {
+                        NLogger.Debug($"CLIS类类{task.Cmd}执行{cfbs}任务,查询时间{stime}-{etime}");
+                        string sqlstr = task.SqlStr;//sql语句
+                        sqlstr = string.Format(sqlstr, stime, etime);
+                        List<Dictionary<string, object>> datalst = default;
+                        using (var dbOperate = DbConfiger.I.GetDbOperaterById(db.Id))
+                        {
+                            datalst = dbOperate?.QuerySql(sqlstr);
+                        }
+                        if (datalst == null || datalst.Count <= 0) continue;
+
+                        LisYwHelper.I.ExecuteLisDataHandle(task, db, cfbs, stime, etime, datalst);
+                    }
+                    catch (Exception ex)
+                    {
+                        NLogger.Error($"RunLisJob>>{task.Cmd}-{task.TaskName}任务{cfbs}执行{stime}-{etime}异常：{ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"RunLisJob>>{task?.ToJson()}任务{cfbs}执行异常：{ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 同步数据
+        /// </summary>
+        /// <param name="cmd">命令码</param>
+        /// <param name="rwmc">任务名称</param>
+        /// <param name="cddm">场地代码(用于区分数据来源)</param>
+        /// <param name="cfbs">触发标识(0:自动任务,1:手动任务)</param>
+        /// <param name="czlx">操作类型</param>
+        /// <param name="stime">开始时间</param>
+        /// <param name="etime">结束时间</param>
+        /// <param name="glqs">隔离器集合(网闸、串口、串口服务器)</param>
+        /// <param name="level">优先级</param>
+        /// <param name="runTime">运行时间</param>
+        /// <param name="datalst">数据</param>
+        public static void SyncData(string cmd, string rwmc, string cddm, int cfbs, string czlx, string stime, string etime, string glqs, int level, string runTime, List<Dictionary<string, object>> datalst)
+        {
+            if (string.IsNullOrEmpty(glqs) || datalst == null || datalst.Count <= 0) return;
+            var tdata = new IsolatorData()
+            {
+                Id = Guid.NewGuid().ToString("N"),
+                Cmd = cmd,
+                Rwmc = rwmc,
+                Cddm = cddm,
+                Cfbs = cfbs,
+                Czlx = czlx,
+                Stime = stime,
+                Etime = etime,
+                Lst = datalst,
+                IsolatorId = glqs,
+                Level = level,
+                Rtime = runTime
+            };
+            var ids = glqs.Split(',').ToList(); //隔离器Id集合
+            ids?.ForEach(id =>
+            {
+                MaxIsolator.I.IIsolator_Dic.TryGetValue(id, out var isolator);
+                if (isolator != null) isolator.ProduceData(tdata);
+            });
+        }
+
+        /// <summary>
+        /// 统计类型转数字
+        /// </summary>
+        /// <param name="lx"></param>
+        /// <returns></returns>
+        public static int LxToNum(this string lx)
+        {
+            return lx.Equals("H") ? 10 : lx.Equals("D") ? 8 : lx.Equals("M") ? 6 : lx.Equals("Y") ? 4 : 0;
+        }
+
+        /// <summary>
+        /// 统计数字转类型
+        /// </summary>
+        /// <param name="num"></param>
+        /// <returns></returns>
+        public static string NumToLx(this int num)
+        {
+            return num == 10 ? "H" : num == 8 ? "D" : num == 6 ? "M" : num == 4 ? "Y" : "";
+        }
+
+        /// <summary>
+        /// 时间切片
+        /// </summary>
+        /// <param name="time1">开始时间</param>
+        /// <param name="time2">结束时间</param>
+        /// <param name="stype">切片类型(Y/M/D/H:年/月/日/时)</param>
+        /// <param name="ttype">统计类型(Y/M/D/H:年/月/日/时),为空是说明不是统计任务切片</param>
+        private static List<Tuple<string, string>> TimeSection(string time1, string time2, string stype, string ttype)
+        {
+            List<Tuple<string, string>> tuples = new List<Tuple<string, string>>();
+            try
+            {
+                //DateTime dt1 = DateTime.ParseExact(time1, "yyyyMMddHHmmss", CultureInfo.CurrentCulture);
+                //DateTime dt2 = DateTime.ParseExact(time2, "yyyyMMddHHmmss", CultureInfo.CurrentCulture);
+                DateTime dt1 = Convert.ToDateTime(time1);
+                DateTime dt2 = Convert.ToDateTime(time2);
+                if (dt1 > dt2) return tuples;
+
+                int sTotal = TimeUtil.GetSectionTotal(stype, dt1, dt2);//切片数量
+                if (sTotal > 0)
+                {
+                    if (sTotal == 1)
+                    {
+                        string stime = dt1.ToString("yyyyMMddHHmmss");
+                        string etime = dt2.ToString("yyyyMMddHHmmss");
+                        tuples.Add(new Tuple<string, string>(stime, etime));
+                    }
+                    else
+                    {
+                        for (int i = 0; i < sTotal; i++)
+                        {
+                            if (i == 0) //第一片
+                            {
+                                string stime = string.IsNullOrEmpty(ttype) ? dt1.ToString("yyyyMMddHHmmss") : TimeUtil.GetStartTime(ttype, dt1);
+                                string etime = TimeUtil.GetEndTime(stype, dt1);
+                                tuples.Add(new Tuple<string, string>(stime, etime));
+                            }
+                            else if (i == sTotal - 1) //最后一片
+                            {
+                                string stime = TimeUtil.GetStartTime(stype, dt2);
+                                string etime = string.IsNullOrEmpty(ttype) ? dt2.ToString("yyyyMMddHHmmss") : TimeUtil.GetEndTime(ttype, dt2);
+                                tuples.Add(new Tuple<string, string>(stime, etime));
+                            }
+                            else //第N片
+                            {
+                                DateTime tdt = default;
+                                switch (stype)
+                                {
+                                    case "Y": tdt = dt1.AddYears(i); break;
+                                    case "M": tdt = dt1.AddMonths(i); break;
+                                    case "D": tdt = dt1.AddDays(i); break;
+                                    case "H": tdt = dt1.AddHours(i); break;
+                                    default: tdt = dt1; break;
+                                }
+                                string stime = TimeUtil.GetStartTime(stype, tdt);
+                                string etime = TimeUtil.GetEndTime(stype, tdt);
+                                tuples.Add(new Tuple<string, string>(stime, etime));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                NLogger.Error($"TimeSection>>{time1}-{time2}-{stype}，时间切片异常：{ex.Message}");
+            }
+            return tuples;
+        }
+    }
+}

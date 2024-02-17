@@ -1,0 +1,69 @@
+﻿using Max.BaseKit.Exts;
+using DataSyncSource.Config;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
+using DataSyncSource.Config.Entities;
+using System.Linq;
+using DataSyncSource.Comm;
+using Max.ISolator.Core;
+
+namespace DataSyncSource.UseData.Services
+{
+    /// <summary>
+    /// MS调度任务服务:命令码【254】
+    /// </summary>
+    public class MsJobService : MaxIService
+    {
+        /// <summary>
+        /// 服务标识：C代表命令
+        /// </summary>
+        public string Tag { get; set; } = "C";
+        public string ServiceName { get; set; } = "MsJobService";
+
+        /// <summary>
+        /// 消费数据
+        /// </summary>
+        /// <param name="idata"></param>
+        public void ConsumeData(IsolatorData idata)
+        {
+            List<CronJob> jobs = new List<CronJob>();
+            string[] cmds = new string[1];
+            string stime = string.Empty;
+            string etime = string.Empty;
+
+            #region GA端通知MS端执行手动同步
+            Task.Factory.StartNew(async () =>
+            {
+                var slim = new SemaphoreSlim(cmds.Length);
+                foreach (var cmd in cmds)
+                {
+                    await slim.WaitAsync();
+                    Task.Factory.StartNew(() =>
+                    {
+                        foreach (var job in jobs)
+                        {
+                            Task.Factory.StartNew(() =>
+                            {
+                                //var service = ReflectUtil.GetClassObject(job.JobType) as IScheduleService;
+                                //var zrws = SubTaskManger.Instance.SelectForJobId(job.JobName);
+                                //var use_zrws = zrws.Select(p => cmds.Contains(p.Cmd)).ToList();//有效的子任务
+                                //foreach (var zrw in zrws)
+                                //{
+                                //    string[] _ids = zrw.Dbs.Split(',');
+                                //    foreach (string dbid in _ids)
+                                //    {
+                                //        service?.RunSD(zrw.Cmd, dbid, zrw.Rwlx, stime, etime);
+                                //    }
+                                //}
+                            });
+                        }
+                        slim.Release();
+                    }).Employ();
+                }
+            });
+            #endregion
+        }
+    }
+}

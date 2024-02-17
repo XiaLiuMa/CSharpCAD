@@ -1,0 +1,41 @@
+﻿namespace SetCharLib.Mod
+{
+    /// <summary>
+    /// 坐标信息实体类
+    /// </summary>
+    public class ZBXX
+    {
+        /// <summary>
+        /// 第1行X坐标
+        /// </summary>
+        public int Line1X { get; set; }
+        /// <summary>
+        /// 第1行Y坐标
+        /// </summary>
+        public int Line1Y { get; set; }
+        /// <summary>
+        /// 第2行X坐标
+        /// </summary>
+        public int Line2X { get; set; }
+        /// <summary>
+        /// 第2行Y坐标
+        /// </summary>
+        public int Line2Y { get; set; }
+        /// <summary>
+        /// 第3行X坐标
+        /// </summary>
+        public int Line3X { get; set; }
+        /// <summary>
+        /// 第3行Y坐标
+        /// </summary>
+        public int Line3Y { get; set; }
+        /// <summary>
+        /// 第4行X坐标
+        /// </summary>
+        public int Line4X { get; set; }
+        /// <summary>
+        /// 第4行Y坐标
+        /// </summary>
+        public int Line4Y { get; set; }
+    }
+}

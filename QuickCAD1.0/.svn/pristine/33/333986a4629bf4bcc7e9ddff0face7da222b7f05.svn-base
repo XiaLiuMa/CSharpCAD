@@ -1,0 +1,46 @@
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Drawing;
+using System.Data;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+using MsDataSimulator.Jobs;
+
+namespace MsDataSimulator.Views.UserPanels
+{
+    public partial class LabPanel : UserControl
+    {
+        #region 自定义属性
+        private string mTitle = "标题";
+        [Category("外观"), Browsable(true), Description("标题")]
+        public string MTitle
+        {
+            get { return mTitle; }
+            set { mTitle = value; }
+        }
+        #endregion
+
+        public LabPanel()
+        {
+            InitializeComponent();
+        }
+
+        private void LablePanel_Load(object sender, EventArgs e)
+        {
+            this.labBM.Text = this.mTitle;
+        }
+
+        /// <summary>
+        /// 文字内容修改事件
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void tBoxBM_TextChanged(object sender, EventArgs e)
+        {
+            this.tBoxMsg.BackColor = Color.FromArgb(UnitData.Instance.NUM(1, 255), UnitData.Instance.NUM(1, 255), UnitData.Instance.NUM(1, 255));
+        }
+    }
+}

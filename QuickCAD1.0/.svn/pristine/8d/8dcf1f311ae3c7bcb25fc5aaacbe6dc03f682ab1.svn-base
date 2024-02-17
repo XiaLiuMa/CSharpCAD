@@ -1,0 +1,130 @@
+﻿//using System.Linq;
+//using DataSyncTarget.Comm;
+//using DataSyncTarget.Config;
+//using Microsoft.AspNetCore.Mvc;
+//using System.Collections.Generic;
+//using DataSyncTarget.Config.Entities;
+
+//namespace DataSyncTarget.WebApi
+//{
+//    /// <summary>
+//    /// 用户管理
+//    /// </summary>
+//    [Route("app/user/[action]")]
+//    public class UserController : Controller
+//    {
+//        /// <summary>
+//        /// 进入登录界面
+//        /// </summary>
+//        /// <returns></returns>
+//        [HttpGet]
+//        public ActionResult tologin()
+//        {
+//            return new RedirectResult($@"/user/login.html"); //页面跳转
+//        }
+
+//        /// <summary>
+//        /// 用户登陆
+//        /// </summary>
+//        /// <param name="uname"></param>
+//        /// <param name="pwd"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult login(string uname, string pwd)
+//        {
+//            var user = dal.Select($" Uname like '{uname}' and Pword like '{pwd}'")?.FirstOrDefault();
+//            bool flag = (user != null) ? true : false;
+//            if (user == null) return Json(flag);    //登录失败
+
+//            string token = UserCacher.SetCache(this.HttpContext, user.Uname, user.Pword); //设置用户缓存
+//            return Json(token);//登录成功，返回token字符串
+//        }
+
+//        /// <summary>
+//        /// 退出登陆
+//        /// </summary>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult logout()
+//        {
+//            string token = this.HttpContext.Request.Headers["Authorization"];//获取授权Token
+//            UserCacher.RemoveCache(token);
+//            return Json(true);
+//        }
+
+//        /// <summary>
+//        /// 查询用户数据
+//        /// </summary>
+//        /// <param name="uname"></param>
+//        /// <param name="page"></param>
+//        /// <param name="rows"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult query(string uname, string page, string rows)
+//        {
+//            int count = 0;
+//            List<User> list = new List<User>();
+//            list = dal.Select($" Uname like '{uname}'");
+//            if (list == null) { list = new List<User>(); }
+//            count = list.Count;
+//            list = list.Take(int.Parse(page) * int.Parse(rows)).Skip(int.Parse(rows) * (int.Parse(page) - 1)).ToList();
+//            Dictionary<string, object> dic = new Dictionary<string, object>();
+//            dic.Add("total", count);
+//            dic.Add("rows", list);
+//            return Json(dic);
+//        }
+
+//        /// <summary>
+//        /// 新增用户数据
+//        /// </summary>
+//        /// <param name="uname"></param>
+//        /// <param name="pwd"></param>
+//        /// <param name="permissions"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult add(string uname, string pwd, string permissions)
+//        {
+//            User user = new User()
+//            {
+//                Uname = uname,
+//                Pword = pwd,
+//                Permissions = permissions
+//            };
+//            return Content(dal.Add(user).ToString());
+//        }
+
+//        /// <summary>
+//        /// 修改用户数据
+//        /// </summary>
+//        /// <param name="id"></param>
+//        /// <param name="uname"></param>
+//        /// <param name="pwd"></param>
+//        /// <param name="permissions"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult alert(string id, string uname, string pwd, string permissions)
+//        {
+//            User user = new User()
+//            {
+//                Id = id,
+//                Uname = uname,
+//                Pword = pwd,
+//                Permissions = permissions
+//            };
+//            return Content(dal.Update(user).ToString());
+//        }
+
+//        /// <summary>
+//        /// 删除用户数据
+//        /// </summary>
+//        /// <param name="id"></param>
+//        /// <returns></returns>
+//        [HttpPost]
+//        public ActionResult delect(string ids)
+//        {
+//            string[] idArray = ids.Split(',');
+//            var flag = dal.Delete(idArray);
+//            return Json(flag);
+//        }
+//    }
+//}

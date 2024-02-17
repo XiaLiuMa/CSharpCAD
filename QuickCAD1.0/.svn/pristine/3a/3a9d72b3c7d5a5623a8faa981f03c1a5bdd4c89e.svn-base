@@ -1,0 +1,19 @@
+﻿using Max.ISolator.Core;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Max.ISolator.Core.Syncers
+{
+    /// <summary>
+    /// 同步助手
+    /// </summary>
+    public interface AbsSyncer
+    {
+        /// <summary>
+        /// 同步数据
+        /// </summary>
+        /// <param name="data"></param>
+        void SyncData(IsolatorData data);
+    }
+}

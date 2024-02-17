@@ -1,0 +1,25 @@
+﻿namespace IsolatorOrigin.Storage.Entities
+{
+    /// <summary>
+    /// 网闸实体
+    /// </summary>
+    public class GatekeeperEntity
+    {
+        /// <summary>
+        /// 主键Id
+        /// </summary>
+        public string Id { get; set; }
+        /// <summary>
+        /// 生成路径
+        /// </summary>
+        public string BuildPath { get; set; }
+        /// <summary>
+        ///  同步路径
+        /// </summary>
+        public string SyncPath { get; set; }
+        /// <summary>
+        ///  扫描路径
+        /// </summary>
+        public string ScanPath { get; set; }
+    }
+}
